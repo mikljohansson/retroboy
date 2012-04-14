@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">1-Bit Camera</string>
+
+    <string name="btn_take_photo">Take Photo</string>
+    <string name="btn_attach_image">Attach Image</string>
+    
+    <string name="hlp_image_content_description">1-Bit processed image</string>
+</resources>
