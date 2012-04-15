@@ -1,3 +1,7 @@
+/*
+ * Binarization filter using Otsu's method
+ */
+
 #pragma version(1)
 #pragma rs java_package_name(se.embargo.onebit.filter)
 
@@ -85,6 +89,6 @@ void filter() {
 	rsForEach(gScript, gIn, gOut, &usrData);
 
 	int64_t t3 = rsUptimeMillis();
-	rsDebug("Otsu binarization in (ms)", t3 - t2);
-	rsDebug("Filtered image in (ms)", t3 - t1);
+	rsDebug("Otsu binarization filter in (ms)", t3 - t2);
+	rsDebug("Otsu filter in (ms)", t3 - t1);
 }

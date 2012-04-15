@@ -10,7 +10,9 @@ import se.embargo.core.databinding.WidgetProperties;
 import se.embargo.core.databinding.observable.IObservableValue;
 import se.embargo.core.databinding.observable.WritableValue;
 import se.embargo.core.graphics.Bitmaps;
-import se.embargo.onebit.filter.ScriptC_otsu;
+import se.embargo.onebit.filter.AtkinsonFilter;
+import se.embargo.onebit.filter.BayerFilter;
+import se.embargo.onebit.filter.IBitmapFilter;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -19,8 +21,6 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.renderscript.Allocation;
-import android.renderscript.RenderScript;
 import android.widget.ImageView;
 
 import com.actionbarsherlock.app.SherlockActivity;
@@ -31,23 +31,19 @@ import com.actionbarsherlock.view.MenuItem;
 public class MainActivity extends SherlockActivity {
 	private static final int CAMERA_RESPONSE_CODE = 1;
 	private static final int GALLERY_RESPONSE_CODE = 2;
-
-	private RenderScript _renderContext;
-	private ScriptC_otsu _filterScript;
 	
 	private DataBindingContext _binding = new DataBindingContext();
 	private IObservableValue<Bitmap> _image = new WritableValue<Bitmap>();
 	private Uri _imageuri = null;
 
+	private IBitmapFilter _filter;
+	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
         setContentView(R.layout.main);
-        
-        // Setup the renderscript filters
-        _renderContext = RenderScript.create(this);
-        _filterScript = new ScriptC_otsu(_renderContext, getResources(), R.raw.otsu);
+        _filter = new AtkinsonFilter(this);
         
 		final ImageView imageview = (ImageView)findViewById(R.id.image);
 		_binding.bindValue(
@@ -83,25 +79,10 @@ public class MainActivity extends SherlockActivity {
     }
 
     private void filterImage(File file) {
-		Bitmap input = Bitmaps.decodeStream(file, 1024, 1024);
+		Bitmap input = Bitmaps.decodeStream(file, 480, 320);
 		
 		if (input != null && input.getConfig() != null) {
-			Bitmap output = Bitmap.createBitmap(
-				input.getWidth(), input.getHeight(), input.getConfig());
-			
-	        Allocation inputbuf = Allocation.createFromBitmap(
-	        	_renderContext, input, 
-	        	Allocation.MipmapControl.MIPMAP_NONE, 
-	        	Allocation.USAGE_SCRIPT);
-	        Allocation outputbuf = Allocation.createTyped(
-	        	_renderContext, inputbuf.getType());
-
-	        _filterScript.set_gIn(inputbuf);
-	        _filterScript.set_gOut(outputbuf);
-	        _filterScript.set_gScript(_filterScript);
-	        _filterScript.invoke_filter();
-	        
-	        outputbuf.copyTo(output);
+			Bitmap output = _filter.apply(input);
 	        _image.setValue(output);
 		}
     }
