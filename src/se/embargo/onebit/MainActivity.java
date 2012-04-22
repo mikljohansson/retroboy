@@ -11,7 +11,6 @@ import se.embargo.core.databinding.observable.IObservableValue;
 import se.embargo.core.databinding.observable.WritableValue;
 import se.embargo.core.graphics.Bitmaps;
 import se.embargo.onebit.filter.AtkinsonFilter;
-import se.embargo.onebit.filter.BayerFilter;
 import se.embargo.onebit.filter.IBitmapFilter;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -62,7 +61,9 @@ public class MainActivity extends SherlockActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
     	switch (item.getItemId()) {
             case R.id.takePhoto: {
-            	takePhoto();
+            	//takePhoto();
+                Intent intent = new Intent(this, CameraActivity.class);
+                startActivity(intent);
 	            return true;
             }
 
