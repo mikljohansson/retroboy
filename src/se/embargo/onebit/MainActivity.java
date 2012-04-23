@@ -10,7 +10,7 @@ import se.embargo.core.databinding.WidgetProperties;
 import se.embargo.core.databinding.observable.IObservableValue;
 import se.embargo.core.databinding.observable.WritableValue;
 import se.embargo.core.graphics.Bitmaps;
-import se.embargo.onebit.filter.AtkinsonFilter;
+import se.embargo.onebit.filter.BayerFilter;
 import se.embargo.onebit.filter.IBitmapFilter;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -42,7 +42,7 @@ public class MainActivity extends SherlockActivity {
         super.onCreate(savedInstanceState);
         
         setContentView(R.layout.main);
-        _filter = new AtkinsonFilter(this);
+        _filter = new BayerFilter(this);
         
 		final ImageView imageview = (ImageView)findViewById(R.id.image);
 		_binding.bindValue(
@@ -80,7 +80,7 @@ public class MainActivity extends SherlockActivity {
     }
 
     private void filterImage(File file) {
-		Bitmap input = Bitmaps.decodeStream(file, 480, 320);
+		Bitmap input = Bitmaps.decodeStream(file, 320, 240);
 		
 		if (input != null && input.getConfig() != null) {
 			Bitmap output = _filter.apply(input);
