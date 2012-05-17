@@ -1,5 +1,6 @@
 
 syntax: regexp
 ^bin$
-syntax: regexp
-^res/raw$
+
+syntax: glob
+res/raw/*.bc

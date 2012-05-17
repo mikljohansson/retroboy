@@ -25,7 +25,7 @@ public class CameraActivity extends SherlockActivity {
 			Camera.CameraInfo info = new Camera.CameraInfo();
 			Camera.getCameraInfo(i, info);
 			
-			if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+			if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
 				_cameraid = i;
 				break;
 			}
@@ -44,7 +44,18 @@ public class CameraActivity extends SherlockActivity {
     protected void onResume() {
 		if (_cameraid >= 0) {
 	        _camera = Camera.open(_cameraid);
-			_renderer.setCamera(_camera);
+			
+	        // Select the smallest available preview size for performance reasons
+	        Camera.Size previewSize = null;
+	        for (Camera.Size size : _camera.getParameters().getSupportedPreviewSizes()) {
+	        	if (previewSize == null || size.width < previewSize.width) {
+	        		previewSize = size;
+	        	}
+	        }
+	        _camera.getParameters().setPreviewSize(previewSize.width, previewSize.height);
+	        
+	        // Start the preview
+	        _renderer.setCamera(_camera);
 		}
         
 		super.onResume();

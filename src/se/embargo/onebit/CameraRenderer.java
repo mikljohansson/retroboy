@@ -22,7 +22,9 @@ import android.opengl.Matrix;
 import android.util.Log;
 
 public class CameraRenderer implements GLSurfaceView.Renderer, OnFrameAvailableListener {
-    private final float[] _vertices = {
+    private static final int TARGET_WIDTH = 480;
+	
+	private final float[] _vertices = {
         // X, Y, Z, U, V
     	-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,		// Top left
     	 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,		// Top right
@@ -39,13 +41,13 @@ public class CameraRenderer implements GLSurfaceView.Renderer, OnFrameAvailableL
     private FloatBuffer _vertexbuf;
     
     private int _program;
-    private int _previewTextureHandle;
+    private int _previewTextureHandle, _previewTextureLocation;
     private SurfaceTexture _previewTexture;
     private boolean _updateSurface = false;
     
     private int muMVPMatrixHandle;
     private int maPositionHandle;
-    private int maTextureHandle;
+    private int maTextureCoordHandle;
     private int muSTMatrixHandle;
     private int muCRatioHandle;
 
@@ -55,16 +57,21 @@ public class CameraRenderer implements GLSurfaceView.Renderer, OnFrameAvailableL
     private float[] mProjMatrix = new float[16];
     
     private Camera _camera = null;
-    private Camera.Size _previewsize;
+    private Camera.Size _previewSize;
+    private int[] _targetSize;
+    private int _targetSizeLocation;
 
-    private int _thresholdTextureHandle;
-    private Buffer _thresholdTexture = ByteBuffer.wrap(new byte[] {
-    	0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46, 6, 38, 60, 28, 52, 20, 62, 30, 54, 22, 3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27, 49, 17, 57, 25, 15, 47, 7, 39, 13, 45, 5, 37, 63, 31, 55, 23, 61, 29, 53, 21
-    	//0, 0, 0, 32, 0, 0, 8, 0, 0, 40, 0, 0, 2, 0, 0, 34, 0, 0, 10, 0, 0, 42, 0, 0, 48, 0, 0, 16, 0, 0, 56, 0, 0, 24, 0, 0, 50, 0, 0, 18, 0, 0, 58, 0, 0, 26, 0, 0, 12, 0, 0, 44, 0, 0, 4, 0, 0, 36, 0, 0, 14, 0, 0, 46, 0, 0, 6, 0, 0, 38, 0, 0, 60, 0, 0, 28, 0, 0, 52, 0, 0, 20, 0, 0, 62, 0, 0, 30, 0, 0, 54, 0, 0, 22, 0, 0, 3, 0, 0, 35, 0, 0, 11, 0, 0, 43, 0, 0, 1, 0, 0, 33, 0, 0, 9, 0, 0, 41, 0, 0, 51, 0, 0, 19, 0, 0, 59, 0, 0, 27, 0, 0, 49, 0, 0, 17, 0, 0, 57, 0, 0, 25, 0, 0, 15, 0, 0, 47, 0, 0, 7, 0, 0, 39, 0, 0, 13, 0, 0, 45, 0, 0, 5, 0, 0, 37, 0, 0, 63, 0, 0, 31, 0, 0, 55, 0, 0, 23, 0, 0, 61, 0, 0, 29, 0, 0, 53, 0, 0, 21, 0, 0
-    	//0, 0, 0, 0, 32, 0, 0, 0, 8, 0, 0, 0, 40, 0, 0, 0, 2, 0, 0, 0, 34, 0, 0, 0, 10, 0, 0, 0, 42, 0, 0, 0, 48, 0, 0, 0, 16, 0, 0, 0, 56, 0, 0, 0, 24, 0, 0, 0, 50, 0, 0, 0, 18, 0, 0, 0, 58, 0, 0, 0, 26, 0, 0, 0, 12, 0, 0, 0, 44, 0, 0, 0, 4, 0, 0, 0, 36, 0, 0, 0, 14, 0, 0, 0, 46, 0, 0, 0, 6, 0, 0, 0, 38, 0, 0, 0, 60, 0, 0, 0, 28, 0, 0, 0, 52, 0, 0, 0, 20, 0, 0, 0, 62, 0, 0, 0, 30, 0, 0, 0, 54, 0, 0, 0, 22, 0, 0, 0, 3, 0, 0, 0, 35, 0, 0, 0, 11, 0, 0, 0, 43, 0, 0, 0, 1, 0, 0, 0, 33, 0, 0, 0, 9, 0, 0, 0, 41, 0, 0, 0, 51, 0, 0, 0, 19, 0, 0, 0, 59, 0, 0, 0, 27, 0, 0, 0, 49, 0, 0, 0, 17, 0, 0, 0, 57, 0, 0, 0, 25, 0, 0, 0, 15, 0, 0, 0, 47, 0, 0, 0, 7, 0, 0, 0, 39, 0, 0, 0, 13, 0, 0, 0, 45, 0, 0, 0, 5, 0, 0, 0, 37, 0, 0, 0, 63, 0, 0, 0, 31, 0, 0, 0, 55, 0, 0, 0, 23, 0, 0, 0, 61, 0, 0, 0, 29, 0, 0, 0, 53, 0, 0, 0, 21, 0, 0, 0
-    	});
-    
-    private int _dimensionVectorHandle;
+    private int _thresholdTextureHandle, _thresholdTextureLocation;
+    private byte[] _thresholdTexture = new byte[] {
+    	0, 32, 8, 40, 2, 34, 10, 42, 
+    	48, 16, 56, 24, 50, 18, 58, 26, 
+    	12, 44, 4, 36, 14, 46, 6, 38, 
+    	60, 28, 52, 20, 62, 30, 54, 22, 
+    	3, 35, 11, 43, 1, 33, 9, 41, 
+    	51, 19, 59, 27, 49, 17, 57, 25, 
+    	15, 47, 7, 39, 13, 45, 5, 37, 
+    	63, 31, 55, 23, 61, 29, 53, 21
+    	};
     
     private static String TAG = "CameraRenderer";
     
@@ -81,8 +88,9 @@ public class CameraRenderer implements GLSurfaceView.Renderer, OnFrameAvailableL
     }
 
     public void setCamera(Camera camera) {
+        _previewSize = camera.getParameters().getPreviewSize();
+        _targetSize = new int[] {TARGET_WIDTH, (int)((float)TARGET_WIDTH * ((float)_previewSize.height / _previewSize.width))};
         _camera = camera;
-        _previewsize = camera.getParameters().getPreviewSize();
     }
     
 	@Override
@@ -98,41 +106,15 @@ public class CameraRenderer implements GLSurfaceView.Renderer, OnFrameAvailableL
             return;
         }
         
-        maPositionHandle = GLES20.glGetAttribLocation(_program, "aPosition");
-        checkGlError("glGetAttribLocation aPosition");
-        if (maPositionHandle == -1) {
-            throw new RuntimeException("Could not get attrib location for aPosition");
-        }
-        
-        maTextureHandle = GLES20.glGetAttribLocation(_program, "aTextureCoord");
-        checkGlError("glGetAttribLocation aTextureCoord");
-        if (maTextureHandle == -1) {
-            throw new RuntimeException("Could not get attrib location for aTextureCoord");
-        }
+        maPositionHandle = getAttributeLocation("aPosition");
+        maTextureCoordHandle = getAttributeLocation("aTextureCoord");
+        muMVPMatrixHandle = getUniformLocation("uMVPMatrix");
+        muSTMatrixHandle = getUniformLocation("uSTMatrix");
 
-        muMVPMatrixHandle = GLES20.glGetUniformLocation(_program, "uMVPMatrix");
-        checkGlError("glGetUniformLocation uMVPMatrix");
-        if (muMVPMatrixHandle == -1) {
-            throw new RuntimeException("Could not get attrib location for uMVPMatrix");
-        }
-
-        muSTMatrixHandle = GLES20.glGetUniformLocation(_program, "uSTMatrix");
-        checkGlError("glGetUniformLocation uSTMatrix");
-        if (muSTMatrixHandle == -1) {
-            throw new RuntimeException("Could not get attrib location for uSTMatrix");
-        }
-        
-        muCRatioHandle = GLES20.glGetUniformLocation(_program, "uCRatio");
-        checkGlError("glGetUniformLocation uCRatio");
-        if (muCRatioHandle == -1) {
-            throw new RuntimeException("Could not get attrib location for uCRatio");
-        }
-
-        _dimensionVectorHandle = GLES20.glGetUniformLocation(_program, "uDimension");
-        checkGlError("glGetUniformLocation uDimension");
-        if (_dimensionVectorHandle == -1) {
-            throw new RuntimeException("Could not get attrib location for uDimension");
-        }
+        muCRatioHandle = getUniformLocation("uCRatio");
+        _previewTextureLocation = getUniformLocation("sTexture");
+        _thresholdTextureLocation = getUniformLocation("sThreshold");
+        _targetSizeLocation = getUniformLocation("uTargetSize");
         
         // Create the external texture which the camera preview is written to
         int[] textures = new int[2];
@@ -152,6 +134,11 @@ public class CameraRenderer implements GLSurfaceView.Renderer, OnFrameAvailableL
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
 
+        /*
+        Bitmap bm = BitmapFactory.decodeResource(_context.getResources(), R.raw.david);
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bm, 0);
+        */
+        
         // Bind the Bayer threshold matrix as a texture
         _thresholdTextureHandle = textures[1];
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, _thresholdTextureHandle);
@@ -160,13 +147,22 @@ public class CameraRenderer implements GLSurfaceView.Renderer, OnFrameAvailableL
         GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
         GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
 
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_REPEAT);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_REPEAT);
         
-        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE, 8, 8, 0, GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE, _thresholdTexture);
-        
+        /*
+        GLES20.glTexImage2D(
+        	GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE, 
+        	_targetSize[0], _targetSize[1], 0, GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE, 
+        	createScaledTexture(_thresholdTexture, 8, 8, _targetSize[0], _targetSize[1]));
+        */
+        GLES20.glTexImage2D(
+        	GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE, 
+        	8, 8, 0, GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE, 
+        	ByteBuffer.wrap(_thresholdTexture));
+
         // Set the viewpoint
-        Matrix.setLookAtM(mVMatrix, 0, 0, 0, 4f, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
+        Matrix.setLookAtM(mVMatrix, 0, 0, 0, 1.45f, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
         
         // Start the preview
 		try {
@@ -175,6 +171,26 @@ public class CameraRenderer implements GLSurfaceView.Renderer, OnFrameAvailableL
 		}
 		catch (IOException e) {}
     }
+
+	private int getAttributeLocation(String name) {
+		int handle = GLES20.glGetAttribLocation(_program, name);
+        checkGlError("glGetAttribLocation " + name);
+        if (handle == -1) {
+            throw new RuntimeException("Could not get attrib location for " + name);
+        }
+        
+        return handle;
+	}
+
+	private int getUniformLocation(String name) {
+		int handle = GLES20.glGetUniformLocation(_program, name);
+        checkGlError("glGetUniformLocation " + name);
+        if (handle == -1) {
+            throw new RuntimeException("Could not get uniform location for " + name);
+        }
+        
+        return handle;
+	}
 
     public void onDrawFrame(GL10 glUnused) {
     	synchronized (this) {
@@ -185,16 +201,30 @@ public class CameraRenderer implements GLSurfaceView.Renderer, OnFrameAvailableL
 	    	}
     	}
     	
-        GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
+    	GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
         GLES20.glUseProgram(_program);
         checkGlError("glUseProgram");
 
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, _previewTextureHandle);
-        checkGlError("glBindTexture");
-
+        // Apply the screen ratio projection
+        Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mVMatrix, 0);
+        
+        GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0);
+        GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0);
+        GLES20.glUniform1f(muCRatioHandle, (float)_previewSize.width / (float)_previewSize.height);
+        
+        // Transfer the texture sizes
+        //GLES20.glUniform2f(_targetSizeLocation, _previewSize.width, _previewSize.height);
+        GLES20.glUniform2f(_targetSizeLocation, _targetSize[0], _targetSize[1]);
+        
+        // Bind the textures
         GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, _thresholdTextureHandle);
+        GLES20.glUniform1i(_thresholdTextureLocation, 1);
+        checkGlError("glBindTexture");
+
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, _previewTextureHandle);
+        GLES20.glUniform1i(_previewTextureLocation, 0);
         checkGlError("glBindTexture");
         
         // Prepare the triangles
@@ -208,20 +238,12 @@ public class CameraRenderer implements GLSurfaceView.Renderer, OnFrameAvailableL
         
         _vertexbuf.position(TRIANGLE_VERTICES_DATA_UV_OFFSET);
         GLES20.glVertexAttribPointer(
-        	maTextureHandle, 2, GLES20.GL_FLOAT, false,
+        	maTextureCoordHandle, 2, GLES20.GL_FLOAT, false,
         	TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vertexbuf);
         checkGlError("glVertexAttribPointer maTextureHandle");
-        GLES20.glEnableVertexAttribArray(maTextureHandle);
+        GLES20.glEnableVertexAttribArray(maTextureCoordHandle);
         checkGlError("glEnableVertexAttribArray maTextureHandle");
 
-        // Apply the screen ratio projection
-        Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mVMatrix, 0);
-        
-        GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0);
-        GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0);
-        GLES20.glUniform1f(muCRatioHandle, (float)_previewsize.width / (float)_previewsize.height);
-        GLES20.glUniform2f(_dimensionVectorHandle, _previewsize.width, _previewsize.height);
-        
         // Draw two triangles to form a square
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 3);
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 1, 3);
@@ -232,7 +254,7 @@ public class CameraRenderer implements GLSurfaceView.Renderer, OnFrameAvailableL
         GLES20.glViewport(0, 0, width, height);
         
         float ratio = (float)width / height;
-        Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
+        Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 1f, 10);
     }
 
     private int loadShader(int shaderType, int sourceid) {
@@ -306,4 +328,15 @@ public class CameraRenderer implements GLSurfaceView.Renderer, OnFrameAvailableL
             throw new RuntimeException(op + ": glError " + error);
         }
     }
+
+	private Buffer createScaledTexture(byte[] texture, int sourcex, int sourcey, int targetx, int targety) {
+		byte[] result = new byte[targetx * targety];
+		for (int y = 0; y < targety; y++) {
+			for (int x = 0; x < targetx; x++) {
+				result[x + y * targetx] = texture[x % sourcex + (y % sourcey) * sourcex];
+			}
+		}
+		
+		return ByteBuffer.wrap(result);
+	}
 }
