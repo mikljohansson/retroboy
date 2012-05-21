@@ -1,31 +1,28 @@
-package se.embargo.onebit.filter;
+package se.embargo.onebit.shader;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
-import se.embargo.core.io.Streams;
+import se.embargo.core.graphics.ShaderProgram;
 import se.embargo.onebit.R;
-import android.content.Context;
 import android.graphics.SurfaceTexture;
+import android.hardware.Camera;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.util.Log;
 
-public class PreviewShader implements IPreviewShader, SurfaceTexture.OnFrameAvailableListener {
-    private static final String TAG = "PreviewShader";
-
-    private static final int TARGET_WIDTH = 480;
+public class PreviewShader implements IRenderStage, SurfaceTexture.OnFrameAvailableListener {
+	public static final int SHADER_SOURCE_ID = R.raw.image_vertex_shader;    
+	
+	private static final String TAG = "PreviewShader";
     private static final int FLOAT_SIZE_BYTES = 4;
     private static final int TRIANGLE_VERTICES_DATA_STRIDE_BYTES = 5 * FLOAT_SIZE_BYTES;
     private static final int TRIANGLE_VERTICES_DATA_POS_OFFSET = 0;
     private static final int TRIANGLE_VERTICES_DATA_UV_OFFSET = 3;
 
-    private Context _context;
-    private int _program;
+    private ShaderProgram _program;
 
     private final float[] _vertices = {
         // X, Y, Z, U, V
@@ -51,34 +48,30 @@ public class PreviewShader implements IPreviewShader, SurfaceTexture.OnFrameAvai
     private float[] mSTMatrix = new float[16];
     private float[] mProjMatrix = new float[16];
 
-    private int[] _sourceSize, _targetSize;
-    private int _targetSizeLocation;
-
-    public PreviewShader(Context context, int fragmentShader) {
-    	_context = context;
-    	
-        // Compile the shader program
-    	_program = createProgram(R.raw.image_vertex_shader, fragmentShader);
-        if (_program == 0) {
-            return;
-        }
+    private float _cRatio;
+    
+    /**
+     * @param program	Shader program built from SHADER_SOURCE_ID
+     * @param size		Size of camera preview frames
+     */
+    public PreviewShader(ShaderProgram program, Camera.Size previewSize, int surfaceWidth, int surfaceHeight) {
+    	_program = program;
+    	_cRatio = (float)previewSize.width / previewSize.height;
         
         // Allocate buffer to hold vertices
     	_vertexbuf = ByteBuffer.allocateDirect(_vertices.length * FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asFloatBuffer();
         _vertexbuf.put(_vertices).position(0);
 
-        maPositionHandle = getAttributeLocation("aPosition");
-        maTextureCoordHandle = getAttributeLocation("aTextureCoord");
-        muMVPMatrixHandle = getUniformLocation("uMVPMatrix");
-
-        Matrix.setIdentityM(mSTMatrix, 0);
-        muSTMatrixHandle = getUniformLocation("uSTMatrix");
-
-        muCRatioHandle = getUniformLocation("uCRatio");
-        _previewTextureLocation = getUniformLocation("sTexture");
+        // Find handles to shader parameters
+        maPositionHandle = _program.getAttributeLocation("aPosition");
+        maTextureCoordHandle = _program.getAttributeLocation("aTextureCoord");
+        muMVPMatrixHandle = _program.getUniformLocation("uMVPMatrix");
+        muSTMatrixHandle = _program.getUniformLocation("uSTMatrix");
+        muCRatioHandle = _program.getUniformLocation("uCRatio");
+        _previewTextureLocation = _program.getUniformLocation("sTexture");
         
         // Create the external texture which the camera preview is written to
-        int[] textures = new int[2];
+        int[] textures = new int[1];
         GLES20.glGenTextures(textures.length, textures, 0);
 
         _previewTextureHandle = textures[0];
@@ -102,25 +95,20 @@ public class PreviewShader implements IPreviewShader, SurfaceTexture.OnFrameAvai
         
         // Set the viewpoint
         Matrix.setLookAtM(mVMatrix, 0, 0, 0, 1.45f, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
-	}
+        Matrix.setIdentityM(mSTMatrix, 0);
 
-    @Override
-    public void setPreviewSize(int width, int height) {
-        _sourceSize = new int[] {width, height};
-        _targetSize = new int[] {TARGET_WIDTH, (int)((float)TARGET_WIDTH * ((float)_sourceSize[1] / _sourceSize[0]))};
+        // Set the screen ratio projection 
+        float ratio = (float)surfaceWidth / surfaceHeight;
+        Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 1f, 10);
     }
     
-    public int[] getTargetSize() {
-    	return _targetSize;
-    }
-    
-    @Override
     public SurfaceTexture getPreviewTexture() {
     	return _previewTexture;
     }
     
     @Override
     public void draw() {
+    	// Check if a new frame is available
     	synchronized (this) {
 	    	if (_updateSurface) {
 		    	_previewTexture.updateTexImage();
@@ -128,19 +116,13 @@ public class PreviewShader implements IPreviewShader, SurfaceTexture.OnFrameAvai
 		    	_updateSurface = false;
 	    	}
     	}
-    	
-        GLES20.glUseProgram(_program);
-        checkGlError("glUseProgram");
 
         // Apply the screen ratio projection
         Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mVMatrix, 0);
         GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0);
         GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0);
-        GLES20.glUniform1f(muCRatioHandle, (float)_sourceSize[0] / _sourceSize[1]);
+        GLES20.glUniform1f(muCRatioHandle, _cRatio);
     	
-        // Transfer the texture sizes
-        GLES20.glUniform2f(_targetSizeLocation, _targetSize[0], _targetSize[1]);
-    
         // Bind the preview texture
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, _previewTextureHandle);
@@ -175,95 +157,11 @@ public class PreviewShader implements IPreviewShader, SurfaceTexture.OnFrameAvai
 		_updateSurface = true;
 	}
     
-	private int getAttributeLocation(String name) {
-		int handle = GLES20.glGetAttribLocation(_program, name);
-        checkGlError("glGetAttribLocation " + name);
-        if (handle == -1) {
-            throw new RuntimeException("Could not get attrib location for " + name);
-        }
-        
-        return handle;
-	}
-    
-	private int getUniformLocation(String name) {
-		int handle = GLES20.glGetUniformLocation(_program, name);
-        checkGlError("glGetUniformLocation " + name);
-        if (handle == -1) {
-            throw new RuntimeException("Could not get uniform location for " + name);
-        }
-        
-        return handle;
-	}
-
 	private void checkGlError(String op) {
         int error;
         while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
             Log.e(TAG, op + ": glError " + error);
             throw new RuntimeException(op + ": glError " + error);
         }
-    }
-	
-    private int loadShader(int shaderType, int sourceid) {
-        int shader = GLES20.glCreateShader(shaderType);
-        if (shader != 0) {
-            // Read the shader source from file
-        	InputStream is = _context.getResources().openRawResource(sourceid);
-            String source;
-			try {
-				source = Streams.toString(is);
-			}
-			catch (IOException e) {
-				return 0;
-			}
-        	
-        	// Compile shader
-            int[] compileStatus = new int[1];
-			GLES20.glShaderSource(shader, source);
-            GLES20.glCompileShader(shader);
-            GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compileStatus, 0);
-            
-            if (compileStatus[0] == 0) {
-                Log.e(TAG, "Could not compile shader " + shaderType + ":");
-                Log.e(TAG, GLES20.glGetShaderInfoLog(shader));
-                GLES20.glDeleteShader(shader);
-                shader = 0;
-            }
-        }
-        
-        return shader;
-    }
-
-    private int createProgram(int vertexid, int fragmentid) {
-        int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, vertexid);
-        if (vertexShader == 0) {
-            return 0;
-        }
-
-        int pixelShader = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentid);
-        if (pixelShader == 0) {
-            return 0;
-        }
-
-        int program = GLES20.glCreateProgram();
-        if (program != 0) {
-            GLES20.glAttachShader(program, vertexShader);
-            checkGlError("glAttachShader");
-            
-            GLES20.glAttachShader(program, pixelShader);
-            checkGlError("glAttachShader");
-            
-            int[] linkStatus = new int[1];
-            GLES20.glLinkProgram(program);
-            GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, linkStatus, 0);
-            
-            if (linkStatus[0] != GLES20.GL_TRUE) {
-                Log.e(TAG, "Could not link program: ");
-                Log.e(TAG, GLES20.glGetProgramInfoLog(program));
-                GLES20.glDeleteProgram(program);
-                program = 0;
-            }
-        }
-        
-        return program;
     }
 }

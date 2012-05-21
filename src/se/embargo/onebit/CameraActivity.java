@@ -42,6 +42,8 @@ public class CameraActivity extends SherlockActivity {
 
     @Override
     protected void onResume() {
+		super.onResume();
+
 		if (_cameraid >= 0) {
 	        _camera = Camera.open(_cameraid);
 			
@@ -58,18 +60,19 @@ public class CameraActivity extends SherlockActivity {
 	        _renderer.setCamera(_camera);
 		}
         
-		super.onResume();
-        _surface.onResume();
+		_surface.onResume();
     }
 
     @Override
     protected void onPause() {
-        super.onPause();
         _surface.onPause();
 
         if (_camera != null) {
 			_camera.stopPreview();  
 			_camera.release();
+			_camera = null;
         }
+
+        super.onPause();
     }
 }
