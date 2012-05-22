@@ -25,7 +25,7 @@ public class CameraActivity extends SherlockActivity {
 			Camera.CameraInfo info = new Camera.CameraInfo();
 			Camera.getCameraInfo(i, info);
 			
-			if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+			if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
 				_cameraid = i;
 				break;
 			}

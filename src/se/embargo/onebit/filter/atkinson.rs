@@ -41,12 +41,12 @@ void filter() {
 	for (int y = 0; y < data.height; y++) {
 		for (int x = 0; x < data.width; x++) {
 			uchar4 *v_in = (uchar4 *)rsGetElementAt(gOut, x, y);
-			float4 pixel = rsUnpackColor8888(*v_in);
+			float4 mono = rsUnpackColor8888(*v_in);
 			
 			// Apply the threshold
-			float mono = step(0.5f, pixel[0]);
-			float err = (pixel[0] - mono) / 8;
-			*v_in = rsPackColorTo8888((float3)mono);
+			float result = step(0.5f, mono[0]);
+			float err = (mono[0] - result) / 8;
+			*v_in = rsPackColorTo8888((float3)result);
 
 			// Propagate the error
 			atkinson_propagate_error(&data, err, (int32_t)x + 1, (int32_t)y); 

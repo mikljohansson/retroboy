@@ -6,7 +6,7 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import se.embargo.core.graphics.ShaderProgram;
-import se.embargo.onebit.shader.BayerShader;
+import se.embargo.onebit.shader.AtkinsonShader;
 import se.embargo.onebit.shader.IRenderStage;
 import se.embargo.onebit.shader.PreviewShader;
 import android.content.Context;
@@ -32,8 +32,19 @@ public class CameraRenderer implements GLSurfaceView.Renderer {
     
     @Override
     public void onSurfaceCreated(GL10 glUnused, EGLConfig config) {
-    	GLES20.glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-    	_program = new ShaderProgram(_context, PreviewShader.SHADER_SOURCE_ID, BayerShader.SHADER_SOURCE_ID);
+    	// Turn off unneeded features 
+    	GLES20.glDisable(GLES20.GL_BLEND);
+    	GLES20.glDisable(GLES20.GL_CULL_FACE);
+    	GLES20.glDisable(GLES20.GL_DITHER);
+    	GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+    	GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
+    	GLES20.glDisable(GLES20.GL_STENCIL_TEST);
+    	GLES20.glDepthMask(false);
+
+    	// Background color
+    	GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    	
+    	_program = new ShaderProgram(_context, PreviewShader.SHADER_SOURCE_ID, AtkinsonShader.SHADER_SOURCE_ID);
     }
 
     @Override
@@ -44,7 +55,7 @@ public class CameraRenderer implements GLSurfaceView.Renderer {
     	if (_camera != null) {
             Camera.Size previewSize = _camera.getParameters().getPreviewSize();        
         	_preview = new PreviewShader(_program, previewSize, width, height);
-        	_shader = new BayerShader(_program, previewSize);
+        	_shader = new AtkinsonShader(_program, previewSize);
 
         	try {
 				_camera.setPreviewTexture(_preview.getPreviewTexture());
@@ -56,7 +67,6 @@ public class CameraRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onDrawFrame(GL10 glUnused) {
-    	GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
     	_program.draw();
     	_shader.draw();
         _preview.draw();

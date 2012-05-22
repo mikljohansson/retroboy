@@ -100,6 +100,9 @@ public class PreviewShader implements IRenderStage, SurfaceTexture.OnFrameAvaila
         // Set the screen ratio projection 
         float ratio = (float)surfaceWidth / surfaceHeight;
         Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 1f, 10);
+
+        // Apply the screen ratio projection
+        Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mVMatrix, 0);
     }
     
     public SurfaceTexture getPreviewTexture() {
@@ -116,13 +119,12 @@ public class PreviewShader implements IRenderStage, SurfaceTexture.OnFrameAvaila
 		    	_updateSurface = false;
 	    	}
     	}
-
-        // Apply the screen ratio projection
-        Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mVMatrix, 0);
+    	
+    	// Transfer the screen ratio projection
         GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0);
         GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0);
         GLES20.glUniform1f(muCRatioHandle, _cRatio);
-    	
+
         // Bind the preview texture
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, _previewTextureHandle);
