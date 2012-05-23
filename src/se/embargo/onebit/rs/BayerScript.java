@@ -1,18 +1,19 @@
-package se.embargo.onebit.filter;
+package se.embargo.onebit.rs;
 
 import se.embargo.onebit.R;
+import se.embargo.onebit.filter.ScriptC_bayer;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.renderscript.Allocation;
 import android.renderscript.RenderScript;
 
-public class OtsuFilter implements IBitmapFilter {
+public class BayerScript implements IBitmapFilter {
 	private RenderScript _renderContext;
-	private ScriptC_otsu _filter;
+	private ScriptC_bayer _filter;
 
-	public OtsuFilter(Context context) {
+	public BayerScript(Context context) {
         _renderContext = RenderScript.create(context);
-        _filter = new ScriptC_otsu(_renderContext, context.getResources(), R.raw.otsu);
+        _filter = new ScriptC_bayer(_renderContext, context.getResources(), R.raw.bayer);
 	}
 	
 	@Override

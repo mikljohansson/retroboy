@@ -1,18 +1,19 @@
-package se.embargo.onebit.filter;
+package se.embargo.onebit.rs;
 
 import se.embargo.onebit.R;
+import se.embargo.onebit.filter.ScriptC_otsu;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.renderscript.Allocation;
 import android.renderscript.RenderScript;
 
-public class MonoFilter implements IBitmapFilter {
+public class OtsuScript implements IBitmapFilter {
 	private RenderScript _renderContext;
-	private ScriptC_mono _filter;
+	private ScriptC_otsu _filter;
 
-	public MonoFilter(Context context) {
+	public OtsuScript(Context context) {
         _renderContext = RenderScript.create(context);
-        _filter = new ScriptC_mono(_renderContext, context.getResources(), R.raw.mono);
+        _filter = new ScriptC_otsu(_renderContext, context.getResources(), R.raw.otsu);
 	}
 	
 	@Override

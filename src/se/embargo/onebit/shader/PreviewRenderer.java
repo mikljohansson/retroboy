@@ -1,4 +1,4 @@
-package se.embargo.onebit;
+package se.embargo.onebit.shader;
 
 import java.io.IOException;
 
@@ -6,15 +6,12 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import se.embargo.core.graphics.ShaderProgram;
-import se.embargo.onebit.shader.AtkinsonShader;
-import se.embargo.onebit.shader.IRenderStage;
-import se.embargo.onebit.shader.PreviewShader;
 import android.content.Context;
 import android.hardware.Camera;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 
-public class CameraRenderer implements GLSurfaceView.Renderer {
+public class PreviewRenderer implements GLSurfaceView.Renderer {
     private Context _context;
 	private Camera _camera;
     private ShaderProgram _program;
@@ -22,7 +19,7 @@ public class CameraRenderer implements GLSurfaceView.Renderer {
     private IRenderStage _shader;
     private PreviewShader _preview;
     
-    public CameraRenderer(Context context) {
+    public PreviewRenderer(Context context) {
     	_context = context;
     }
     

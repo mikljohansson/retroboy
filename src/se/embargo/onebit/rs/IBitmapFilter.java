@@ -1,4 +1,4 @@
-package se.embargo.onebit.filter;
+package se.embargo.onebit.rs;
 
 import android.graphics.Bitmap;
 

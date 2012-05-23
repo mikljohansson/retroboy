@@ -15,7 +15,7 @@ rs_allocation gOut;
 rs_script gMonoScript;
 
 static inline void atkinson_propagate_error(const atkinson_data_t *data, float err, int32_t x, int32_t y) {
-	if (x > 0 && x < data->width && y > 0 && y < data->height) {
+	if (x >= 0 && x < data->width && y >= 0 && y < data->height) {
 		uchar4 *v_in = (uchar4 *)rsGetElementAt(*data->input, x, y);
 		float4 pixel = rsUnpackColor8888(*v_in);
 		float mono = pixel[0] + err;
@@ -44,9 +44,9 @@ void filter() {
 			float4 mono = rsUnpackColor8888(*v_in);
 			
 			// Apply the threshold
-			float result = step(0.5f, mono[0]);
-			float err = (mono[0] - result) / 8;
-			*v_in = rsPackColorTo8888((float3)result);
+			float lum = step(0.5f, mono[0]);
+			float err = (mono[0] - lum) / 8;
+			*v_in = rsPackColorTo8888((float3)lum);
 
 			// Propagate the error
 			atkinson_propagate_error(&data, err, (int32_t)x + 1, (int32_t)y); 

@@ -1,4 +1,4 @@
-package se.embargo.onebit;
+package se.embargo.onebit.shader;
 
 import android.content.pm.ActivityInfo;
 import android.hardware.Camera;
@@ -7,9 +7,9 @@ import android.os.Bundle;
 
 import com.actionbarsherlock.app.SherlockActivity;
 
-public class CameraActivity extends SherlockActivity {
+public class PreviewActivity extends SherlockActivity {
 	private GLSurfaceView _surface;
-	private CameraRenderer _renderer;
+	private PreviewRenderer _renderer;
 	private Camera _camera;
 	private int _cameraid = -1;
 	
@@ -34,7 +34,7 @@ public class CameraActivity extends SherlockActivity {
 		_surface = new GLSurfaceView(this);
 		_surface.setEGLContextClientVersion(2);
 
-		_renderer = new CameraRenderer(this);
+		_renderer = new PreviewRenderer(this);
 		_surface.setRenderer(_renderer);
 
 		setContentView(_surface);
