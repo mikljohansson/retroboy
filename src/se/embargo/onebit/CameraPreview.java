@@ -1,9 +1,12 @@
 package se.embargo.onebit;
 
-import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.SynchronousQueue;
 
 import se.embargo.onebit.filter.IImageFilter;
-import se.embargo.onebit.filter.YuvMonoFilter;
+import se.embargo.onebit.filter.MonoFilter;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.ImageFormat;
@@ -15,6 +18,9 @@ import android.view.View;
 import android.view.ViewGroup;
 
 class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, Camera.PreviewCallback {
+	private ExecutorService _threadpool = Executors.newCachedThreadPool();
+	private Queue<int[]> _imagepool = new SynchronousQueue<int[]>();
+	
 	private SurfaceView _surface;
 	private SurfaceHolder _holder;
 	private Camera _camera;
@@ -34,7 +40,7 @@ class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, Camera.
 		super(context, attrs, defStyle);
 		
 		// Default filter
-		_filter = new YuvMonoFilter();
+		_filter = new MonoFilter();
 		
 		// Create the surface to render the preview to
 		_surface = new SurfaceView(context);
@@ -58,40 +64,15 @@ class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, Camera.
 			
 			_camera.setPreviewCallbackWithBuffer(this);
 			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
+			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
 			
 			requestLayout();
 		}
 	}
 
-	public void switchCamera(Camera camera) {
-	   setCamera(camera);
-	   
-	   /*
-	   try {
-		   camera.setPreviewDisplay(_holder);
-	   }
-	   catch (IOException exception) {
-		   Log.e(TAG, "IOException caused by setPreviewDisplay()", exception);
-	   }
-	   */
-	   
-	   Camera.Parameters parameters = camera.getParameters();
-	   parameters.setPreviewSize(_previewSize.width, _previewSize.height);
-	   camera.setParameters(parameters);
-	   
-	   requestLayout();
-	}
-
 	@Override
 	public void onPreviewFrame(byte[] data, Camera camera) {
-		IImageFilter.PreviewBuffer buffer = new IImageFilter.PreviewBuffer(
-			data, _previewSize.width, _previewSize.height, 2);
-		_filter.accept(buffer);
-		_camera.addCallbackBuffer(data);
-		
-		Canvas canvas = _holder.lockCanvas();
-		canvas.drawBitmap(buffer.image, 0, buffer.width, 0, 0, buffer.width, buffer.height, false, null);
-		_holder.unlockCanvasAndPost(canvas);
+		_threadpool.submit(new FilterTask(data, _previewSize));
 	}
 
 	@Override
@@ -101,14 +82,6 @@ class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, Camera.
 		int width = resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec);
 		int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
 		setMeasuredDimension(width, height);
-
-		// Calculate the optimal preview size
-		/*
-		List<Camera.Size> sizes = _camera.getParameters().getSupportedPreviewSizes();
-		if (sizes != null) {
-			_previewSize = getOptimalPreviewSize(sizes, width, height);
-		}
-		*/
 	}
 
 	@Override
@@ -138,59 +111,9 @@ class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, Camera.
 		}
 	}
 
-	public void surfaceCreated(SurfaceHolder holder) {
-		/*
-		try {
-			if (_camera != null) {
-				_camera.setPreviewDisplay(holder);
-			}
-		} 
-		catch (IOException exception) {
-			Log.e(TAG, "IOException caused by setPreviewDisplay()", exception);
-		}
-		*/
-	}
+	public void surfaceCreated(SurfaceHolder holder) {}
 
-	public void surfaceDestroyed(SurfaceHolder holder) {
-		if (_camera != null) {
-			_camera.stopPreview();
-		}
-	}
-
-	private static Camera.Size getOptimalPreviewSize(List<Camera.Size> sizes, int w, int h) {
-		if (sizes == null) {
-			return null;
-		}
-
-		final double ASPECT_TOLERANCE = 0.1;
-		double targetRatio = (double) w / h;
-		double minDiff = Double.MAX_VALUE;
-		int targetHeight = h;
-		Camera.Size optimalSize = null;
-
-		// Try to find an size match aspect ratio and size
-		for (Camera.Size size : sizes) {
-			double ratio = (double) size.width / size.height;
-			if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE) continue;
-			if (Math.abs(size.height - targetHeight) < minDiff) {
-				optimalSize = size;
-				minDiff = Math.abs(size.height - targetHeight);
-			}
-		}
-
-		// Cannot find the one match the aspect ratio, ignore the requirement
-		if (optimalSize == null) {
-			minDiff = Double.MAX_VALUE;
-			for (Camera.Size size : sizes) {
-				if (Math.abs(size.height - targetHeight) < minDiff) {
-					optimalSize = size;
-					minDiff = Math.abs(size.height - targetHeight);
-				}
-			}
-		}
-		
-		return optimalSize;
-	}
+	public void surfaceDestroyed(SurfaceHolder holder) {}
 
 	public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
 		// Now that the size is known, set up the camera parameters and begin the preview.
@@ -208,5 +131,38 @@ class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, Camera.
 		int format = camera.getParameters().getPreviewFormat();
 		int bits = ImageFormat.getBitsPerPixel(format);
 		return size.width * size.height * bits / 8;
+	}
+	
+	private class FilterTask implements Runnable {
+		private byte[] _data;
+		private Camera.Size _size;
+		
+		public FilterTask(byte[] data, Camera.Size size) {
+			_data = data;
+			_size = size;
+		}
+		
+		@Override
+		public void run() {
+			// Allocate an image buffer
+			int[] image = (int[])_imagepool.poll();
+			if (image == null) {
+				image = new int[_size.width * _size.height];
+			}
+			
+			// Filter the preview image
+			IImageFilter.PreviewBuffer buffer = new IImageFilter.PreviewBuffer(
+				_data, image, _size.width, _size.height, 2);
+			_filter.accept(buffer);
+			
+			// Draw the preview image
+			Canvas canvas = _holder.lockCanvas();
+			canvas.drawBitmap(buffer.image, 0, buffer.width, 0.0f, 0.0f, buffer.width, buffer.height, false, null);
+			_holder.unlockCanvasAndPost(canvas);
+			
+			// Release the buffers
+			_camera.addCallbackBuffer(buffer.data);
+			_imagepool.offer(buffer.image);
+		}
 	}
 }

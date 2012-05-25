@@ -31,14 +31,7 @@ public class BayerFilter implements IImageFilter {
 				// Apply the threshold
 				int threshold = _bayerThresholdMatrix[tx % 8 + (ty % 8) * 8];
 				int lum = mono <= threshold ? 0 : 255;
-				int pix = 0xff000000 | (lum << 16) | (lum << 8) | lum;
-				
-				// Output the stride^2 pixel block
-				for (int sy = 0; sy < stride; sy++) {
-					for (int sx = 0; sx < stride; sx++) {
-						image[i + sx + sy * width] = pix;
-					}
-				}
+				image[i] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
 			}
 		}
 	}

@@ -1,7 +1,7 @@
 package se.embargo.onebit.filter;
 
 
-public class YuvMonoFilter implements IImageFilter {
+public class MonoFilter implements IImageFilter {
 	@Override
 	public void accept(PreviewBuffer buffer) {
 		int bufsize = buffer.width * buffer.height;

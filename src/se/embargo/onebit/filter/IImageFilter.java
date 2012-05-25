@@ -8,9 +8,9 @@ public interface IImageFilter {
 		public final int height;
 		public final int stride;
 
-		public PreviewBuffer(byte[] data, int width, int height, int stride) {
+		public PreviewBuffer(byte[] data, int[] image, int width, int height, int stride) {
 			this.data = data;
-			this.image = new int[width * height];
+			this.image = image;
 			this.width = width;
 			this.height = height;
 			this.stride = stride;

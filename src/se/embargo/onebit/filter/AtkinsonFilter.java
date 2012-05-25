@@ -20,14 +20,16 @@ public class AtkinsonFilter implements IImageFilter {
 				// Apply the threshold
 				int lum = mono < 128 ? 0 : 255;
 				int err = (mono - lum) / 8;
-				int pix = 0xff000000 | (lum << 16) | (lum << 8) | lum;
+				image[i] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
 				
+				/*
 				// Output the stride^2 pixel block
 				for (int sy = 0; sy < stride; sy++) {
 					for (int sx = 0; sx < stride; sx++) {
 						image[i + sx + sy * width] = pix;
 					}
 				}
+				*/
 	
 				// Propagate the error
 				if (err != 0) {
