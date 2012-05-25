@@ -1,21 +1,24 @@
 package se.embargo.onebit.filter;
 
-public interface IImageFilter {
-	public class PreviewBuffer {
-		public byte[] data;
-		public int[] image;
-		public final int width;
-		public final int height;
-		public final int stride;
+import java.nio.IntBuffer;
 
-		public PreviewBuffer(byte[] data, int[] image, int width, int height, int stride) {
-			this.data = data;
-			this.image = image;
+import android.graphics.Bitmap;
+
+public interface IImageFilter {
+	public class ImageBuffer {
+		public byte[] data;
+		public IntBuffer image;
+		public Bitmap bitmap;
+		public int width;
+		public int height;
+
+		public ImageBuffer(int width, int height) {
+			this.image = IntBuffer.wrap(new int[width * height + width * 4]);
+			this.bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
 			this.width = width;
 			this.height = height;
-			this.stride = stride;
 		}
 	}
 	
-	public void accept(PreviewBuffer buffer);
+	public void accept(ImageBuffer buffer);
 }

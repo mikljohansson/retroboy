@@ -1,6 +1,10 @@
 package se.embargo.onebit;
 
-import se.embargo.onebit.filter.AtkinsonFilter;
+import se.embargo.onebit.filter.BayerFilter;
+import se.embargo.onebit.filter.BitmapFilter;
+import se.embargo.onebit.filter.CompositeFilter;
+import se.embargo.onebit.filter.IImageFilter;
+import se.embargo.onebit.filter.YuvMonoFilter;
 import android.content.pm.ActivityInfo;
 import android.hardware.Camera;
 import android.os.Bundle;
@@ -31,20 +35,29 @@ public class MainActivity extends SherlockActivity {
 		// Setup preview display surface
 		setContentView(R.layout.main);
 		_preview = (CameraPreview)findViewById(R.id.preview);
-		_preview.setFilter(new AtkinsonFilter());
+		_preview.setFilter(createImageFilter(new BayerFilter(480, 320)));
 		
 		// Check which camera to use
 		for (int i = 0, cameras = Camera.getNumberOfCameras(); i < cameras; i++) {
 			Camera.CameraInfo info = new Camera.CameraInfo();
 			Camera.getCameraInfo(i, info);
 			
-			if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+			if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
 				_cameraid = i;
 				break;
 			}
 		}
 	}
 	
+	private IImageFilter createImageFilter(IImageFilter filter) {
+		CompositeFilter filters = new CompositeFilter();
+		filters.add(new YuvMonoFilter());
+		//filters.add(new ResizeFilter(480, 320));
+		filters.add(filter);
+		filters.add(new BitmapFilter());
+		return filters;
+	}
+
 	@Override
 	protected void onResume() {
 		super.onResume();
@@ -62,7 +75,9 @@ public class MainActivity extends SherlockActivity {
 			_camera.getParameters().setPreviewSize(previewSize.width, previewSize.height);
 			
 			// Start the preview
-			_preview.setCamera(_camera);
+			Camera.CameraInfo info = new Camera.CameraInfo();
+			Camera.getCameraInfo(_cameraid, info);
+			_preview.setCamera(_camera, info);
 		}
 	}
 
