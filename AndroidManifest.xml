@@ -27,6 +27,10 @@
         </activity>
         
         <activity 
+        	android:name=".ImageActivity"
+        	android:label="@string/name_processed_image"/>
+        
+        <activity 
         	android:name=".SettingsActivity"
         	android:label="@string/menu_option_settings"/>
         

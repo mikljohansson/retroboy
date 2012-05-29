@@ -6,7 +6,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 
 import se.embargo.onebit.filter.IImageFilter;
-import se.embargo.onebit.filter.YuvMonoFilter;
+import se.embargo.onebit.filter.YuvImageFilter;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.ImageFormat;
@@ -45,7 +45,7 @@ class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, Camera.
 		super(context, attrs, defStyle);
 		
 		// Default filter
-		_filter = new YuvMonoFilter();
+		_filter = new YuvImageFilter();
 		
 		// Create the surface to render the preview to
 		_surface = new SurfaceView(context);

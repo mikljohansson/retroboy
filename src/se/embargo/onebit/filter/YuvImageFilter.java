@@ -1,6 +1,6 @@
 package se.embargo.onebit.filter;
 
-public class YuvMonoFilter implements IImageFilter {
+public class YuvImageFilter implements IImageFilter {
 	@Override
 	public void accept(ImageBuffer buffer) {
 		final byte[] data = buffer.data;
