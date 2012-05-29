@@ -60,14 +60,14 @@ public class FilterActivity extends SherlockActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
     	switch (item.getItemId()) {
-            case R.id.takePhoto: {
+            case R.id.takePhotoOption: {
             	//takePhoto();
                 Intent intent = new Intent(this, PreviewActivity.class);
                 startActivity(intent);
 	            return true;
             }
 
-            case R.id.attachImage: {
+            case R.id.attachImageOption: {
 	            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
 	            intent.setType("image/*");
 	            startActivityForResult(intent, GALLERY_RESPONSE_CODE);

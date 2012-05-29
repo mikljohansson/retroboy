@@ -2,8 +2,15 @@
 <resources>
     <string name="app_name">1-Bit Camera</string>
 
-    <string name="btn_take_photo">Take Photo</string>
-    <string name="btn_attach_image">Attach Image</string>
+    <string name="menu_option_take_photo">Take Photo</string>
+    <string name="menu_option_attach_image">Attach Image</string>
+    <string name="menu_option_settings">Settings</string>
+    
+    <string name="pref_title_filter">Image Filter</string>
+    <string name="pref_summary_filter">Graphics filter to process images through</string>
+    
+    <string name="pref_label_filter_bayer">Nintendo® Gameboy®</string>
+    <string name="pref_label_filter_atkinson">Apple® Macintosh® OS</string>
     
     <string name="hlp_image_content_description">1-Bit processed image</string>
 </resources>

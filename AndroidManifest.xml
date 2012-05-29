@@ -26,6 +26,10 @@
             </intent-filter>
         </activity>
         
+        <activity 
+        	android:name=".SettingsActivity"
+        	android:label="@string/menu_option_settings"/>
+        
     </application>
 
 </manifest>

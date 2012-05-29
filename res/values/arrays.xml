@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="pref_filter_labels">        
+        <item>@string/pref_label_filter_bayer</item>
+        <item>@string/pref_label_filter_atkinson</item>
+    </string-array>
+    <string-array name="pref_filter_values">        
+        <item>bayer</item>
+        <item>atkinson</item>
+    </string-array>
+</resources>

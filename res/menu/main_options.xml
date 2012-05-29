@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item 
-        android:id="@+id/takePhoto" 
-        android:icon="@drawable/ic_menu_camera" 
-        android:title="@string/btn_take_photo"
+        android:id="@+id/takePhotoOption" 
+        android:icon="@android:drawable/ic_menu_camera" 
+        android:title="@string/menu_option_take_photo"
         android:showAsAction="always"/>
     <item 
-        android:id="@+id/attachImage" 
-        android:icon="@drawable/ic_menu_gallery" 
-        android:title="@string/btn_attach_image"
+        android:id="@+id/attachImageOption" 
+        android:icon="@android:drawable/ic_menu_gallery" 
+        android:title="@string/menu_option_attach_image"
         android:showAsAction="always"/>
+    <item 
+        android:id="@+id/editSettingsOption" 
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:title="@string/menu_option_settings" 
+        android:showAsAction="never"/>
 </menu>
