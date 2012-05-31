@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item 
-        android:id="@+id/switchCameraOption" 
-        android:icon="@drawable/ic_menu_camera_rotate" 
-        android:title="@string/menu_option_switch_camera"
-        android:showAsAction="always"/>
-    <item 
         android:id="@+id/attachImageOption" 
         android:icon="@drawable/ic_menu_gallery" 
         android:title="@string/menu_option_select_image"

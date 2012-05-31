@@ -1,9 +1,9 @@
 package se.embargo.onebit;
 
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.SynchronousQueue;
 
 import se.embargo.onebit.filter.IImageFilter;
 import se.embargo.onebit.filter.YuvImageFilter;
@@ -11,19 +11,16 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
-import android.graphics.RectF;
 import android.hardware.Camera;
+import android.hardware.Camera.CameraInfo;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
-import android.view.ViewGroup;
 
-class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, Camera.PreviewCallback {
+class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camera.PreviewCallback {
 	private ExecutorService _threadpool = Executors.newCachedThreadPool();
-	private Queue<IImageFilter.ImageBuffer> _bufferpool = new SynchronousQueue<IImageFilter.ImageBuffer>();
+	private Queue<FilterTask> _bufferpool = new ConcurrentLinkedQueue<FilterTask>();
 	
-	private SurfaceView _surface;
 	private SurfaceHolder _holder;
 	
 	private Camera _camera;
@@ -46,22 +43,15 @@ class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, Camera.
 		
 		// Default filter
 		_filter = new YuvImageFilter();
-		
-		// Create the surface to render the preview to
-		_surface = new SurfaceView(context);
-		_holder = _surface.getHolder();
-		addView(_surface);
 
 		// Install a SurfaceHolder.Callback so we get notified when the surface is created and destroyed.
+		_holder = getHolder();
 		_holder.addCallback(this);
 		_holder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
 	}
 
-	public void setFilter(IImageFilter filter) {
-		_filter = filter;
-	}
-	
 	public void setCamera(Camera camera, Camera.CameraInfo cameraInfo) {
+		boolean start = _camera != null;
 		_camera = camera;
 		_cameraInfo = cameraInfo;
 		
@@ -72,79 +62,53 @@ class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, Camera.
 			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
 			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
 			
-			requestLayout();
+			_transform = createTransformMatrix(cameraInfo, getWidth(), getHeight());
+			
+			if (start) {
+				startPreview();
+			}
 		}
 	}
 
+	public void setFilter(IImageFilter filter) {
+		_filter = filter;
+	}
+	
 	@Override
 	public void onPreviewFrame(byte[] data, Camera camera) {
-		_threadpool.submit(new FilterTask(data, _previewSize));
-	}
-
-	@Override
-	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-		// We purposely disregard child measurements because act as a wrapper to 
-		// a SurfaceView that centers the camera preview instead of stretching it.
-		int width = resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec);
-		int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
-		setMeasuredDimension(width, height);
-	}
-
-	@Override
-	protected void onLayout(boolean changed, int l, int t, int r, int b) {
-		if (changed && getChildCount() > 0) {
-			View child = getChildAt(0);
-
-			int width = r - l;
-			int height = b - t;
-
-			int previewWidth = width;
-			int previewHeight = height;
-			if (_previewSize != null) {
-				previewWidth = _previewSize.width;
-				previewHeight = _previewSize.height;
-			}
-
-			// Center the child SurfaceView within the parent.
-			if (width * previewHeight > height * previewWidth) {
-				int scaledChildWidth = previewWidth * height / previewHeight;
-				child.layout((width - scaledChildWidth) / 2, 0, (width + scaledChildWidth) / 2, height);
-			} 
-			else {
-				int scaledChildHeight = previewHeight * width / previewWidth;
-				child.layout(0, (height - scaledChildHeight) / 2, width, (height + scaledChildHeight) / 2);
-			}
-		}
-	}
-
-	public void surfaceCreated(SurfaceHolder holder) {}
-
-	public void surfaceDestroyed(SurfaceHolder holder) {}
-
-	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-		_transform.setRectToRect(
-			new RectF(0, 0, _previewSize.width, _previewSize.height), 
-			new RectF(0, 0, width, height), 
-			Matrix.ScaleToFit.START);
-
-		// Now that the size is known, set up the camera parameters and begin the preview.
-		Camera.Parameters parameters = _camera.getParameters();
-		parameters.setPreviewSize(_previewSize.width, _previewSize.height);
-		parameters.setPreviewFormat(ImageFormat.NV21);
-		requestLayout();
-
-		// Flip the image if the camera is facing the front to achieve a mirror effect 
-		if (_cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-			_transform.setScale(-1, 1);
-			_transform.postTranslate(width, 0);
+		FilterTask task = _bufferpool.poll();
+		if (task != null) {
+			task.init(data, camera);
 		}
 		else {
-			_transform.setScale(1, 1);
-			_transform.postTranslate(0, 0);
+			task = new FilterTask(data, camera);
 		}
 		
-		_camera.setParameters(parameters);
-		_camera.startPreview();
+		_threadpool.submit(task);
+	}
+
+	@Override
+	public void surfaceCreated(SurfaceHolder holder) {}
+
+	@Override
+	public void surfaceDestroyed(SurfaceHolder holder) {}
+
+	@Override
+	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+		_transform = createTransformMatrix(_cameraInfo, width, height);
+		startPreview();
+	}
+	
+	private void startPreview() {
+		if (_camera != null) {
+			// Now that the size is known, set up the camera parameters and begin the preview.
+			Camera.Parameters parameters = _camera.getParameters();
+			parameters.setPreviewSize(_previewSize.width, _previewSize.height);
+			parameters.setPreviewFormat(ImageFormat.NV21);
+			
+			_camera.setParameters(parameters);
+			_camera.startPreview();
+		}
 	}
 	
 	private static int getBufferSize(Camera camera) {
@@ -154,35 +118,58 @@ class CameraPreview extends ViewGroup implements SurfaceHolder.Callback, Camera.
 		return size.width * size.height * bits / 8;
 	}
 	
-	private class FilterTask implements Runnable {
-		private byte[] _data;
-		private Camera.Size _size;
+	private static Matrix createTransformMatrix(CameraInfo cameraInfo, int width, int height) {
+		Matrix transform = new Matrix();
+		if (cameraInfo != null) {
+			if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+				// Flip the image if the camera is facing the front to achieve a mirror effect
+				transform.setScale(-1, 1);
+				transform.preRotate(-90.0f);
+				transform.postTranslate(width, height);
+			}
+			else {
+				transform.setScale(1, 1);
+				transform.preRotate(90.0f);
+				transform.postTranslate(width, 0);
+			}
+		}
 		
-		public FilterTask(byte[] data, Camera.Size size) {
-			_data = data;
-			_size = size;
+		return transform;
+	}
+	
+	private class FilterTask implements Runnable {
+		private Camera _camera;
+		private Camera.Size _previewSize;
+		private IImageFilter.ImageBuffer _buffer;
+		
+		public FilterTask(byte[] data, Camera camera) {
+			init(data, camera);
+		}
+		
+		public void init(byte[] data, Camera camera) {
+			_camera = camera;
+			_previewSize = camera.getParameters().getPreviewSize();
+			
+			if (_buffer == null || _buffer.width != _previewSize.width || _buffer.height != _previewSize.height) {
+				_buffer = new IImageFilter.ImageBuffer(_previewSize.width, _previewSize.height);
+			}
+
+			_buffer.data = data;
 		}
 		
 		@Override
 		public void run() {
-			// Allocate an image buffer
-			IImageFilter.ImageBuffer buffer = _bufferpool.poll();
-			if (buffer == null || buffer.width != _size.width || buffer.height != _size.height) {
-				buffer = new IImageFilter.ImageBuffer(_size.width, _size.height);
-			}
-			
 			// Filter the preview image
-			buffer.data = _data;
-			_filter.accept(buffer);
+			_filter.accept(_buffer);
 			
 			// Draw the preview image
 			Canvas canvas = _holder.lockCanvas();
-			canvas.drawBitmap(buffer.bitmap, _transform, null);
+			canvas.drawBitmap(_buffer.bitmap, _transform, null);
 			_holder.unlockCanvasAndPost(canvas);
 			
 			// Release the buffers
-			_camera.addCallbackBuffer(buffer.data);
-			_bufferpool.offer(buffer);
+			_camera.addCallbackBuffer(_buffer.data);
+			_bufferpool.offer(this);
 		}
 	}
 }

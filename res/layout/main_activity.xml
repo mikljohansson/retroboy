@@ -2,19 +2,21 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent"
-	android:orientation="vertical">
+	android:orientation="vertical"
+	android:background="#000000">
 
 	<se.embargo.onebit.CameraPreview 
 		android:id="@+id/preview"
 		android:layout_width="fill_parent"
 		android:layout_height="fill_parent"
-		android:layout_gravity="top"/>
+		android:layout_gravity="top"
+		android:background="#000000"/>
 
 	<ImageButton 
 		android:id="@+id/takePhoto"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
-		android:layout_gravity="center_vertical|right"
+		android:layout_gravity="center_horizontal|bottom"
 		android:layout_marginBottom="20dip"
 		android:src="@android:drawable/ic_menu_camera"
 		android:contentDescription="@string/btn_take_photo"/>

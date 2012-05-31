@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Legacy Camera</string>
+    <string name="app_name">Retroboy</string>
 	<string name="name_processed_image">Processed Image</string>
     
     <string name="btn_take_photo">Take Photo</string>
     
     <string name="menu_option_select_image">Select Image</string>
     <string name="menu_option_settings">Settings</string>
+    <string name="menu_option_switch_camera">Switch Camera</string>
     
     <string name="pref_title_filter">Image Filter</string>
     <string name="pref_summary_filter">Graphics filter to process images through</string>
@@ -14,5 +15,5 @@
     <string name="pref_label_filter_bayer">Nintendo® Gameboy®</string>
     <string name="pref_label_filter_atkinson">Apple® Macintosh® OS</string>
     
-    <string name="help_processed_image">1-Bit processed image</string>
+    <string name="help_processed_image">1-bit processed image</string>
 </resources>

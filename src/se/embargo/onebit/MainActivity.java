@@ -20,10 +20,12 @@ import com.actionbarsherlock.app.SherlockActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
-import com.actionbarsherlock.view.Window;
 
 public class MainActivity extends SherlockActivity {
 	public static final String PREFS_NAMESPACE = "se.embargo.onebit";
+	public static final String PREF_FILTER = "filter";
+	public static final String PREF_CAMERA = "camera";
+	
 	public static final int IMAGE_WIDTH = 480, IMAGE_HEIGHT = 320;
 
 	private SharedPreferences _prefs;
@@ -35,7 +37,6 @@ public class MainActivity extends SherlockActivity {
 	
 	private CameraPreview _preview;
 	private Camera _camera;
-	private int _cameraid = -1;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -44,38 +45,28 @@ public class MainActivity extends SherlockActivity {
 		_prefs = getSharedPreferences(PREFS_NAMESPACE, MODE_PRIVATE);
 		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
 		
-		// Request full screen window
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
-		getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		// Keep screen on while this activity is focused 
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		
 		// Force switch to landscape orientation
-		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
 		// Setup preview display surface
 		setContentView(R.layout.main_activity);
 		_preview = (CameraPreview)findViewById(R.id.preview);
-		_prefsListener.onSharedPreferenceChanged(_prefs, "filter");
 		
 		// Connect the take photo button
 		{
 			ImageButton button = (ImageButton)findViewById(R.id.takePhoto);
 			button.setOnClickListener(new TakePhotoListener());
 		}
-		
-		// Check which camera to use
-		for (int i = 0, cameras = Camera.getNumberOfCameras(); i < cameras; i++) {
-			Camera.CameraInfo info = new Camera.CameraInfo();
-			Camera.getCameraInfo(i, info);
-			
-			if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-				_cameraid = i;
-				break;
-			}
-		}
-	}
 
+		// Initialize the image filter
+		initFilter();
+	}
+	
 	public static IImageFilter createEffectFilter(SharedPreferences prefs) {
-		String filtertype = prefs.getString("filter", "bayer");
+		String filtertype = prefs.getString(PREF_FILTER, "bayer");
 		if ("atkinson".equals(filtertype)) {
 			return new AtkinsonFilter(IMAGE_WIDTH, IMAGE_HEIGHT);
 		}
@@ -83,49 +74,16 @@ public class MainActivity extends SherlockActivity {
 		return new BayerFilter(IMAGE_WIDTH, IMAGE_HEIGHT);
 	}
 
-	private IImageFilter createFilter() {
-		CompositeFilter filters = new CompositeFilter();
-		filters.add(new YuvImageFilter());
-		filters.add(createEffectFilter(_prefs));
-		filters.add(new ImageBitmapFilter());
-		return filters;
-	}
-
 	@Override
 	protected void onResume() {
 		super.onResume();
-
-		if (_cameraid >= 0) {
-			_camera = Camera.open(_cameraid);
-			
-			// Select the smallest available preview size for performance reasons
-			Camera.Size previewSize = null;
-			for (Camera.Size size : _camera.getParameters().getSupportedPreviewSizes()) {
-				if (previewSize == null || size.width < previewSize.width) {
-					previewSize = size;
-				}
-			}
-			_camera.getParameters().setPreviewSize(previewSize.width, previewSize.height);
-			
-			// Start the preview
-			Camera.CameraInfo info = new Camera.CameraInfo();
-			Camera.getCameraInfo(_cameraid, info);
-			_preview.setCamera(_camera, info);
-		}
+		initCamera();
 	}
 
 	@Override
 	protected void onPause() {
 		stopPreview();
 		super.onPause();
-	}
-	
-	private void stopPreview() {
-		if (_camera != null) {
-			_camera.stopPreview();  
-			_camera.release();
-			_camera = null;
-		}
 	}
 
 	@Override
@@ -137,9 +95,19 @@ public class MainActivity extends SherlockActivity {
 	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		stopPreview();
-		
 		switch (item.getItemId()) {
+            case R.id.switchCameraOption: {
+            	int cameraid = _prefs.getInt(PREF_CAMERA, 0) + 1;
+            	if (cameraid >= Camera.getNumberOfCameras()) {
+            		cameraid = 0;
+            	}
+            	
+            	SharedPreferences.Editor editor = _prefs.edit();
+            	editor.putInt(PREF_CAMERA, cameraid);
+            	editor.commit();
+            	return true;
+            }
+            
             case R.id.attachImageOption: {
             	// Pick a gallery image to process
 				Intent intent = new Intent(this, ImageActivity.class);
@@ -160,11 +128,60 @@ public class MainActivity extends SherlockActivity {
 		}
 	}
 	
+	private void stopPreview() {
+		if (_camera != null) {
+			_camera.stopPreview();
+			_preview.setCamera(null, null);
+			_camera.release();
+			_camera = null;
+		}
+	}
+	
+	private void initCamera() {
+		stopPreview();
+		
+		// Check which camera to use
+		int cameracount = Camera.getNumberOfCameras(), cameraid = -1;
+		if (cameracount > 0) {
+			cameraid = _prefs.getInt(PREF_CAMERA, 0);
+			if (cameraid >= cameracount) {
+				cameraid = 0;
+			}
+
+			// Lock the camera
+			_camera = Camera.open(cameraid);
+			
+			// Select the smallest available preview size for performance reasons
+			Camera.Size previewSize = null;
+			for (Camera.Size size : _camera.getParameters().getSupportedPreviewSizes()) {
+				if (previewSize == null || size.width < previewSize.width) {
+					previewSize = size;
+				}
+			}
+			_camera.getParameters().setPreviewSize(previewSize.width, previewSize.height);
+			
+			// Start the preview
+			Camera.CameraInfo info = new Camera.CameraInfo();
+			Camera.getCameraInfo(cameraid, info);
+			_preview.setCamera(_camera, info);
+		}
+	}
+	
+	private void initFilter() {
+		CompositeFilter filters = new CompositeFilter();
+		filters.add(new YuvImageFilter());
+		filters.add(createEffectFilter(_prefs));
+		filters.add(new ImageBitmapFilter());
+		_preview.setFilter(filters);
+	}
+	
 	private class TakePhotoListener implements View.OnClickListener, Camera.ShutterCallback, Camera.PictureCallback {
 		@Override
 		public void onClick(View v) {
 			if (_camera != null) {
+				_preview.setCamera(null, null);
 				_camera.takePicture(this, null, this);
+				_camera = null;
 			}
 		}
 
@@ -173,9 +190,8 @@ public class MainActivity extends SherlockActivity {
 
 		@Override
 		public void onPictureTaken(byte[] data, Camera camera) {
-			if (_camera != null) {
-				_camera.release();
-				_camera = null;
+			if (camera != null) {
+				camera.release();
 			}
 			
 			// Start image activity
@@ -188,8 +204,11 @@ public class MainActivity extends SherlockActivity {
 	private class PreferencesListener implements OnSharedPreferenceChangeListener {
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
-			if ("filter".equals(key)) {
-				_preview.setFilter(createFilter());
+			if (PREF_CAMERA.equals(key)) {
+				initCamera();
+			}
+			else if (PREF_FILTER.equals(key)) {
+				initFilter();
 			}
 		}
 	}
