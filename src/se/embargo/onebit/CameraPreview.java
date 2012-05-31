@@ -9,6 +9,7 @@ import se.embargo.onebit.filter.IImageFilter;
 import se.embargo.onebit.filter.YuvImageFilter;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.hardware.Camera;
@@ -51,7 +52,6 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 	}
 
 	public void setCamera(Camera camera, Camera.CameraInfo cameraInfo) {
-		boolean start = _camera != null;
 		_camera = camera;
 		_cameraInfo = cameraInfo;
 		
@@ -62,11 +62,8 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
 			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
 			
-			_transform = createTransformMatrix(cameraInfo, getWidth(), getHeight());
-			
-			if (start) {
-				startPreview();
-			}
+			_transform = createTransformMatrix(cameraInfo, _previewSize, getWidth(), getHeight());
+			startPreview();
 		}
 	}
 
@@ -95,13 +92,21 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 
 	@Override
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-		_transform = createTransformMatrix(_cameraInfo, width, height);
-		startPreview();
+		_transform = createTransformMatrix(_cameraInfo, _previewSize, width, height);
 	}
 	
 	private void startPreview() {
 		if (_camera != null) {
-			// Now that the size is known, set up the camera parameters and begin the preview.
+			// Clear both the canvas buffers
+			for (int i = 0; i < 2; i++) {
+				Canvas canvas = _holder.lockCanvas();
+				if (canvas != null) {
+					canvas.drawColor(Color.BLACK);
+					_holder.unlockCanvasAndPost(canvas);
+				}
+			}
+			
+			// Setup the camera parameters and begin the preview.
 			Camera.Parameters parameters = _camera.getParameters();
 			parameters.setPreviewSize(_previewSize.width, _previewSize.height);
 			parameters.setPreviewFormat(ImageFormat.NV21);
@@ -118,18 +123,17 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		return size.width * size.height * bits / 8;
 	}
 	
-	private static Matrix createTransformMatrix(CameraInfo cameraInfo, int width, int height) {
+	private static Matrix createTransformMatrix(CameraInfo cameraInfo, Camera.Size size, int width, int height) {
 		Matrix transform = new Matrix();
 		if (cameraInfo != null) {
 			if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
 				// Flip the image if the camera is facing the front to achieve a mirror effect
 				transform.setScale(-1, 1);
 				transform.preRotate(-90.0f);
-				transform.postTranslate(width, height);
+				transform.postTranslate(width, size.width);
 			}
 			else {
-				transform.setScale(1, 1);
-				transform.preRotate(90.0f);
+				transform.setRotate(90.0f);
 				transform.postTranslate(width, 0);
 			}
 		}
@@ -139,7 +143,6 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 	
 	private class FilterTask implements Runnable {
 		private Camera _camera;
-		private Camera.Size _previewSize;
 		private IImageFilter.ImageBuffer _buffer;
 		
 		public FilterTask(byte[] data, Camera camera) {
@@ -148,7 +151,6 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		
 		public void init(byte[] data, Camera camera) {
 			_camera = camera;
-			_previewSize = camera.getParameters().getPreviewSize();
 			
 			if (_buffer == null || _buffer.width != _previewSize.width || _buffer.height != _previewSize.height) {
 				_buffer = new IImageFilter.ImageBuffer(_previewSize.width, _previewSize.height);

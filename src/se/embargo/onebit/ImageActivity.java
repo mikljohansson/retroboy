@@ -6,6 +6,7 @@ import se.embargo.core.graphics.Bitmaps;
 import se.embargo.onebit.filter.CompositeFilter;
 import se.embargo.onebit.filter.IImageFilter;
 import se.embargo.onebit.filter.ImageBitmapFilter;
+import se.embargo.onebit.filter.MonochromeFilter;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
@@ -187,6 +188,7 @@ public class ImageActivity extends SherlockActivity {
 		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
 			if ("filter".equals(key)) {
 				CompositeFilter filter = new CompositeFilter();
+				filter.add(new MonochromeFilter());
 				filter.add(MainActivity.createEffectFilter(_prefs));
 				filter.add(new ImageBitmapFilter());
 				_filter = filter;
