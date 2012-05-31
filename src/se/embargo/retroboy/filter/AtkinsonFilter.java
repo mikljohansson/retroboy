@@ -1,4 +1,4 @@
-package se.embargo.onebit.filter;
+package se.embargo.retroboy.filter;
 
 public class AtkinsonFilter implements IImageFilter {
 	private int _width, _height;

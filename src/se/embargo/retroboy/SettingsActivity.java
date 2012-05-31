@@ -1,4 +1,4 @@
-package se.embargo.onebit;
+package se.embargo.retroboy;
 
 import android.os.Bundle;
 import android.preference.PreferenceActivity;

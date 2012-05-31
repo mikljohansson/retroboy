@@ -1,4 +1,4 @@
-package se.embargo.onebit.filter;
+package se.embargo.retroboy.filter;
 
 import java.nio.IntBuffer;
 

@@ -1,11 +1,11 @@
-package se.embargo.onebit;
+package se.embargo.retroboy;
 
-import se.embargo.onebit.filter.AtkinsonFilter;
-import se.embargo.onebit.filter.BayerFilter;
-import se.embargo.onebit.filter.CompositeFilter;
-import se.embargo.onebit.filter.IImageFilter;
-import se.embargo.onebit.filter.ImageBitmapFilter;
-import se.embargo.onebit.filter.YuvImageFilter;
+import se.embargo.retroboy.filter.AtkinsonFilter;
+import se.embargo.retroboy.filter.BayerFilter;
+import se.embargo.retroboy.filter.CompositeFilter;
+import se.embargo.retroboy.filter.IImageFilter;
+import se.embargo.retroboy.filter.ImageBitmapFilter;
+import se.embargo.retroboy.filter.YuvImageFilter;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
@@ -22,7 +22,7 @@ import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 
 public class MainActivity extends SherlockActivity {
-	public static final String PREFS_NAMESPACE = "se.embargo.onebit";
+	public static final String PREFS_NAMESPACE = "se.embargo.retroboy";
 	public static final String PREF_FILTER = "filter";
 	public static final String PREF_CAMERA = "camera";
 	

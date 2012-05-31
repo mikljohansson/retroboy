@@ -1,12 +1,12 @@
-package se.embargo.onebit;
+package se.embargo.retroboy;
 
 import java.io.File;
 
 import se.embargo.core.graphics.Bitmaps;
-import se.embargo.onebit.filter.CompositeFilter;
-import se.embargo.onebit.filter.IImageFilter;
-import se.embargo.onebit.filter.ImageBitmapFilter;
-import se.embargo.onebit.filter.MonochromeFilter;
+import se.embargo.retroboy.filter.CompositeFilter;
+import se.embargo.retroboy.filter.IImageFilter;
+import se.embargo.retroboy.filter.ImageBitmapFilter;
+import se.embargo.retroboy.filter.MonochromeFilter;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
@@ -23,9 +23,9 @@ import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 
 public class ImageActivity extends SherlockActivity {
-	public static final String EXTRA_ACTION = "se.embargo.onebit.ImageActivity.EXTRA_ACTION";
-	public static final String EXTRA_FILE = "se.embargo.onebit.ImageActivity.EXTRA_FILE";
-	public static final String EXTRA_DATA = "se.embargo.onebit.ImageActivity.EXTRA_DATA";
+	public static final String EXTRA_ACTION = "se.embargo.retroboy.ImageActivity.EXTRA_ACTION";
+	public static final String EXTRA_FILE = "se.embargo.retroboy.ImageActivity.EXTRA_FILE";
+	public static final String EXTRA_DATA = "se.embargo.retroboy.ImageActivity.EXTRA_DATA";
 
 	private static final int GALLERY_RESPONSE_CODE = 1;
 	
