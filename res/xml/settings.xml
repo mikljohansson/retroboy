@@ -8,4 +8,9 @@
 	    android:entries="@array/pref_filter_labels" 
 	    android:entryValues="@array/pref_filter_values"
 	    android:defaultValue="bayer"/>
+	<CheckBoxPreference
+	    android:key="review"
+	    android:title="@string/pref_title_review" 
+	    android:summary="@string/pref_summary_review"
+	    android:defaultValue="true"/>
 </PreferenceScreen>

@@ -1,6 +1,6 @@
 package se.embargo.retroboy.filter;
 
-public class YuvImageFilter implements IImageFilter {
+public class YuvFilter implements IImageFilter {
 	@Override
 	public void accept(ImageBuffer buffer) {
 		final byte[] data = buffer.data;

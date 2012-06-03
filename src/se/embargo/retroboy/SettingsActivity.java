@@ -8,7 +8,7 @@ public class SettingsActivity extends PreferenceActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		getPreferenceManager().setSharedPreferencesName(MainActivity.PREFS_NAMESPACE);
+		getPreferenceManager().setSharedPreferencesName(Pictures.PREFS_NAMESPACE);
 		addPreferencesFromResource(R.xml.settings);
 	}
 }

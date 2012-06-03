@@ -6,7 +6,12 @@
         android:title="@string/menu_option_switch_camera"
         android:showAsAction="always"/>
     <item 
-        android:id="@+id/attachImageOption" 
+        android:id="@+id/switchFilterOption" 
+        android:icon="@drawable/ic_menu_bayer" 
+        android:title="@string/menu_option_switch_filter"
+        android:showAsAction="always"/>
+    <item 
+        android:id="@+id/selectImageOption" 
         android:icon="@drawable/ic_menu_gallery" 
         android:title="@string/menu_option_select_image"
         android:showAsAction="always"/>

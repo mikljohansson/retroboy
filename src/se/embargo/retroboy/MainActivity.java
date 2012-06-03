@@ -1,20 +1,24 @@
 package se.embargo.retroboy;
 
-import se.embargo.retroboy.filter.AtkinsonFilter;
-import se.embargo.retroboy.filter.BayerFilter;
+import java.io.File;
+
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
-import se.embargo.retroboy.filter.YuvImageFilter;
+import se.embargo.retroboy.filter.ResizeFilter;
+import se.embargo.retroboy.filter.YuvFilter;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.hardware.Camera;
+import android.hardware.Camera.PreviewCallback;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
 import com.actionbarsherlock.app.SherlockActivity;
 import com.actionbarsherlock.view.Menu;
@@ -22,11 +26,10 @@ import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 
 public class MainActivity extends SherlockActivity {
-	public static final String PREFS_NAMESPACE = "se.embargo.retroboy";
-	public static final String PREF_FILTER = "filter";
 	public static final String PREF_CAMERA = "camera";
 	
-	public static final int IMAGE_WIDTH = 480, IMAGE_HEIGHT = 320;
+	public static final String PREF_REVIEW = "review";
+	public static final boolean PREF_REVIEW_DEFAULT = true;
 
 	private SharedPreferences _prefs;
 	
@@ -42,9 +45,9 @@ public class MainActivity extends SherlockActivity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		_prefs = getSharedPreferences(PREFS_NAMESPACE, MODE_PRIVATE);
+		_prefs = getSharedPreferences(Pictures.PREFS_NAMESPACE, MODE_PRIVATE);
 		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
-		
+
 		// Keep screen on while this activity is focused 
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		
@@ -55,25 +58,16 @@ public class MainActivity extends SherlockActivity {
 		setContentView(R.layout.main_activity);
 		_preview = (CameraPreview)findViewById(R.id.preview);
 		
+		// Initialize the image filter
+		initFilter();
+		
 		// Connect the take photo button
 		{
 			ImageButton button = (ImageButton)findViewById(R.id.takePhoto);
 			button.setOnClickListener(new TakePhotoListener());
 		}
-
-		// Initialize the image filter
-		initFilter();
 	}
 	
-	public static IImageFilter createEffectFilter(SharedPreferences prefs) {
-		String filtertype = prefs.getString(PREF_FILTER, "bayer");
-		if ("atkinson".equals(filtertype)) {
-			return new AtkinsonFilter(IMAGE_WIDTH, IMAGE_HEIGHT);
-		}
-
-		return new BayerFilter(IMAGE_WIDTH, IMAGE_HEIGHT);
-	}
-
 	@Override
 	protected void onResume() {
 		super.onResume();
@@ -90,13 +84,22 @@ public class MainActivity extends SherlockActivity {
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getSupportMenuInflater();
 		inflater.inflate(R.menu.main_options, menu);
+		
+		// Set the correct icon for the filter button
+		menu.getItem(1).setIcon(Pictures.getFilterDrawableResource(this));
 		return true;
 	}
 	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
-            case R.id.switchCameraOption: {
+			case R.id.switchFilterOption: {
+				Pictures.toggleImageFilter(this);
+				return true;
+			}
+			
+			case R.id.switchCameraOption: {
+				// Switch the active camera
             	int cameraid = _prefs.getInt(PREF_CAMERA, 0) + 1;
             	if (cameraid >= Camera.getNumberOfCameras()) {
             		cameraid = 0;
@@ -108,7 +111,7 @@ public class MainActivity extends SherlockActivity {
             	return true;
             }
             
-            case R.id.attachImageOption: {
+            case R.id.selectImageOption: {
             	// Pick a gallery image to process
 				Intent intent = new Intent(this, ImageActivity.class);
 				intent.putExtra(ImageActivity.EXTRA_ACTION, "pick");
@@ -169,35 +172,41 @@ public class MainActivity extends SherlockActivity {
 	
 	private void initFilter() {
 		CompositeFilter filters = new CompositeFilter();
-		filters.add(new YuvImageFilter());
-		filters.add(createEffectFilter(_prefs));
+		filters.add(new YuvFilter());
+		filters.add(Pictures.createEffectFilter(this));
 		filters.add(new ImageBitmapFilter());
 		_preview.setFilter(filters);
 	}
 	
-	private class TakePhotoListener implements View.OnClickListener, Camera.ShutterCallback, Camera.PictureCallback {
+	private class TakePhotoListener implements View.OnClickListener, PreviewCallback {
 		@Override
 		public void onClick(View v) {
-			if (_camera != null) {
-				_preview.setCamera(null, null);
-				_camera.takePicture(this, null, this);
-				_camera = null;
-			}
+			_preview.setOneShotPreviewCallback(this);
 		}
 
 		@Override
-		public void onShutter() {}
-
-		@Override
-		public void onPictureTaken(byte[] data, Camera camera) {
-			if (camera != null) {
-				camera.release();
-			}
+		public void onPreviewFrame(byte[] data, Camera camera) {
+			Camera.Size size = camera.getParameters().getPreviewSize();
+			boolean review = _prefs.getBoolean(PREF_REVIEW, PREF_REVIEW_DEFAULT);
 			
-			// Start image activity
-			Intent intent = new Intent(MainActivity.this, ImageActivity.class);
-			intent.putExtra(ImageActivity.EXTRA_DATA, data);
-			startActivity(intent);
+			if (review) {
+				// Stop the running preview
+				_preview.setCamera(null, null);
+				camera.stopPreview();
+				camera.release();
+				_camera = null;
+
+				// Start image activity
+				Intent intent = new Intent(MainActivity.this, ImageActivity.class);
+				intent.putExtra(ImageActivity.EXTRA_DATA, data);
+				intent.putExtra(ImageActivity.EXTRA_DATA_WIDTH, size.width);
+				intent.putExtra(ImageActivity.EXTRA_DATA_HEIGHT, size.height);
+				startActivity(intent);
+			}
+			else {
+				// Process and save the picture
+				new ProcessFrameTask(camera, data, size.width, size.height).execute();
+			}
 		}
 	}
 	
@@ -207,8 +216,50 @@ public class MainActivity extends SherlockActivity {
 			if (PREF_CAMERA.equals(key)) {
 				initCamera();
 			}
-			else if (PREF_FILTER.equals(key)) {
+			else if (Pictures.PREF_FILTER.equals(key)) {
+				// Update the action bar icon
+				invalidateOptionsMenu();
+
+				// Change the active image filter
 				initFilter();
+			}
+		}
+	}
+	
+	/**
+	 * Process an camera preview frame
+	 */
+	private class ProcessFrameTask extends AsyncTask<Void, Void, File> {
+		private Camera _camera;
+		private IImageFilter.ImageBuffer _buffer;
+
+		public ProcessFrameTask(Camera camera, byte[] data, int width, int height) {
+			_camera = camera;
+			_buffer = new IImageFilter.ImageBuffer(data, width, height);
+		}
+
+		@Override
+		protected File doInBackground(Void... params) {
+			// Apply the image filter to the current image			
+			CompositeFilter filter = new CompositeFilter();
+			filter.add(new YuvFilter());
+			filter.add(new ResizeFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT));
+			filter.add(Pictures.createEffectFilter(MainActivity.this));
+			filter.add(new ImageBitmapFilter());
+			filter.accept(_buffer);
+			
+			// Release buffer back to camera
+			_camera.addCallbackBuffer(_buffer.data);
+			
+			// Write the image to disk
+			return Pictures.compress(MainActivity.this, null, null, _buffer.bitmap);
+		}
+		
+		@Override
+		protected void onPostExecute(File result) {
+			// Show confirmation that image was saved
+			if (result != null) {
+				Toast.makeText(MainActivity.this, getString(R.string.toast_saved_image, result.getName()), Toast.LENGTH_SHORT).show();
 			}
 		}
 	}

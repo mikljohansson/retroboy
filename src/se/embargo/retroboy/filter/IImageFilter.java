@@ -12,11 +12,16 @@ public interface IImageFilter {
 		public int width;
 		public int height;
 
-		public ImageBuffer(int width, int height) {
+		public ImageBuffer(byte[] data, int width, int height) {
+			this.data = data;
 			this.image = IntBuffer.wrap(new int[width * height + width * 4]);
 			this.bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
 			this.width = width;
 			this.height = height;
+		}
+
+		public ImageBuffer(int width, int height) {
+			this(null, width, height);
 		}
 	}
 	

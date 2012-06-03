@@ -16,7 +16,7 @@
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_gravity="center_horizontal|bottom"
-		android:layout_marginBottom="20dip"
+		android:layout_marginBottom="15dip"
 		android:src="@android:drawable/ic_menu_camera"
 		android:contentDescription="@string/btn_take_photo"/>
 </FrameLayout>
