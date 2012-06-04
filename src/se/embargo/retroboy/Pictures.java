@@ -4,17 +4,20 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import se.embargo.core.graphics.Bitmaps;
 import se.embargo.retroboy.filter.AtkinsonFilter;
 import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.IImageFilter;
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.hardware.Camera;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.Surface;
+import android.widget.Toast;
 
 public class Pictures {
 	private static final String TAG = "Pictures";
@@ -112,6 +115,25 @@ public class Pictures {
 		return new BayerFilter(IMAGE_WIDTH, IMAGE_HEIGHT);
 	}
 	
+	public static Bitmaps.Transform createTransformMatrix(Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation, int outputwidth, int outputheight) {
+		// Check the current window rotation
+		int windowOrientation = 0;
+		switch (rotation) {
+			case Surface.ROTATION_0: windowOrientation = 0; break;
+			case Surface.ROTATION_90: windowOrientation = 90; break;
+			case Surface.ROTATION_180: windowOrientation = 180; break;
+			case Surface.ROTATION_270: windowOrientation = 270; break;
+		}
+
+		int rotate = (orientation - windowOrientation + 360) % 360;
+		boolean mirror = (facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
+		return Bitmaps.createTransform(inputwidth, inputheight, outputwidth, outputheight, rotate, mirror);
+	}
+
+	public static Bitmaps.Transform createTransformMatrix(Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation) {
+		return createTransformMatrix(context, inputwidth, inputheight, facing, orientation, rotation, IMAGE_WIDTH, IMAGE_HEIGHT);
+	}
+
 	public static int getFilterDrawableResource(Context context) {
 		SharedPreferences prefs = context.getSharedPreferences(PREFS_NAMESPACE, Context.MODE_PRIVATE);
 		String filtertype = prefs.getString(Pictures.PREF_FILTER, PREF_FILTER_DEFAULT);
@@ -127,15 +149,33 @@ public class Pictures {
 
 		// Switch the active image filter
 		String filtertype = prefs.getString(PREF_FILTER, PREF_FILTER_DEFAULT);
-		SharedPreferences.Editor editor = prefs.edit();
+		String result;
 		
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
-			editor.putString(PREF_FILTER, PREF_FILTER_BAYER);
+			result = PREF_FILTER_BAYER;
 		}
 		else {
-			editor.putString(PREF_FILTER, PREF_FILTER_ATKINSON);
+			result = PREF_FILTER_ATKINSON;
 		}
 		
+		// Notify the user about the filter name
+		Toast.makeText(context, getFilterLabel(context, result), Toast.LENGTH_SHORT).show();
+
+		// Commit the change to the preferences
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putString(PREF_FILTER, result);
 		editor.commit();
+	}
+	
+	private static String getFilterLabel(Context context, String filter) {
+		String[] values = context.getResources().getStringArray(R.array.pref_filter_values),
+				 labels = context.getResources().getStringArray(R.array.pref_filter_labels);
+		for (int i = 0; i < values.length && i < labels.length; i++) {
+			if (filter.equals(values[i])) {
+				return labels[i];
+			}
+		}
+		
+		return "";
 	}
 }

@@ -3,17 +3,19 @@ package se.embargo.retroboy;
 import java.io.File;
 
 import se.embargo.core.graphics.Bitmaps;
+import se.embargo.retroboy.filter.BitmapImageFilter;
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.MonochromeFilter;
-import se.embargo.retroboy.filter.ResizeFilter;
+import se.embargo.retroboy.filter.TransformFilter;
 import se.embargo.retroboy.filter.YuvFilter;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -28,11 +30,13 @@ import com.actionbarsherlock.view.MenuItem;
 public class ImageActivity extends SherlockActivity {
 	private static final String EXTRA_NAMESPACE = "se.embargo.retroboy.ImageActivity";
 
-	public static final String EXTRA_ACTION = 		EXTRA_NAMESPACE + ".action";
-	public static final String EXTRA_DATA = 		EXTRA_NAMESPACE + ".data";
-	public static final String EXTRA_DATA_WIDTH = 	EXTRA_NAMESPACE + ".data.width";
-	public static final String EXTRA_DATA_HEIGHT = 	EXTRA_NAMESPACE + ".data.height";
-	public static final String EXTRA_DATA_FACING = 	EXTRA_NAMESPACE + ".data.facing";
+	public static final String EXTRA_ACTION = 				EXTRA_NAMESPACE + ".action";
+	public static final String EXTRA_DATA = 				EXTRA_NAMESPACE + ".data";
+	public static final String EXTRA_DATA_WIDTH = 			EXTRA_NAMESPACE + ".data.width";
+	public static final String EXTRA_DATA_HEIGHT = 			EXTRA_NAMESPACE + ".data.height";
+	public static final String EXTRA_DATA_FACING = 			EXTRA_NAMESPACE + ".data.facing";
+	public static final String EXTRA_DATA_ORIENTATION = 	EXTRA_NAMESPACE + ".data.orientation";
+	public static final String EXTRA_DATA_ROTATION = 		EXTRA_NAMESPACE + ".data.rotation";
 	
 	private static final int GALLERY_RESPONSE_CODE = 1;
 	
@@ -44,7 +48,7 @@ public class ImageActivity extends SherlockActivity {
 	private PreferencesListener _prefsListener = new PreferencesListener();
 
 	private byte[] _inputdata;
-	private int _inputwidth, _inputheight;
+	private int _inputwidth, _inputheight, _inputfacing, _inputorientation, _inputrotation;
 	
 	private String _inputpath;
 	private String _outputpath;
@@ -54,7 +58,28 @@ public class ImageActivity extends SherlockActivity {
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
+		// Read the preview frame
+		_inputdata = getIntent().getByteArrayExtra(EXTRA_DATA);
+		_inputwidth = getIntent().getIntExtra(EXTRA_DATA_WIDTH, 0);
+		_inputheight = getIntent().getIntExtra(EXTRA_DATA_HEIGHT, 0);
+		_inputfacing = getIntent().getIntExtra(EXTRA_DATA_FACING, 0);
+		_inputorientation = getIntent().getIntExtra(EXTRA_DATA_ORIENTATION, 0);
+		_inputrotation = getIntent().getIntExtra(EXTRA_DATA_ROTATION, 0);
+		getIntent().removeExtra(EXTRA_DATA);
+		
+		// Restore instance state
+		if (savedInstanceState != null) {
+			_inputdata = savedInstanceState.getByteArray(EXTRA_DATA);
+			_inputwidth = savedInstanceState.getInt(EXTRA_DATA_WIDTH);
+			_inputheight = savedInstanceState.getInt(EXTRA_DATA_HEIGHT);
+			_inputfacing = savedInstanceState.getInt(EXTRA_DATA_FACING);
+			_inputorientation = savedInstanceState.getInt(EXTRA_DATA_ORIENTATION);
+			_inputrotation = savedInstanceState.getInt(EXTRA_DATA_ROTATION);
+			_inputpath = savedInstanceState.getString("inputpath");
+			_outputpath = savedInstanceState.getString("outputpath");
+		}
+
 		_prefs = getSharedPreferences(Pictures.PREFS_NAMESPACE, MODE_PRIVATE);
 		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
 		
@@ -62,28 +87,26 @@ public class ImageActivity extends SherlockActivity {
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		
 		_imageview = (ImageView)findViewById(R.id.processedImage);
-
-		// Read the preview frame
-		_inputdata = getIntent().getByteArrayExtra(EXTRA_DATA);
-		_inputwidth = getIntent().getIntExtra(EXTRA_DATA_WIDTH, 0);
-		_inputheight = getIntent().getIntExtra(EXTRA_DATA_HEIGHT, 0);
-		getIntent().removeExtra(EXTRA_DATA);
 		
-		// Restore instance state
-		if (savedInstanceState != null) {
-			_inputdata = savedInstanceState.getByteArray("inputdata");
-			_inputwidth = savedInstanceState.getInt("inputwidth");
-			_inputheight = savedInstanceState.getInt("inputheight");
-			_inputpath = savedInstanceState.getString("inputpath");
-			_outputpath = savedInstanceState.getString("outputpath");
+		// Attempt to read previously processed image
+		if (_outputpath != null) {
+			Bitmap bm = BitmapFactory.decodeFile(_outputpath);
+			if (bm != null) {
+				_imageview.setImageBitmap(bm);
+			}
+			else {
+				_outputpath = null;
+			}
 		}
 
-    	// Process image in background
-		if (_inputdata != null && _inputwidth > 0 && _inputheight > 0) {
-			new ProcessFrameTask(_inputdata, _inputwidth, _inputheight, _outputpath).execute();
-		}
-		else if (_inputpath != null) {
-			new ProcessImageTask(_inputpath, _outputpath).execute();
+		// Process image in background
+		if (_outputpath == null) {
+			if (_inputdata != null && _inputwidth > 0 && _inputheight > 0) {
+				new ProcessFrameTask(_inputdata, _inputwidth, _inputheight, _inputfacing, _inputorientation, _inputrotation, _outputpath).execute();
+			}
+			else if (_inputpath != null) {
+				new ProcessImageTask(_inputpath, _outputpath).execute();
+			}
 		}
 		
         // Check if an action has been request
@@ -103,9 +126,11 @@ public class ImageActivity extends SherlockActivity {
 		 super.onSaveInstanceState(savedInstanceState);
 		 
 		 // Store instance state
-		 savedInstanceState.putByteArray("inputdata", _inputdata);
-		 savedInstanceState.putInt("inputwidth", _inputwidth);
-		 savedInstanceState.putInt("inputheight", _inputheight);
+		 savedInstanceState.putByteArray(EXTRA_DATA, _inputdata);
+		 savedInstanceState.putInt(EXTRA_DATA_WIDTH, _inputwidth);
+		 savedInstanceState.putInt(EXTRA_DATA_HEIGHT, _inputheight);
+		 savedInstanceState.putInt(EXTRA_DATA_FACING, _inputfacing);
+		 savedInstanceState.putInt(EXTRA_DATA_ORIENTATION, _inputorientation);
 		 savedInstanceState.putString("inputpath", _inputpath);
 		 savedInstanceState.putString("outputpath", _outputpath);
 	}
@@ -202,6 +227,10 @@ public class ImageActivity extends SherlockActivity {
 					break;
 			}
 		}
+		else if (_outputpath == null) {
+			// Return to parent if no image was selected and none has been processed already
+			startParentActivity();
+		}
 	}
 	
     private void startParentActivity() {
@@ -218,7 +247,10 @@ public class ImageActivity extends SherlockActivity {
 				invalidateOptionsMenu();
 
 				// Process image in background
-				if (_inputpath != null) {
+				if (_inputdata != null && _inputwidth > 0 && _inputheight > 0) {
+					new ProcessFrameTask(_inputdata, _inputwidth, _inputheight, _inputfacing, _inputorientation, _inputrotation, _outputpath).execute();
+				}
+				else if (_inputpath != null) {
 					new ProcessImageTask(_inputpath, _outputpath).execute();
 				}
 			}
@@ -228,21 +260,25 @@ public class ImageActivity extends SherlockActivity {
 	/**
 	 * Process an camera preview frame
 	 */
-	private class ProcessFrameTask extends AsyncTask<Void, Void, Void> {
-		private String _outputpath;
-		private IImageFilter.ImageBuffer _buffer;
+	private class ProcessFrameTask extends AsyncTask<Void, Void, File> {
+		private final String _outputpath;
+		private final IImageFilter.ImageBuffer _buffer;
+		private final Bitmaps.Transform _transform;
 
-		public ProcessFrameTask(byte[] data, int width, int height, String outputpath) {
+		public ProcessFrameTask(byte[] data, int width, int height, int facing, int orientation, int rotation, String outputpath) {
 			_outputpath = outputpath;
 			_buffer = new IImageFilter.ImageBuffer(data, width, height);
+			_transform = Pictures.createTransformMatrix(ImageActivity.this, width, height, facing, orientation, rotation);
 		}
 
 		@Override
-		protected Void doInBackground(Void... params) {
+		protected File doInBackground(Void... params) {
 			// Apply the image filter to the current image			
 			CompositeFilter filter = new CompositeFilter();
 			filter.add(new YuvFilter());
-			filter.add(new ResizeFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT));
+			filter.add(new ImageBitmapFilter());
+			filter.add(new TransformFilter(_transform));
+			filter.add(new BitmapImageFilter());
 			filter.add(Pictures.createEffectFilter(ImageActivity.this));
 			filter.add(new ImageBitmapFilter());
 			filter.accept(_buffer);
@@ -251,8 +287,7 @@ public class ImageActivity extends SherlockActivity {
 			publishProgress();
 			
 			// Write the image to disk
-			Pictures.compress(ImageActivity.this, null, _outputpath, _buffer.bitmap);
-			return null;
+			return Pictures.compress(ImageActivity.this, null, _outputpath, _buffer.bitmap);
 		}
 		
 		@Override
@@ -262,14 +297,19 @@ public class ImageActivity extends SherlockActivity {
 				_imageview.setImageBitmap(_buffer.bitmap);
 			}
 		}
+		
+		@Override
+		protected void onPostExecute(File result) {
+			ImageActivity.this._outputpath = result.toString();
+		}
 	}
 
 	/**
 	 * Process an image read from disk
 	 */
-	private class ProcessImageTask extends AsyncTask<Void, Void, Void> {
+	private class ProcessImageTask extends AsyncTask<Void, Void, File> {
 		private final String _inputpath;
-		private String _outputpath;
+		private final String _outputpath;
 		private Bitmap _output;
 
 		public ProcessImageTask(String inputpath, String outputpath) {
@@ -278,7 +318,7 @@ public class ImageActivity extends SherlockActivity {
 		}
 
 		@Override
-		protected Void doInBackground(Void... params) {
+		protected File doInBackground(Void... params) {
 			// Read the image from disk
 			Bitmap input = Bitmaps.decodeStream(new File(_inputpath), Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
 
@@ -297,8 +337,7 @@ public class ImageActivity extends SherlockActivity {
 			publishProgress();
 			
 			// Write the image to disk
-			Pictures.compress(ImageActivity.this, _inputpath, _outputpath, _output);
-			return null;
+			return Pictures.compress(ImageActivity.this, _inputpath, _outputpath, _output);
 		}
 		
 		@Override
@@ -307,6 +346,11 @@ public class ImageActivity extends SherlockActivity {
 			if (_output != null) {
 				_imageview.setImageBitmap(_output);
 			}
+		}
+		
+		@Override
+		protected void onPostExecute(File result) {
+			ImageActivity.this._outputpath = result.toString();
 		}
 	}
 }

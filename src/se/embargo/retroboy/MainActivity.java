@@ -2,11 +2,14 @@ package se.embargo.retroboy;
 
 import java.io.File;
 
+import se.embargo.core.graphics.Bitmaps;
+import se.embargo.retroboy.filter.BitmapImageFilter;
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
-import se.embargo.retroboy.filter.ResizeFilter;
+import se.embargo.retroboy.filter.TransformFilter;
 import se.embargo.retroboy.filter.YuvFilter;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
@@ -40,6 +43,7 @@ public class MainActivity extends SherlockActivity {
 	
 	private CameraPreview _preview;
 	private Camera _camera;
+	private Camera.CameraInfo _cameraInfo;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -137,6 +141,7 @@ public class MainActivity extends SherlockActivity {
 			_preview.setCamera(null, null);
 			_camera.release();
 			_camera = null;
+			_cameraInfo = null;
 		}
 	}
 	
@@ -153,6 +158,8 @@ public class MainActivity extends SherlockActivity {
 
 			// Lock the camera
 			_camera = Camera.open(cameraid);
+			_cameraInfo = new Camera.CameraInfo();
+			Camera.getCameraInfo(cameraid, _cameraInfo);
 			
 			// Select the smallest available preview size for performance reasons
 			Camera.Size previewSize = null;
@@ -164,9 +171,7 @@ public class MainActivity extends SherlockActivity {
 			_camera.getParameters().setPreviewSize(previewSize.width, previewSize.height);
 			
 			// Start the preview
-			Camera.CameraInfo info = new Camera.CameraInfo();
-			Camera.getCameraInfo(cameraid, info);
-			_preview.setCamera(_camera, info);
+			_preview.setCamera(_camera, _cameraInfo);
 		}
 	}
 	
@@ -190,22 +195,34 @@ public class MainActivity extends SherlockActivity {
 			boolean review = _prefs.getBoolean(PREF_REVIEW, PREF_REVIEW_DEFAULT);
 			
 			if (review) {
+				Intent intent = new Intent(MainActivity.this, ImageActivity.class);
+				intent.putExtra(ImageActivity.EXTRA_DATA, data);
+				intent.putExtra(ImageActivity.EXTRA_DATA_WIDTH, size.width);
+				intent.putExtra(ImageActivity.EXTRA_DATA_HEIGHT, size.height);
+				intent.putExtra(ImageActivity.EXTRA_DATA_FACING, _cameraInfo.facing);
+				intent.putExtra(ImageActivity.EXTRA_DATA_ORIENTATION, _cameraInfo.orientation);
+
+				WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
+				int rotation = windowManager.getDefaultDisplay().getRotation();
+				intent.putExtra(ImageActivity.EXTRA_DATA_ROTATION, rotation);
+				
 				// Stop the running preview
 				_preview.setCamera(null, null);
 				camera.stopPreview();
 				camera.release();
 				_camera = null;
+				_cameraInfo = null;
 
 				// Start image activity
-				Intent intent = new Intent(MainActivity.this, ImageActivity.class);
-				intent.putExtra(ImageActivity.EXTRA_DATA, data);
-				intent.putExtra(ImageActivity.EXTRA_DATA_WIDTH, size.width);
-				intent.putExtra(ImageActivity.EXTRA_DATA_HEIGHT, size.height);
 				startActivity(intent);
 			}
 			else {
+				// Get the current device orientation
+				WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
+				int rotation = windowManager.getDefaultDisplay().getRotation();
+
 				// Process and save the picture
-				new ProcessFrameTask(camera, data, size.width, size.height).execute();
+				new ProcessFrameTask(camera, data, size.width, size.height, _cameraInfo.facing, _cameraInfo.orientation, rotation).execute();
 			}
 		}
 	}
@@ -232,10 +249,12 @@ public class MainActivity extends SherlockActivity {
 	private class ProcessFrameTask extends AsyncTask<Void, Void, File> {
 		private Camera _camera;
 		private IImageFilter.ImageBuffer _buffer;
+		private Bitmaps.Transform _transform;
 
-		public ProcessFrameTask(Camera camera, byte[] data, int width, int height) {
+		public ProcessFrameTask(Camera camera, byte[] data, int width, int height, int facing, int orientation, int rotation) {
 			_camera = camera;
 			_buffer = new IImageFilter.ImageBuffer(data, width, height);
+			_transform = Pictures.createTransformMatrix(MainActivity.this, width, height, facing, orientation, rotation);
 		}
 
 		@Override
@@ -243,7 +262,9 @@ public class MainActivity extends SherlockActivity {
 			// Apply the image filter to the current image			
 			CompositeFilter filter = new CompositeFilter();
 			filter.add(new YuvFilter());
-			filter.add(new ResizeFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT));
+			filter.add(new ImageBitmapFilter());
+			filter.add(new TransformFilter(_transform));
+			filter.add(new BitmapImageFilter());
 			filter.add(Pictures.createEffectFilter(MainActivity.this));
 			filter.add(new ImageBitmapFilter());
 			filter.accept(_buffer);

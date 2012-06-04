@@ -5,17 +5,18 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import se.embargo.core.graphics.Bitmaps;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.YuvFilter;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
-import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.WindowManager;
 
 class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camera.PreviewCallback {
 	private ExecutorService _threadpool = Executors.newCachedThreadPool();
@@ -28,7 +29,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 	private Camera.CameraInfo _cameraInfo;
 	
 	private IImageFilter _filter;
-	private Matrix _transform = new Matrix();
+	private Bitmaps.Transform _transform;
 	
 	private Camera.PreviewCallback _callback;
 	
@@ -69,7 +70,16 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			// Single buffer reduces latency when taking images without reviewing them
 			//_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
 			
-			_transform = createTransformMatrix(cameraInfo.facing, _previewSize.width, _previewSize.height, getWidth(), getHeight());
+			// Get the current device orientation
+			WindowManager windowManager = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
+			int rotation = windowManager.getDefaultDisplay().getRotation();
+
+			// Rotate/flip the image when drawing it on the surface
+			_transform = Pictures.createTransformMatrix(
+				getContext(), _previewSize.width, _previewSize.height, 
+				cameraInfo.facing, cameraInfo.orientation, rotation, 
+				_previewSize.width, _previewSize.height);
+			
 			startPreview();
 		}
 	}
@@ -110,11 +120,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 	public void surfaceDestroyed(SurfaceHolder holder) {}
 
 	@Override
-	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-		if (_cameraInfo != null && _previewSize != null) {
-			_transform = createTransformMatrix(_cameraInfo.facing, _previewSize.width, _previewSize.height, width, height);
-		}
-	}
+	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
 	
 	private void startPreview() {
 		if (_camera != null) {
@@ -144,22 +150,6 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		return size.width * size.height * bits / 8;
 	}
 	
-	public static Matrix createTransformMatrix(int facing, int frameWidth, int frameHeight, int surfaceWidth, int surfaceHeight) {
-		Matrix transform = new Matrix();
-		if (facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-			// Flip the image if the camera is facing the front to achieve a mirror effect
-			transform.setScale(-1, 1);
-			transform.preRotate(-90.0f);
-			transform.postTranslate(surfaceWidth, frameWidth);
-		}
-		else {
-			transform.setRotate(90.0f);
-			transform.postTranslate(surfaceHeight, 0);
-		}
-		
-		return transform;
-	}
-	
 	private class FilterTask implements Runnable {
 		private Camera _camera;
 		private IImageFilter.ImageBuffer _buffer;
@@ -185,7 +175,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			
 			// Draw the preview image
 			Canvas canvas = _holder.lockCanvas();
-			canvas.drawBitmap(_buffer.bitmap, _transform, null);
+			canvas.drawBitmap(_buffer.bitmap, _transform.matrix, null);
 			_holder.unlockCanvasAndPost(canvas);
 			
 			// Release the buffers
