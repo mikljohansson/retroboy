@@ -11,13 +11,18 @@
         android:title="@string/menu_option_switch_filter"
         android:showAsAction="always"/>
     <item 
+        android:id="@+id/shareImageOption" 
+        android:icon="@drawable/ic_menu_share" 
+        android:title="@string/menu_option_share_image"
+        android:showAsAction="always"/>
+    <item 
         android:id="@+id/selectImageOption" 
         android:icon="@drawable/ic_menu_gallery" 
         android:title="@string/menu_option_select_image"
-        android:showAsAction="always"/>
+        android:showAsAction="ifRoom"/>
     <item 
         android:id="@+id/editSettingsOption" 
         android:icon="@drawable/ic_menu_preferences"
         android:title="@string/menu_option_settings" 
-        android:showAsAction="never"/>
+        android:showAsAction="ifRoom"/>
 </menu>

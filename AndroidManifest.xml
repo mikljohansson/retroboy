@@ -28,7 +28,7 @@
         
         <activity 
         	android:name=".ReviewActivity"
-        	android:label="@string/name_processed_image"/>
+        	android:label="@string/app_name"/>
         
         <activity 
         	android:name=".SettingsActivity"

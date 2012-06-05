@@ -154,10 +154,16 @@ public class ReviewActivity extends SherlockActivity {
                 return true;
             }
             
-			case R.id.switchFilterOption: {
-				Pictures.toggleImageFilter(this);
-				return true;
-			}
+            case R.id.shareImageOption: {
+            	if (_outputpath != null) {
+	            	Intent intent = new Intent(Intent.ACTION_SEND);
+	            	intent.setType("image/png");
+	            	intent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://" + _outputpath));
+	            	startActivity(Intent.createChooser(intent, getText(R.string.menu_option_share_image)));
+            	}
+            	
+            	return true;
+            }
             
             case R.id.discardImageOption: {
             	// Return to parent activity without saving the image
@@ -175,6 +181,11 @@ public class ReviewActivity extends SherlockActivity {
                 return true;
             }
 
+			case R.id.switchFilterOption: {
+				Pictures.toggleImageFilter(this);
+				return true;
+			}
+            
             case R.id.selectImageOption: {
         		// Pick a gallery image to process
             	Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);

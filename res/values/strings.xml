@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Retroboy</string>
-	<string name="name_processed_image">1-bit Image</string>
     
     <string name="btn_take_photo">Take Photo</string>
     
@@ -10,6 +9,7 @@
     <string name="menu_option_settings">Settings</string>
     <string name="menu_option_switch_camera">Switch Camera</string>
     <string name="menu_option_switch_filter">Switch Filter</string>
+    <string name="menu_option_share_image">Share</string>
     
     <string name="pref_title_filter">Filter</string>
     <string name="pref_summary_filter">Dithering filter used to process pictures</string>

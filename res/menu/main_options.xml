@@ -19,5 +19,5 @@
         android:id="@+id/editSettingsOption" 
         android:icon="@drawable/ic_menu_preferences"
         android:title="@string/menu_option_settings" 
-        android:showAsAction="never"/>
+        android:showAsAction="ifRoom"/>
 </menu>
