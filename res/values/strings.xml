@@ -17,8 +17,8 @@
     <string name="pref_title_review">Review</string>
     <string name="pref_summary_review">Review images taken with the camera</string>
     
-    <string name="pref_label_filter_bayer">Bayer Dithering</string>
-    <string name="pref_label_filter_atkinson">Atkinson Dithering</string>
+    <string name="pref_label_filter_bayer">Bayer - Nintendo® Gameboy®</string>
+    <string name="pref_label_filter_atkinson">Atkinson - Apple® Macintosh® OS</string>
     
     <string name="help_processed_image">1-bit processed image</string>
     
