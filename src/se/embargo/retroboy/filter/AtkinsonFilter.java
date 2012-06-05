@@ -4,15 +4,23 @@ public class AtkinsonFilter implements IImageFilter {
 	private int _width, _height;
 	
 	public AtkinsonFilter(int width, int height) {
-		_width = width;
-		_height = height;
+		_width = Math.max(width, height);
+		_height = Math.min(width, height);
 	}
 	
     @Override
 	public void accept(ImageBuffer buffer) {
     	final int[] image = buffer.image.array();
 		final int width = buffer.width, height = buffer.height;
-		final int stride = (int)Math.ceil(Math.max((float)width / _width, (float)height / _height));
+
+		// Select the dimension that most closely matches the bounds
+		final int stride;
+		if (width >= height) {
+			stride = Math.max(Math.round(Math.max((float)width / _width, (float)height / _height)), 1);
+		}
+		else {
+			stride = Math.max(Math.round(Math.max((float)height / _width, (float)width / _height)), 1);
+		}
 		
 		for (int y = 0; y < height; y += stride) {
 			for (int x = 0; x < width; x += stride) {

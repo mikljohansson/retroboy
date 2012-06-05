@@ -27,7 +27,7 @@
         </activity>
         
         <activity 
-        	android:name=".ImageActivity"
+        	android:name=".ReviewActivity"
         	android:label="@string/name_processed_image"/>
         
         <activity 

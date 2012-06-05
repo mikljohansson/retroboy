@@ -27,7 +27,7 @@ import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 
-public class ImageActivity extends SherlockActivity {
+public class ReviewActivity extends SherlockActivity {
 	private static final String EXTRA_NAMESPACE = "se.embargo.retroboy.ImageActivity";
 
 	public static final String EXTRA_ACTION = 				EXTRA_NAMESPACE + ".action";
@@ -268,7 +268,7 @@ public class ImageActivity extends SherlockActivity {
 		public ProcessFrameTask(byte[] data, int width, int height, int facing, int orientation, int rotation, String outputpath) {
 			_outputpath = outputpath;
 			_buffer = new IImageFilter.ImageBuffer(data, width, height);
-			_transform = Pictures.createTransformMatrix(ImageActivity.this, width, height, facing, orientation, rotation);
+			_transform = Pictures.createTransformMatrix(ReviewActivity.this, width, height, facing, orientation, rotation);
 		}
 
 		@Override
@@ -279,7 +279,7 @@ public class ImageActivity extends SherlockActivity {
 			filter.add(new ImageBitmapFilter());
 			filter.add(new TransformFilter(_transform));
 			filter.add(new BitmapImageFilter());
-			filter.add(Pictures.createEffectFilter(ImageActivity.this));
+			filter.add(Pictures.createEffectFilter(ReviewActivity.this));
 			filter.add(new ImageBitmapFilter());
 			filter.accept(_buffer);
 			
@@ -287,7 +287,7 @@ public class ImageActivity extends SherlockActivity {
 			publishProgress();
 			
 			// Write the image to disk
-			return Pictures.compress(ImageActivity.this, null, _outputpath, _buffer.bitmap);
+			return Pictures.compress(ReviewActivity.this, null, _outputpath, _buffer.bitmap);
 		}
 		
 		@Override
@@ -300,7 +300,7 @@ public class ImageActivity extends SherlockActivity {
 		
 		@Override
 		protected void onPostExecute(File result) {
-			ImageActivity.this._outputpath = result.toString();
+			ReviewActivity.this._outputpath = result.toString();
 		}
 	}
 
@@ -325,7 +325,7 @@ public class ImageActivity extends SherlockActivity {
 			// Apply the image filter to the current image			
 			CompositeFilter filter = new CompositeFilter();
 			filter.add(new MonochromeFilter());
-			filter.add(Pictures.createEffectFilter(ImageActivity.this));
+			filter.add(Pictures.createEffectFilter(ReviewActivity.this));
 			filter.add(new ImageBitmapFilter());
 			
 			IImageFilter.ImageBuffer buffer = new IImageFilter.ImageBuffer(input.getWidth(), input.getHeight());
@@ -337,7 +337,7 @@ public class ImageActivity extends SherlockActivity {
 			publishProgress();
 			
 			// Write the image to disk
-			return Pictures.compress(ImageActivity.this, _inputpath, _outputpath, _output);
+			return Pictures.compress(ReviewActivity.this, _inputpath, _outputpath, _output);
 		}
 		
 		@Override
@@ -350,7 +350,7 @@ public class ImageActivity extends SherlockActivity {
 		
 		@Override
 		protected void onPostExecute(File result) {
-			ImageActivity.this._outputpath = result.toString();
+			ReviewActivity.this._outputpath = result.toString();
 		}
 	}
 }

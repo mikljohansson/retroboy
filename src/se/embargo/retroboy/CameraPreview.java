@@ -74,7 +74,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			WindowManager windowManager = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
 			int rotation = windowManager.getDefaultDisplay().getRotation();
 
-			// Rotate/flip the image when drawing it on the surface
+			// Rotate and flip the image when drawing it onto the surface
 			_transform = Pictures.createTransformMatrix(
 				getContext(), _previewSize.width, _previewSize.height, 
 				cameraInfo.facing, cameraInfo.orientation, rotation, 
@@ -133,12 +133,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 				}
 			}
 			
-			// Setup the camera parameters and begin the preview.
-			Camera.Parameters parameters = _camera.getParameters();
-			parameters.setPreviewSize(_previewSize.width, _previewSize.height);
-			parameters.setPreviewFormat(ImageFormat.NV21);
-			
-			_camera.setParameters(parameters);
+			// Begin the preview.
 			_camera.startPreview();
 		}
 	}
@@ -159,19 +154,20 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		}
 		
 		public void init(byte[] data, Camera camera) {
-			_camera = camera;
-			
+			// Check if buffer is still valid for this frame
 			if (_buffer == null || _buffer.width != _previewSize.width || _buffer.height != _previewSize.height) {
 				_buffer = new IImageFilter.ImageBuffer(_previewSize.width, _previewSize.height);
 			}
-
+			
 			_buffer.data = data;
+			_camera = camera;
 		}
 		
 		@Override
 		public void run() {
 			// Filter the preview image
 			_filter.accept(_buffer);
+			_camera.addCallbackBuffer(_buffer.data);
 			
 			// Draw the preview image
 			Canvas canvas = _holder.lockCanvas();
@@ -179,7 +175,6 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			_holder.unlockCanvasAndPost(canvas);
 			
 			// Release the buffers
-			_camera.addCallbackBuffer(_buffer.data);
 			_bufferpool.offer(this);
 		}
 	}

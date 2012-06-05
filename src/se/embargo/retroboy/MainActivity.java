@@ -14,6 +14,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.os.AsyncTask;
@@ -62,14 +63,14 @@ public class MainActivity extends SherlockActivity {
 		setContentView(R.layout.main_activity);
 		_preview = (CameraPreview)findViewById(R.id.preview);
 		
-		// Initialize the image filter
-		initFilter();
-		
 		// Connect the take photo button
 		{
 			ImageButton button = (ImageButton)findViewById(R.id.takePhoto);
 			button.setOnClickListener(new TakePhotoListener());
 		}
+		
+		// Initialize the image filter
+		initFilter();
 	}
 	
 	@Override
@@ -117,8 +118,8 @@ public class MainActivity extends SherlockActivity {
             
             case R.id.selectImageOption: {
             	// Pick a gallery image to process
-				Intent intent = new Intent(this, ImageActivity.class);
-				intent.putExtra(ImageActivity.EXTRA_ACTION, "pick");
+				Intent intent = new Intent(this, ReviewActivity.class);
+				intent.putExtra(ReviewActivity.EXTRA_ACTION, "pick");
 				startActivity(intent);
 	            return true;
             }
@@ -132,16 +133,6 @@ public class MainActivity extends SherlockActivity {
 
 			default:
 				return super.onOptionsItemSelected(item);
-		}
-	}
-	
-	private void stopPreview() {
-		if (_camera != null) {
-			_camera.stopPreview();
-			_preview.setCamera(null, null);
-			_camera.release();
-			_camera = null;
-			_cameraInfo = null;
 		}
 	}
 	
@@ -160,15 +151,25 @@ public class MainActivity extends SherlockActivity {
 			_camera = Camera.open(cameraid);
 			_cameraInfo = new Camera.CameraInfo();
 			Camera.getCameraInfo(cameraid, _cameraInfo);
+
+			// Configure the camera
+			Camera.Parameters parameters = _camera.getParameters();
+			parameters.setPreviewFormat(ImageFormat.NV21);
 			
-			// Select the smallest available preview size for performance reasons
+			// Select preview size that most closely matches the wanted size and dimensions
 			Camera.Size previewSize = null;
 			for (Camera.Size size : _camera.getParameters().getSupportedPreviewSizes()) {
-				if (previewSize == null || size.width < previewSize.width) {
+				if (previewSize == null || 
+					(previewSize.width < Pictures.IMAGE_WIDTH && previewSize.width < size.width ||
+					 previewSize.width > size.width && size.width >= Pictures.IMAGE_WIDTH) &&
+					ratioError(previewSize) >= ratioError(size)) {
 					previewSize = size;
 				}
 			}
-			_camera.getParameters().setPreviewSize(previewSize.width, previewSize.height);
+			parameters.setPreviewSize(previewSize.width, previewSize.height);
+			
+			// Apply the parameter changes
+			_camera.setParameters(parameters);
 			
 			// Start the preview
 			_preview.setCamera(_camera, _cameraInfo);
@@ -183,6 +184,20 @@ public class MainActivity extends SherlockActivity {
 		_preview.setFilter(filters);
 	}
 	
+	private void stopPreview() {
+		if (_camera != null) {
+			_camera.stopPreview();
+			_preview.setCamera(null, null);
+			_camera.release();
+			_camera = null;
+			_cameraInfo = null;
+		}
+	}
+
+	private static float ratioError(Camera.Size size) {
+		return Math.round(Math.abs((float)Pictures.IMAGE_WIDTH / Pictures.IMAGE_HEIGHT - (float)size.width / size.height) * 10);
+	}
+	
 	private class TakePhotoListener implements View.OnClickListener, PreviewCallback {
 		@Override
 		public void onClick(View v) {
@@ -192,19 +207,20 @@ public class MainActivity extends SherlockActivity {
 		@Override
 		public void onPreviewFrame(byte[] data, Camera camera) {
 			Camera.Size size = camera.getParameters().getPreviewSize();
-			boolean review = _prefs.getBoolean(PREF_REVIEW, PREF_REVIEW_DEFAULT);
-			
-			if (review) {
-				Intent intent = new Intent(MainActivity.this, ImageActivity.class);
-				intent.putExtra(ImageActivity.EXTRA_DATA, data);
-				intent.putExtra(ImageActivity.EXTRA_DATA_WIDTH, size.width);
-				intent.putExtra(ImageActivity.EXTRA_DATA_HEIGHT, size.height);
-				intent.putExtra(ImageActivity.EXTRA_DATA_FACING, _cameraInfo.facing);
-				intent.putExtra(ImageActivity.EXTRA_DATA_ORIENTATION, _cameraInfo.orientation);
 
-				WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
-				int rotation = windowManager.getDefaultDisplay().getRotation();
-				intent.putExtra(ImageActivity.EXTRA_DATA_ROTATION, rotation);
+			// Get the current device orientation
+			WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
+			int rotation = windowManager.getDefaultDisplay().getRotation();
+			
+			if (_prefs.getBoolean(PREF_REVIEW, PREF_REVIEW_DEFAULT)) {
+				// Parameterize the image review activity
+				Intent intent = new Intent(MainActivity.this, ReviewActivity.class);
+				intent.putExtra(ReviewActivity.EXTRA_DATA, data);
+				intent.putExtra(ReviewActivity.EXTRA_DATA_WIDTH, size.width);
+				intent.putExtra(ReviewActivity.EXTRA_DATA_HEIGHT, size.height);
+				intent.putExtra(ReviewActivity.EXTRA_DATA_FACING, _cameraInfo.facing);
+				intent.putExtra(ReviewActivity.EXTRA_DATA_ORIENTATION, _cameraInfo.orientation);
+				intent.putExtra(ReviewActivity.EXTRA_DATA_ROTATION, rotation);
 				
 				// Stop the running preview
 				_preview.setCamera(null, null);
@@ -213,14 +229,10 @@ public class MainActivity extends SherlockActivity {
 				_camera = null;
 				_cameraInfo = null;
 
-				// Start image activity
+				// Start image review
 				startActivity(intent);
 			}
 			else {
-				// Get the current device orientation
-				WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
-				int rotation = windowManager.getDefaultDisplay().getRotation();
-
 				// Process and save the picture
 				new ProcessFrameTask(camera, data, size.width, size.height, _cameraInfo.facing, _cameraInfo.orientation, rotation).execute();
 			}

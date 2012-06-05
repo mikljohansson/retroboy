@@ -131,7 +131,17 @@ public class Pictures {
 	}
 
 	public static Bitmaps.Transform createTransformMatrix(Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation) {
-		return createTransformMatrix(context, inputwidth, inputheight, facing, orientation, rotation, IMAGE_WIDTH, IMAGE_HEIGHT);
+		int maxwidth, maxheight;
+		if (inputwidth >= inputheight) {
+			maxwidth = IMAGE_WIDTH;
+			maxheight = IMAGE_HEIGHT;
+		}
+		else {
+			maxwidth = IMAGE_HEIGHT;
+			maxheight = IMAGE_WIDTH;
+		}
+		
+		return createTransformMatrix(context, inputwidth, inputheight, facing, orientation, rotation, maxwidth, maxheight);
 	}
 
 	public static int getFilterDrawableResource(Context context) {
