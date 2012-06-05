@@ -2,7 +2,10 @@ package se.embargo.retroboy.filter;
 
 import java.nio.IntBuffer;
 
+import android.util.Log;
+
 public class YuvFilter implements IImageFilter {
+	private static final String TAG = "YuvFilter";
 	private int _width, _height;
 	
 	public YuvFilter(int width, int height) {
@@ -25,11 +28,13 @@ public class YuvFilter implements IImageFilter {
 		}
 		
 		final int imagewidth = (int)(width / stride), 
-				  imageheight = (int)(height / stride);
+				  imageheight = (int)(height / stride),
+				  imagesize = imagewidth * imageheight + imagewidth * 4;
 		
 		// Change the buffer dimensions
-		if (buffer.image == null || buffer.image.array().length < (imagewidth * imageheight)) {
-			buffer.image = IntBuffer.wrap(new int[imagewidth * imageheight + imagewidth * 4]);
+		if (buffer.image == null || buffer.image.array().length < imagesize) {
+			Log.i(TAG, "Allocating image buffer for " + imagesize + " pixels (" + buffer.image + ")");
+			buffer.image = IntBuffer.wrap(new int[imagesize]);
 		}
 		
 		buffer.imagewidth = imagewidth;

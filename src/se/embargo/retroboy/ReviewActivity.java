@@ -83,7 +83,7 @@ public class ReviewActivity extends SherlockActivity {
 		_prefs = getSharedPreferences(Pictures.PREFS_NAMESPACE, MODE_PRIVATE);
 		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
 		
-		setContentView(R.layout.image_activity);
+		setContentView(R.layout.review_activity);
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		
 		_imageview = (ImageView)findViewById(R.id.processedImage);
@@ -138,7 +138,7 @@ public class ReviewActivity extends SherlockActivity {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getSupportMenuInflater();
-		inflater.inflate(R.menu.image_options, menu);
+		inflater.inflate(R.menu.review_options, menu);
 		
 		// Set the correct icon for the filter button
 		menu.getItem(1).setIcon(Pictures.getFilterDrawableResource(this));
@@ -268,7 +268,7 @@ public class ReviewActivity extends SherlockActivity {
 		public ProcessFrameTask(byte[] data, int width, int height, int facing, int orientation, int rotation, String outputpath) {
 			_outputpath = outputpath;
 			_buffer = new IImageFilter.ImageBuffer(data, width, height);
-			_transform = Pictures.createTransformMatrix(ReviewActivity.this, width, height, facing, orientation, rotation);
+			_transform = Pictures.createTransformMatrix(ReviewActivity.this, Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT, facing, orientation, rotation);
 		}
 
 		@Override

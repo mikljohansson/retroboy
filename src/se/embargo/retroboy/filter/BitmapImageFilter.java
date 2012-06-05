@@ -6,16 +6,17 @@ import java.nio.IntBuffer;
 public class BitmapImageFilter implements IImageFilter {
 	@Override
 	public void accept(ImageBuffer buffer) {
-		final int outputwidth = buffer.bitmap.getWidth(),
-				  outputheight = buffer.bitmap.getHeight();
+		final int imagewidth = buffer.bitmap.getWidth(),
+				  imageheight = buffer.bitmap.getHeight(),
+				  imagesize = imagewidth * imageheight + imagewidth * 4;
 		
 		// Change the buffer dimensions
-		if (buffer.image == null || buffer.imagewidth != outputwidth || buffer.imageheight != outputheight) {
-			buffer.image = IntBuffer.wrap(new int[outputwidth * outputheight + outputwidth * 4]);
+		if (buffer.image == null || buffer.image.array().length < imagesize) {
+			buffer.image = IntBuffer.wrap(new int[imagesize]);
 		}
 		
-		buffer.imagewidth = outputwidth;
-		buffer.imageheight = outputheight;
+		buffer.imagewidth = imagewidth;
+		buffer.imageheight = imageheight;
 		buffer.bitmap.copyPixelsToBuffer(buffer.image);
 	}
 }
