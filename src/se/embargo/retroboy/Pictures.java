@@ -117,16 +117,26 @@ public class Pictures {
 	
 	public static Bitmaps.Transform createTransformMatrix(Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation, int outputwidth, int outputheight) {
 		// Check the current window rotation
-		int windowOrientation = 0;
+		int degrees = 0;
 		switch (rotation) {
-			case Surface.ROTATION_0: windowOrientation = 0; break;
-			case Surface.ROTATION_90: windowOrientation = 90; break;
-			case Surface.ROTATION_180: windowOrientation = 180; break;
-			case Surface.ROTATION_270: windowOrientation = 270; break;
+			case Surface.ROTATION_0: degrees = 0; break;
+			case Surface.ROTATION_90: degrees = 90; break;
+			case Surface.ROTATION_180: degrees = 180; break;
+			case Surface.ROTATION_270: degrees = 270; break;
 		}
 
-		int rotate = (orientation - windowOrientation + 360) % 360;
-		boolean mirror = (facing == Camera.CameraInfo.CAMERA_FACING_FRONT);
+		int rotate;
+		boolean mirror;
+		
+		if (facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+			rotate = (orientation + degrees) % 360;
+			mirror = true;
+		} 
+		else {
+			rotate = (orientation - degrees + 360) % 360;
+			mirror = false;
+		}		
+		
 		return Bitmaps.createTransform(inputwidth, inputheight, outputwidth, outputheight, rotate, mirror);
 	}
 

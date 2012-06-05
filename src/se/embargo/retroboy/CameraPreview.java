@@ -185,7 +185,11 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			
 			// Draw the preview image
 			Canvas canvas = _holder.lockCanvas();
+			
+			// Must hold canvas before releasing camera buffer or out-of-memory will result..
 			_camera.addCallbackBuffer(_buffer.frame);
+			
+			// Draw and transform camera frame
 			canvas.drawBitmap(_buffer.bitmap, _transform.matrix, _paint);
 			_holder.unlockCanvasAndPost(canvas);
 			
