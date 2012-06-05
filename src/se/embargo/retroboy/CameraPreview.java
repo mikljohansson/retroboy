@@ -145,7 +145,8 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 				yuvFilter.getEffectiveWidth(_previewSize.width, _previewSize.height), 
 				yuvFilter.getEffectiveHeight(_previewSize.width, _previewSize.height), 
 				_cameraInfo.facing, _cameraInfo.orientation, rotation, 
-				Math.max(width, height), Math.min(width, height));
+				Math.max(width, height), Math.min(width, height),
+				Bitmaps.FLAG_ENLARGE);
 		}
 	}
 	

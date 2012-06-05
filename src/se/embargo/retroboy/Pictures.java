@@ -115,7 +115,9 @@ public class Pictures {
 		return new BayerFilter();
 	}
 	
-	public static Bitmaps.Transform createTransformMatrix(Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation, int outputwidth, int outputheight) {
+	public static Bitmaps.Transform createTransformMatrix(
+			Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation, 
+			int outputwidth, int outputheight, int flags) {
 		// Check the current window rotation
 		int degrees = 0;
 		switch (rotation) {
@@ -136,10 +138,11 @@ public class Pictures {
 			mirror = false;
 		}		
 		
-		return Bitmaps.createTransform(inputwidth, inputheight, outputwidth, outputheight, rotate, mirror);
+		return Bitmaps.createTransform(inputwidth, inputheight, outputwidth, outputheight, flags, rotate, mirror);
 	}
 
-	public static Bitmaps.Transform createTransformMatrix(Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation) {
+	public static Bitmaps.Transform createTransformMatrix(
+			Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation) {
 		int maxwidth, maxheight;
 		if (inputwidth >= inputheight) {
 			maxwidth = IMAGE_WIDTH;
@@ -150,7 +153,7 @@ public class Pictures {
 			maxheight = IMAGE_WIDTH;
 		}
 		
-		return createTransformMatrix(context, inputwidth, inputheight, facing, orientation, rotation, maxwidth, maxheight);
+		return createTransformMatrix(context, inputwidth, inputheight, facing, orientation, rotation, maxwidth, maxheight, 0);
 	}
 
 	public static int getFilterDrawableResource(Context context) {
