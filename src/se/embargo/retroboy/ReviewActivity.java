@@ -275,7 +275,7 @@ public class ReviewActivity extends SherlockActivity {
 		protected File doInBackground(Void... params) {
 			// Apply the image filter to the current image			
 			CompositeFilter filter = new CompositeFilter();
-			filter.add(new YuvFilter());
+			filter.add(new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT));
 			filter.add(new ImageBitmapFilter());
 			filter.add(new TransformFilter(_transform));
 			filter.add(new BitmapImageFilter());
@@ -321,15 +321,13 @@ public class ReviewActivity extends SherlockActivity {
 		protected File doInBackground(Void... params) {
 			// Read the image from disk
 			Bitmap input = Bitmaps.decodeStream(new File(_inputpath), Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
+			IImageFilter.ImageBuffer buffer = new IImageFilter.ImageBuffer(input);
 
 			// Apply the image filter to the current image			
 			CompositeFilter filter = new CompositeFilter();
 			filter.add(new MonochromeFilter());
 			filter.add(Pictures.createEffectFilter(ReviewActivity.this));
 			filter.add(new ImageBitmapFilter());
-			
-			IImageFilter.ImageBuffer buffer = new IImageFilter.ImageBuffer(input.getWidth(), input.getHeight());
-			input.copyPixelsToBuffer(buffer.image);
 			filter.accept(buffer);
 			_output = buffer.bitmap;
 			

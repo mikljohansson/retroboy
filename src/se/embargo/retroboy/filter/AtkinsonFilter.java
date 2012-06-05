@@ -1,52 +1,29 @@
 package se.embargo.retroboy.filter;
 
 public class AtkinsonFilter implements IImageFilter {
-	private int _width, _height;
-	
-	public AtkinsonFilter(int width, int height) {
-		_width = Math.max(width, height);
-		_height = Math.min(width, height);
-	}
-	
     @Override
 	public void accept(ImageBuffer buffer) {
     	final int[] image = buffer.image.array();
-		final int width = buffer.width, height = buffer.height;
+		final int width = buffer.imagewidth, height = buffer.imageheight;
 
-		// Select the dimension that most closely matches the bounds
-		final int stride;
-		if (width >= height) {
-			stride = Math.max(Math.round(Math.max((float)width / _width, (float)height / _height)), 1);
-		}
-		else {
-			stride = Math.max(Math.round(Math.max((float)height / _width, (float)width / _height)), 1);
-		}
-		
-		for (int y = 0; y < height; y += stride) {
-			for (int x = 0; x < width; x += stride) {
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
 				final int i = x + y * width;
 
 				// Apply the threshold
 				final int mono = image[i] & 0xff;
 				final int lum = mono < 128 ? 0 : 255;
 				final int err = (mono - lum) / 8;
-				final int pixel = 0xff000000 | (lum << 16) | (lum << 8) | lum;
-				
-				// Output the pixel block 
-				for (int ty = 0; ty < stride; ty++) {
-					for (int tx = 0; tx < stride; tx++) {
-						image[i + tx + ty * width] = pixel;
-					}
-				}
+				image[i] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
 				
 				// Propagate the error
 				if (err != 0) {
-					propagate(image, err, i + stride); 
-					propagate(image, err, i + stride * 2);
-					propagate(image, err, i - stride + stride * width);
-					propagate(image, err, i + stride * width);
-					propagate(image, err, i + stride + stride * width);
-					propagate(image, err, i + stride * 2 * width);
+					propagate(image, err, i + 1); 
+					propagate(image, err, i + 2);
+					propagate(image, err, i - 1 + width);
+					propagate(image, err, i + width);
+					propagate(image, err, i + 1 + width);
+					propagate(image, err, i + 2 * width);
 				}
 			}
 		}

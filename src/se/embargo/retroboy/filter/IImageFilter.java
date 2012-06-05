@@ -6,22 +6,31 @@ import android.graphics.Bitmap;
 
 public interface IImageFilter {
 	public class ImageBuffer {
-		public byte[] data;
-		public IntBuffer image;
-		public Bitmap bitmap;
-		public int width;
-		public int height;
+		public byte[] frame;
+		public final int framewidth, frameheight;
 
-		public ImageBuffer(byte[] data, int width, int height) {
-			this.data = data;
-			this.image = IntBuffer.wrap(new int[width * height + width * 4]);
-			this.bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-			this.width = width;
-			this.height = height;
+		public IntBuffer image;
+		public int imagewidth, imageheight;
+
+		public Bitmap bitmap;
+
+		public ImageBuffer(byte[] frame, int framewidth, int frameheight) {
+			this.frame = frame;
+			this.framewidth = framewidth;
+			this.frameheight = frameheight;
 		}
 
-		public ImageBuffer(int width, int height) {
-			this(null, width, height);
+		public ImageBuffer(int framewidth, int frameheight) {
+			this(null, framewidth, frameheight);
+		}
+		
+		public ImageBuffer(Bitmap input) {
+			this(null, input.getWidth(), input.getHeight());
+			imagewidth = framewidth;
+			imageheight = frameheight;
+			image = IntBuffer.wrap(new int[imagewidth * imageheight + imagewidth * 4]);
+			bitmap = input;
+			bitmap.copyPixelsToBuffer(image);
 		}
 	}
 	

@@ -109,10 +109,10 @@ public class Pictures {
 		SharedPreferences prefs = context.getSharedPreferences(PREFS_NAMESPACE, Context.MODE_PRIVATE);
 		String filtertype = prefs.getString(PREF_FILTER, PREF_FILTER_DEFAULT);
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
-			return new AtkinsonFilter(IMAGE_WIDTH, IMAGE_HEIGHT);
+			return new AtkinsonFilter();
 		}
 
-		return new BayerFilter(IMAGE_WIDTH, IMAGE_HEIGHT);
+		return new BayerFilter();
 	}
 	
 	public static Bitmaps.Transform createTransformMatrix(Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation, int outputwidth, int outputheight) {

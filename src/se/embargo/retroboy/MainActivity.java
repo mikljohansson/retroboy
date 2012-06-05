@@ -178,7 +178,7 @@ public class MainActivity extends SherlockActivity {
 	
 	private void initFilter() {
 		CompositeFilter filters = new CompositeFilter();
-		filters.add(new YuvFilter());
+		filters.add(new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT));
 		filters.add(Pictures.createEffectFilter(this));
 		filters.add(new ImageBitmapFilter());
 		_preview.setFilter(filters);
@@ -273,7 +273,7 @@ public class MainActivity extends SherlockActivity {
 		protected File doInBackground(Void... params) {
 			// Apply the image filter to the current image			
 			CompositeFilter filter = new CompositeFilter();
-			filter.add(new YuvFilter());
+			filter.add(new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT));
 			filter.add(new ImageBitmapFilter());
 			filter.add(new TransformFilter(_transform));
 			filter.add(new BitmapImageFilter());
@@ -282,7 +282,7 @@ public class MainActivity extends SherlockActivity {
 			filter.accept(_buffer);
 			
 			// Release buffer back to camera
-			_camera.addCallbackBuffer(_buffer.data);
+			_camera.addCallbackBuffer(_buffer.frame);
 			
 			// Write the image to disk
 			return Pictures.compress(MainActivity.this, null, null, _buffer.bitmap);

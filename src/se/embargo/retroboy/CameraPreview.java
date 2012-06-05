@@ -45,7 +45,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		super(context, attrs, defStyle);
 		
 		// Default filter
-		_filter = new YuvFilter();
+		_filter = new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
 
 		// Install a SurfaceHolder.Callback so we get notified when the surface is created and destroyed.
 		_holder = getHolder();
@@ -155,11 +155,12 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		
 		public void init(byte[] data, Camera camera) {
 			// Check if buffer is still valid for this frame
-			if (_buffer == null || _buffer.width != _previewSize.width || _buffer.height != _previewSize.height) {
+			if (_buffer == null || _buffer.framewidth != _previewSize.width || _buffer.frameheight != _previewSize.height) {
 				_buffer = new IImageFilter.ImageBuffer(_previewSize.width, _previewSize.height);
 			}
 			
-			_buffer.data = data;
+			// Reinitialize the buffer with the new data
+			_buffer.frame = data;
 			_camera = camera;
 		}
 		
@@ -167,7 +168,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		public void run() {
 			// Filter the preview image
 			_filter.accept(_buffer);
-			_camera.addCallbackBuffer(_buffer.data);
+			_camera.addCallbackBuffer(_buffer.frame);
 			
 			// Draw the preview image
 			Canvas canvas = _holder.lockCanvas();

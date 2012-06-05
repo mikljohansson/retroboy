@@ -11,44 +11,21 @@ public class BayerFilter implements IImageFilter {
     	204, 76, 236, 108, 196, 68, 228, 100, 
     	60, 188, 28, 156, 52, 180, 20, 148, 
     	237, 124, 220, 92, 229, 116, 212, 84};
-	
-    private int _width, _height;
-	
-	public BayerFilter(int width, int height) {
-		_width = Math.max(width, height);
-		_height = Math.min(width, height);
-	}
     
     @Override
 	public void accept(ImageBuffer buffer) {
     	final int[] image = buffer.image.array();
-		final int width = buffer.width, height = buffer.height;
+		final int width = buffer.imagewidth, height = buffer.imageheight;
 		
-		// Select the dimension that most closely matches the bounds
-		final int stride;
-		if (width >= height) {
-			stride = Math.max(Math.round(Math.max((float)width / _width, (float)height / _height)), 1);
-		}
-		else {
-			stride = Math.max(Math.round(Math.max((float)height / _width, (float)width / _height)), 1);
-		}
-		
-		for (int y = 0, sy = 0; y < height; y += stride, sy++) {
-			for (int x = 0, sx = 0; x < width; x += stride, sx++) {
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
 				final int i = x + y * width;
 				
 				// Apply the threshold
-				final int threshold = _bayerThresholdMatrix[sx % 8 + (sy % 8) * 8];
+				final int threshold = _bayerThresholdMatrix[x % 8 + (y % 8) * 8];
 				final int mono = image[i] & 0xff;
 				final int lum = mono <= threshold ? 0 : 255;
-				final int pixel = 0xff000000 | (lum << 16) | (lum << 8) | lum;
-				
-				// Output the pixel block 
-				for (int ty = 0; ty < stride; ty++) {
-					for (int tx = 0; tx < stride; tx++) {
-						image[i + tx + ty * width] = pixel;
-					}
-				}
+				image[i] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
 			}
 		}
 	}
