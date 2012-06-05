@@ -298,9 +298,6 @@ public class MainActivity extends SherlockActivity {
 			// Apply the image filter to the current image			
 			_filter.accept(_buffer);
 			
-			// Release buffer back to camera
-			_camera.addCallbackBuffer(_buffer.frame);
-			
 			// Write the image to disk
 			return Pictures.compress(MainActivity.this, null, null, _buffer.bitmap);
 		}
@@ -310,6 +307,11 @@ public class MainActivity extends SherlockActivity {
 			// Show confirmation that image was saved
 			if (result != null) {
 				Toast.makeText(MainActivity.this, getString(R.string.toast_saved_image, result.getName()), Toast.LENGTH_SHORT).show();
+			}
+
+			// Release buffer back to camera
+			synchronized (_camera) {
+				_camera.addCallbackBuffer(_buffer.frame);
 			}
 		}
 	}
