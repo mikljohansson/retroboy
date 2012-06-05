@@ -84,6 +84,18 @@ public class MainActivity extends SherlockActivity {
 		stopPreview();
 		super.onPause();
 	}
+	
+	@Override
+	protected void onStop() {
+		stopPreview();
+		super.onStop();
+	}
+	
+	@Override
+	protected void onDestroy() {
+		stopPreview();
+		super.onDestroy();
+	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -223,11 +235,7 @@ public class MainActivity extends SherlockActivity {
 				intent.putExtra(ReviewActivity.EXTRA_DATA_ROTATION, rotation);
 				
 				// Stop the running preview
-				_preview.setCamera(null, null);
-				camera.stopPreview();
-				camera.release();
-				_camera = null;
-				_cameraInfo = null;
+				stopPreview();
 
 				// Start image review
 				startActivity(intent);
@@ -260,26 +268,35 @@ public class MainActivity extends SherlockActivity {
 	 */
 	private class ProcessFrameTask extends AsyncTask<Void, Void, File> {
 		private Camera _camera;
+		private IImageFilter _filter;
 		private IImageFilter.ImageBuffer _buffer;
 		private Bitmaps.Transform _transform;
 
 		public ProcessFrameTask(Camera camera, byte[] data, int width, int height, int facing, int orientation, int rotation) {
 			_camera = camera;
 			_buffer = new IImageFilter.ImageBuffer(data, width, height);
-			_transform = Pictures.createTransformMatrix(MainActivity.this, width, height, facing, orientation, rotation);
-		}
-
-		@Override
-		protected File doInBackground(Void... params) {
-			// Apply the image filter to the current image			
+			
+			YuvFilter yuvFilter = new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
+			_transform = Pictures.createTransformMatrix(
+				MainActivity.this, 
+				yuvFilter.getEffectiveWidth(width, height), 
+				yuvFilter.getEffectiveHeight(width, height), 
+				facing, orientation, rotation);
+			
 			CompositeFilter filter = new CompositeFilter();
-			filter.add(new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT));
+			filter.add(yuvFilter);
 			filter.add(new ImageBitmapFilter());
 			filter.add(new TransformFilter(_transform));
 			filter.add(new BitmapImageFilter());
 			filter.add(Pictures.createEffectFilter(MainActivity.this));
 			filter.add(new ImageBitmapFilter());
-			filter.accept(_buffer);
+			_filter = filter;
+		}
+
+		@Override
+		protected File doInBackground(Void... params) {
+			// Apply the image filter to the current image			
+			_filter.accept(_buffer);
 			
 			// Release buffer back to camera
 			_camera.addCallbackBuffer(_buffer.frame);

@@ -262,26 +262,35 @@ public class ReviewActivity extends SherlockActivity {
 	 */
 	private class ProcessFrameTask extends AsyncTask<Void, Void, File> {
 		private final String _outputpath;
+		private IImageFilter _filter;
 		private final IImageFilter.ImageBuffer _buffer;
 		private final Bitmaps.Transform _transform;
 
 		public ProcessFrameTask(byte[] data, int width, int height, int facing, int orientation, int rotation, String outputpath) {
 			_outputpath = outputpath;
 			_buffer = new IImageFilter.ImageBuffer(data, width, height);
-			_transform = Pictures.createTransformMatrix(ReviewActivity.this, Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT, facing, orientation, rotation);
-		}
-
-		@Override
-		protected File doInBackground(Void... params) {
-			// Apply the image filter to the current image			
+			
+			YuvFilter yuvFilter = new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
+			_transform = Pictures.createTransformMatrix(
+				ReviewActivity.this, 
+				yuvFilter.getEffectiveWidth(width, height), 
+				yuvFilter.getEffectiveHeight(width, height), 
+				facing, orientation, rotation);
+			
 			CompositeFilter filter = new CompositeFilter();
-			filter.add(new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT));
+			filter.add(yuvFilter);
 			filter.add(new ImageBitmapFilter());
 			filter.add(new TransformFilter(_transform));
 			filter.add(new BitmapImageFilter());
 			filter.add(Pictures.createEffectFilter(ReviewActivity.this));
 			filter.add(new ImageBitmapFilter());
-			filter.accept(_buffer);
+			_filter = filter;
+		}
+
+		@Override
+		protected File doInBackground(Void... params) {
+			// Apply the image filter to the current image			
+			_filter.accept(_buffer);
 			
 			// Show the processed image
 			publishProgress();

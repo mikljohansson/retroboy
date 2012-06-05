@@ -69,9 +69,6 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			_camera.setPreviewCallbackWithBuffer(this);
 			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
 			
-			// Single buffer reduces latency when taking images without reviewing them
-			//_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
-			
 			initTransform();
 			startPreview();
 		}
@@ -134,8 +131,9 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 	}
 	
 	private void initTransform() {
-		if (_cameraInfo != null) {
+		if (_cameraInfo != null && _previewSize != null) {
 			int width = getWidth(), height = getHeight();
+			YuvFilter yuvFilter = new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
 			
 			// Get the current device orientation
 			WindowManager windowManager = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
@@ -143,7 +141,9 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 	
 			// Rotate and flip the image when drawing it onto the surface
 			_transform = Pictures.createTransformMatrix(
-				getContext(), Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT, 
+				getContext(), 
+				yuvFilter.getEffectiveWidth(_previewSize.width, _previewSize.height), 
+				yuvFilter.getEffectiveHeight(_previewSize.width, _previewSize.height), 
 				_cameraInfo.facing, _cameraInfo.orientation, rotation, 
 				Math.max(width, height), Math.min(width, height));
 		}

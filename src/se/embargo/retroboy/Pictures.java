@@ -127,7 +127,6 @@ public class Pictures {
 
 		int rotate;
 		boolean mirror;
-		
 		if (facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
 			rotate = (orientation + degrees) % 360;
 			mirror = true;
