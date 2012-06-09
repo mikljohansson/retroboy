@@ -23,6 +23,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.actionbarsherlock.app.SherlockActivity;
@@ -56,6 +57,12 @@ public class MainActivity extends SherlockActivity {
 	 * Listener to receive taken photos
 	 */
 	private TakePhotoListener _takePhotoListener = new TakePhotoListener();
+
+	/**
+	 * Listener to handle auto-focus
+	 */
+	private AutoFocusListener _autoFocusListener = new AutoFocusListener();
+	private ImageView _autoFocusMarker;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -79,6 +86,10 @@ public class MainActivity extends SherlockActivity {
 			ImageButton button = (ImageButton)findViewById(R.id.takePhoto);
 			button.setOnClickListener(_takePhotoListener);
 		}
+		
+		// Connect tapping for auto-focus
+		_autoFocusMarker = (ImageView)findViewById(R.id.autoFocusMarker);
+		_preview.setOnClickListener(_autoFocusListener);
 		
 		// Initialize the image filter
 		initFilter();
@@ -278,6 +289,27 @@ public class MainActivity extends SherlockActivity {
 			else {
 				// Process and save the picture
 				new ProcessFrameTask(camera, data, size.width, size.height, _cameraInfo.facing, _cameraInfo.orientation, rotation).execute();
+			}
+		}
+	}
+	
+	private class AutoFocusListener implements View.OnClickListener, Camera.AutoFocusCallback {
+		@Override
+		public void onClick(View v) {
+			_autoFocusMarker.setImageResource(R.drawable.ic_menu_focus);
+
+			if (_camera != null) {
+				_camera.autoFocus(this);
+			}
+		}
+
+		@Override
+		public void onAutoFocus(boolean success, Camera camera) {
+			if (success) {
+				_autoFocusMarker.setImageResource(R.drawable.ic_menu_focus_ok);
+			}
+			else {
+				_autoFocusMarker.setImageResource(R.drawable.ic_menu_focus_fail);
 			}
 		}
 	}

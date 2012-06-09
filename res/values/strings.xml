@@ -3,6 +3,7 @@
     <string name="app_name">Retroboy</string>
     
     <string name="btn_take_photo">Take Photo</string>
+    <string name="btn_auto_focus">Auto Focus</string>
     
     <string name="menu_option_select_image">Gallery</string>
     <string name="menu_option_discard_image">Discard</string>

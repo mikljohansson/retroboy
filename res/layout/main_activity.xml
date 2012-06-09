@@ -11,12 +11,25 @@
 		android:layout_height="fill_parent"
 		android:layout_gravity="top"/>
 
-	<ImageButton 
-		android:id="@+id/takePhoto"
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:layout_gravity="center_horizontal|bottom"
-		android:layout_marginBottom="15dip"
-		android:src="@android:drawable/ic_menu_camera"
-		android:contentDescription="@string/btn_take_photo"/>
+	<RelativeLayout
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		android:layout_gravity="top">
+	    <ImageView 
+			android:id="@+id/autoFocusMarker"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_centerInParent="true"
+			android:src="@drawable/ic_menu_focus"
+			android:contentDescription="@string/btn_auto_focus"/>
+	    <ImageButton 
+			android:id="@+id/takePhoto"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_centerHorizontal="true"
+			android:layout_alignParentBottom="true"
+			android:layout_marginBottom="15dip"
+			android:src="@drawable/ic_menu_camera"
+			android:contentDescription="@string/btn_take_photo"/>
+	</RelativeLayout>
 </FrameLayout>
