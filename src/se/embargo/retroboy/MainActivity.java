@@ -53,7 +53,7 @@ public class MainActivity extends SherlockActivity {
 	private Camera.CameraInfo _cameraInfo;
 	
 	private int _cameraCount;
-	private boolean _cameraFlash;
+	private boolean _hasCameraFlash;
 	
 	/**
 	 * Actual physical orientation of the device
@@ -77,7 +77,7 @@ public class MainActivity extends SherlockActivity {
 		super.onCreate(savedInstanceState);
 		
 		_cameraCount = Camera.getNumberOfCameras();
-		_cameraFlash = getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
+		_hasCameraFlash = getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
 		_hasAutoFocus = getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_AUTOFOCUS);
 		
 		_prefs = getSharedPreferences(Pictures.PREFS_NAMESPACE, MODE_PRIVATE);
@@ -149,8 +149,13 @@ public class MainActivity extends SherlockActivity {
 		menu.getItem(1).setIcon(Pictures.getFilterDrawableResource(this));
 		
 		// Remove the flash on/off button if the device doesn't support it
-		if (!_cameraFlash) {
+		if (!_hasCameraFlash) {
 			menu.getItem(3).setVisible(false).setEnabled(false);
+		}
+		
+		// Disable the flash on/off button if the current camera doesn't support it
+		if (_camera != null && (_camera.getParameters().getFlashMode() == null || _cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT)) {
+			menu.getItem(3).setEnabled(false);
 		}
 		
 		return true;
@@ -192,7 +197,7 @@ public class MainActivity extends SherlockActivity {
             			params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
             		}
             		else {
-            			params.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
+            			params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
             		}
             		
             		_camera.setParameters(params);
@@ -258,7 +263,6 @@ public class MainActivity extends SherlockActivity {
 			// Configure the camera
 			Camera.Parameters params = _camera.getParameters();
 			params.setPreviewFormat(ImageFormat.NV21);
-			params.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
 			
 			// Select preview size that most closely matches the wanted size and dimensions
 			Camera.Size previewSize = null;
@@ -271,6 +275,9 @@ public class MainActivity extends SherlockActivity {
 				}
 			}
 			params.setPreviewSize(previewSize.width, previewSize.height);
+			
+			// Invalidate the menu to redraw flash button
+			invalidateOptionsMenu();
 			
 			// Apply the parameter changes
 			_camera.setParameters(params);
