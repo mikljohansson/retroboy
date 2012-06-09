@@ -26,6 +26,10 @@ import com.actionbarsherlock.view.MenuItem;
 
 public class ImageActivity extends SherlockActivity {
 	private static final int GALLERY_RESPONSE_CODE = 1;
+	private static final String EXTRA_NAMESPACE = "se.embargo.retroboy.ImageActivity";
+
+	public static final String EXTRA_ACTION = 				EXTRA_NAMESPACE + ".action";
+	public static final String EXTRA_ACTION_PICK = 			EXTRA_NAMESPACE + ".action.pick";
 	
 	private SharedPreferences _prefs;
 	
@@ -73,14 +77,17 @@ public class ImageActivity extends SherlockActivity {
 			new ProcessImageTask(_inputpath, _outputpath).execute();
 		}
 		
-    	// Select image from gallery if none supplied
-		if (_inputpath == null) {
-    		// Pick a gallery image to process
+        // Check if an action has been request
+		String action = getIntent().getStringExtra(EXTRA_ACTION);
+		getIntent().removeExtra(EXTRA_ACTION);
+
+		// Pick a gallery image to process
+    	if (EXTRA_ACTION_PICK.equals(action)) {
         	Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
             intent.setType("image/*");
             startActivityForResult(intent, GALLERY_RESPONSE_CODE);
         }
-	}
+    }
 	
 	@Override
 	protected void onResume() {

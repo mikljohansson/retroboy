@@ -20,6 +20,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -33,6 +34,8 @@ import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 
 public class MainActivity extends SherlockActivity {
+	private static final String TAG = "MainActivity";
+	
 	public static final String PREF_CAMERA = "camera";
 	
 	public static final String PREF_REVIEW = "review";
@@ -67,6 +70,7 @@ public class MainActivity extends SherlockActivity {
 	 */
 	private AutoFocusListener _autoFocusListener = new AutoFocusListener();
 	private ImageView _autoFocusMarker;
+	private boolean _hasAutoFocus;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -74,6 +78,7 @@ public class MainActivity extends SherlockActivity {
 		
 		_cameraCount = Camera.getNumberOfCameras();
 		_cameraFlash = getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
+		_hasAutoFocus = getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_AUTOFOCUS);
 		
 		_prefs = getSharedPreferences(Pictures.PREFS_NAMESPACE, MODE_PRIVATE);
 		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
@@ -87,18 +92,12 @@ public class MainActivity extends SherlockActivity {
 		// Setup preview display surface
 		setContentView(R.layout.main_activity);
 		_preview = (CameraPreview)findViewById(R.id.preview);
+		_autoFocusMarker = (ImageView)findViewById(R.id.autoFocusMarker);
 		
 		// Connect the take photo button
 		{
 			ImageButton button = (ImageButton)findViewById(R.id.takePhoto);
 			button.setOnClickListener(_takePhotoListener);
-		}
-		
-		// Connect tapping for auto-focus
-		_autoFocusMarker = (ImageView)findViewById(R.id.autoFocusMarker);
-		if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_AUTOFOCUS)) {
-			_preview.setOnClickListener(_autoFocusListener);
-			_autoFocusMarker.setVisibility(View.VISIBLE);
 		}
 		
 		// Initialize the image filter
@@ -181,6 +180,7 @@ public class MainActivity extends SherlockActivity {
             case R.id.selectImageOption: {
             	// Pick a gallery image to process
 				Intent intent = new Intent(this, ImageActivity.class);
+				intent.putExtra(ImageActivity.EXTRA_ACTION, ImageActivity.EXTRA_ACTION_PICK);
 				startActivity(intent);
 	            return true;
             }
@@ -241,6 +241,20 @@ public class MainActivity extends SherlockActivity {
 			_cameraInfo = new Camera.CameraInfo();
 			Camera.getCameraInfo(cameraid, _cameraInfo);
 
+			// Check if camera supports auto-focus
+			if (_hasAutoFocus) {
+				if (_cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+					_autoFocusMarker.setVisibility(View.INVISIBLE);
+					_preview.setOnClickListener(null);
+					Log.i(TAG, "Auto-focus disabled");
+				}
+				else {
+					_autoFocusMarker.setVisibility(View.VISIBLE);
+					_preview.setOnClickListener(_autoFocusListener);
+					Log.i(TAG, "Auto-focus enabled");
+				}
+			}
+			
 			// Configure the camera
 			Camera.Parameters params = _camera.getParameters();
 			params.setPreviewFormat(ImageFormat.NV21);

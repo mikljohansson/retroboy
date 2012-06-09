@@ -9,7 +9,7 @@
 		android:id="@+id/processedImage"
 		android:layout_width="fill_parent"
 		android:layout_height="fill_parent"
-		android:scaleType="fitStart"
+		android:scaleType="fitCenter"
 		android:contentDescription="@string/help_processed_image"/>
 
 </LinearLayout>
