@@ -14,6 +14,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
@@ -89,7 +90,10 @@ public class MainActivity extends SherlockActivity {
 		
 		// Connect tapping for auto-focus
 		_autoFocusMarker = (ImageView)findViewById(R.id.autoFocusMarker);
-		_preview.setOnClickListener(_autoFocusListener);
+		if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_AUTOFOCUS)) {
+			_preview.setOnClickListener(_autoFocusListener);
+			_autoFocusMarker.setVisibility(View.VISIBLE);
+		}
 		
 		// Initialize the image filter
 		initFilter();

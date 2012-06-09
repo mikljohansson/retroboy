@@ -20,6 +20,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:layout_centerInParent="true"
+			android:visibility="invisible"
 			android:src="@drawable/ic_menu_focus"
 			android:contentDescription="@string/btn_auto_focus"/>
 	    <ImageButton 
