@@ -136,7 +136,7 @@ public class Pictures {
 		else {
 			rotate = (orientation - degrees + 360) % 360;
 			mirror = false;
-		}		
+		}
 		
 		return Bitmaps.createTransform(inputwidth, inputheight, outputwidth, outputheight, flags, rotate, mirror);
 	}

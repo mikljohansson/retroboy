@@ -46,6 +46,11 @@ public class MainActivity extends SherlockActivity {
 	private Camera _camera;
 	private Camera.CameraInfo _cameraInfo;
 	
+	/**
+	 * Actual physical orientation of the device
+	 */
+	private WindowOrientationListener _rotationListener;
+	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -76,23 +81,30 @@ public class MainActivity extends SherlockActivity {
 	@Override
 	protected void onResume() {
 		super.onResume();
+		
+		_rotationListener = new OrientationListener();
+		_rotationListener.enable();
+		
 		initCamera();
 	}
 
 	@Override
 	protected void onPause() {
+		_rotationListener.disable();
 		stopPreview();
 		super.onPause();
 	}
 	
 	@Override
 	protected void onStop() {
+		_rotationListener.disable();
 		stopPreview();
 		super.onStop();
 	}
 	
 	@Override
 	protected void onDestroy() {
+		_rotationListener.disable();
 		stopPreview();
 		super.onDestroy();
 	}
@@ -222,7 +234,12 @@ public class MainActivity extends SherlockActivity {
 
 			// Get the current device orientation
 			WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
-			int rotation = windowManager.getDefaultDisplay().getRotation();
+			int rotation = _rotationListener.getCurrentRotation(windowManager.getDefaultDisplay().getRotation());
+			
+			// Compensate for the mirroring
+			if (_cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+				rotation = 4 - rotation;
+			}
 			
 			if (_prefs.getBoolean(PREF_REVIEW, PREF_REVIEW_DEFAULT)) {
 				// Parameterize the image review activity
@@ -314,5 +331,15 @@ public class MainActivity extends SherlockActivity {
 				_camera.addCallbackBuffer(_buffer.frame);
 			}
 		}
+	}
+	
+	private class OrientationListener extends WindowOrientationListener {
+		public OrientationListener() {
+			super(MainActivity.this);
+			setAllow180Rotation(true);
+		}
+
+		@Override
+		public void onOrientationChanged(int rotation) {}
 	}
 }
