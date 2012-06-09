@@ -47,7 +47,7 @@ public class ReviewActivity extends SherlockActivity {
 	 */
 	private PreferencesListener _prefsListener = new PreferencesListener();
 
-	private byte[] _inputdata;
+	static public byte[] _inputdata;
 	private int _inputwidth, _inputheight, _inputfacing, _inputorientation, _inputrotation;
 	
 	private String _inputpath;
@@ -60,7 +60,7 @@ public class ReviewActivity extends SherlockActivity {
         super.onCreate(savedInstanceState);
 
 		// Read the preview frame
-		_inputdata = getIntent().getByteArrayExtra(EXTRA_DATA);
+		//_inputdata = getIntent().getByteArrayExtra(EXTRA_DATA);
 		_inputwidth = getIntent().getIntExtra(EXTRA_DATA_WIDTH, 0);
 		_inputheight = getIntent().getIntExtra(EXTRA_DATA_HEIGHT, 0);
 		_inputfacing = getIntent().getIntExtra(EXTRA_DATA_FACING, 0);

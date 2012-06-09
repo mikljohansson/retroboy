@@ -236,15 +236,10 @@ public class MainActivity extends SherlockActivity {
 			WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
 			int rotation = _rotationListener.getCurrentRotation(windowManager.getDefaultDisplay().getRotation());
 			
-			// Compensate for the mirroring
-			if (_cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-				rotation = 4 - rotation;
-			}
-			
 			if (_prefs.getBoolean(PREF_REVIEW, PREF_REVIEW_DEFAULT)) {
 				// Parameterize the image review activity
 				Intent intent = new Intent(MainActivity.this, ReviewActivity.class);
-				intent.putExtra(ReviewActivity.EXTRA_DATA, data);
+				ReviewActivity._inputdata = data;
 				intent.putExtra(ReviewActivity.EXTRA_DATA_WIDTH, size.width);
 				intent.putExtra(ReviewActivity.EXTRA_DATA_HEIGHT, size.height);
 				intent.putExtra(ReviewActivity.EXTRA_DATA_FACING, _cameraInfo.facing);
