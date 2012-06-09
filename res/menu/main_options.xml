@@ -16,6 +16,11 @@
         android:title="@string/menu_option_select_image"
         android:showAsAction="always"/>
     <item 
+        android:id="@+id/toggleCameraTorch" 
+        android:icon="@drawable/ic_menu_light"
+        android:title="@string/menu_option_camera_torch" 
+        android:showAsAction="ifRoom"/>
+    <item 
         android:id="@+id/editSettingsOption" 
         android:icon="@drawable/ic_menu_preferences"
         android:title="@string/menu_option_settings" 

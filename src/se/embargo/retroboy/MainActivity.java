@@ -137,6 +137,12 @@ public class MainActivity extends SherlockActivity {
 		
 		// Set the correct icon for the filter button
 		menu.getItem(1).setIcon(Pictures.getFilterDrawableResource(this));
+		
+		// Remove the flash on/off button if the device doesn't support it
+		if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
+			menu.getItem(3).setVisible(false);
+		}
+		
 		return true;
 	}
 	
@@ -167,6 +173,22 @@ public class MainActivity extends SherlockActivity {
 				intent.putExtra(ReviewActivity.EXTRA_ACTION, "pick");
 				startActivity(intent);
 	            return true;
+            }
+            
+            case R.id.toggleCameraTorch: {
+            	if (_camera != null) {
+            		Camera.Parameters params = _camera.getParameters();
+            		if (!Camera.Parameters.FLASH_MODE_TORCH.equals(params.getFlashMode())) {
+            			params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+            		}
+            		else {
+            			params.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
+            		}
+            		
+            		_camera.setParameters(params);
+            	}
+            	
+            	return true;
             }
 
             case R.id.editSettingsOption: {
@@ -211,8 +233,9 @@ public class MainActivity extends SherlockActivity {
 			Camera.getCameraInfo(cameraid, _cameraInfo);
 
 			// Configure the camera
-			Camera.Parameters parameters = _camera.getParameters();
-			parameters.setPreviewFormat(ImageFormat.NV21);
+			Camera.Parameters params = _camera.getParameters();
+			params.setPreviewFormat(ImageFormat.NV21);
+			params.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
 			
 			// Select preview size that most closely matches the wanted size and dimensions
 			Camera.Size previewSize = null;
@@ -224,10 +247,10 @@ public class MainActivity extends SherlockActivity {
 					previewSize = size;
 				}
 			}
-			parameters.setPreviewSize(previewSize.width, previewSize.height);
+			params.setPreviewSize(previewSize.width, previewSize.height);
 			
 			// Apply the parameter changes
-			_camera.setParameters(parameters);
+			_camera.setParameters(params);
 			
 			// Start the preview
 			_preview.setCamera(_camera, _cameraInfo);

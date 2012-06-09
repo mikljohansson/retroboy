@@ -11,6 +11,7 @@
     <string name="menu_option_switch_camera">Switch Camera</string>
     <string name="menu_option_switch_filter">Switch Filter</string>
     <string name="menu_option_share_image">Share</string>
+    <string name="menu_option_camera_torch">Torch</string>
     
     <string name="pref_title_filter">Filter</string>
     <string name="pref_summary_filter">Dithering filter used to process pictures</string>
