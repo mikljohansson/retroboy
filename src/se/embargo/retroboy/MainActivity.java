@@ -180,8 +180,7 @@ public class MainActivity extends SherlockActivity {
             
             case R.id.selectImageOption: {
             	// Pick a gallery image to process
-				Intent intent = new Intent(this, ReviewActivity.class);
-				intent.putExtra(ReviewActivity.EXTRA_ACTION, "pick");
+				Intent intent = new Intent(this, ImageActivity.class);
 				startActivity(intent);
 	            return true;
             }
