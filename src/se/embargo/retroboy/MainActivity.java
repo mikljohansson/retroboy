@@ -135,12 +135,17 @@ public class MainActivity extends SherlockActivity {
 		MenuInflater inflater = getSupportMenuInflater();
 		inflater.inflate(R.menu.main_options, menu);
 		
+		// Remove the switch camera button if the device doesn't have multiple cameras
+		if (Camera.getNumberOfCameras() < 2) {
+			menu.getItem(0).setVisible(false).setEnabled(false);
+		}
+
 		// Set the correct icon for the filter button
 		menu.getItem(1).setIcon(Pictures.getFilterDrawableResource(this));
 		
 		// Remove the flash on/off button if the device doesn't support it
 		if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
-			menu.getItem(3).setVisible(false);
+			menu.getItem(3).setVisible(false).setEnabled(false);
 		}
 		
 		return true;
