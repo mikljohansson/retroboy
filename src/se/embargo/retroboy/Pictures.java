@@ -30,6 +30,8 @@ public class Pictures {
 	private static final String PREF_FILTER_ATKINSON = "atkinson";
 	private static final String PREF_FILTER_DEFAULT = PREF_FILTER_BAYER;
 
+	public static final String PREF_CONTRAST = "contrast";
+	
 	private static final String PREF_IMAGECOUNT = "imagecount";
 	
 	private static final String DIRECTORY = "Retroboy";

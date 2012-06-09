@@ -8,6 +8,20 @@
 	    android:entries="@array/pref_filter_labels" 
 	    android:entryValues="@array/pref_filter_values"
 	    android:defaultValue="bayer"/>
+	<ListPreference 
+	    android:key="contrast"
+	    android:title="@string/pref_title_contrast" 
+	    android:summary="@string/pref_summary_contrast"
+	    android:entries="@array/pref_contrast_labels" 
+	    android:entryValues="@array/pref_contrast_values"
+	    android:defaultValue="0"/>
+	<!-- 
+	<se.embargo.retroboy.ExposurePreference 
+	    android:key="exposure"
+	    android:title="@string/pref_title_exposure" 
+	    android:summary="@string/pref_summary_exposure"
+	    android:defaultValue="0"/>
+	-->
 	<CheckBoxPreference
 	    android:key="review"
 	    android:title="@string/pref_title_review" 

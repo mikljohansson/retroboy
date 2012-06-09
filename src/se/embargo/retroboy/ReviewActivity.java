@@ -281,7 +281,15 @@ public class ReviewActivity extends SherlockActivity {
 			_outputpath = outputpath;
 			_buffer = new IImageFilter.ImageBuffer(data, width, height);
 			
-			YuvFilter yuvFilter = new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
+			// Get the contrast adjustment
+			int contrast = 0;
+			try {
+				contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, "0"));
+			}
+			catch (NumberFormatException e) {}
+			
+			// Create the image filter pipeline
+			YuvFilter yuvFilter = new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT, contrast);
 			_transform = Pictures.createTransformMatrix(
 				ReviewActivity.this, 
 				yuvFilter.getEffectiveWidth(width, height), 

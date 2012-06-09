@@ -49,6 +49,9 @@ public class MainActivity extends SherlockActivity {
 	private Camera _camera;
 	private Camera.CameraInfo _cameraInfo;
 	
+	private int _cameraCount;
+	private boolean _cameraFlash;
+	
 	/**
 	 * Actual physical orientation of the device
 	 */
@@ -68,6 +71,9 @@ public class MainActivity extends SherlockActivity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
+		_cameraCount = Camera.getNumberOfCameras();
+		_cameraFlash = getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
 		
 		_prefs = getSharedPreferences(Pictures.PREFS_NAMESPACE, MODE_PRIVATE);
 		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
@@ -136,7 +142,7 @@ public class MainActivity extends SherlockActivity {
 		inflater.inflate(R.menu.main_options, menu);
 		
 		// Remove the switch camera button if the device doesn't have multiple cameras
-		if (Camera.getNumberOfCameras() < 2) {
+		if (_cameraCount < 2) {
 			menu.getItem(0).setVisible(false).setEnabled(false);
 		}
 
@@ -144,7 +150,7 @@ public class MainActivity extends SherlockActivity {
 		menu.getItem(1).setIcon(Pictures.getFilterDrawableResource(this));
 		
 		// Remove the flash on/off button if the device doesn't support it
-		if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
+		if (!_cameraFlash) {
 			menu.getItem(3).setVisible(false).setEnabled(false);
 		}
 		
@@ -162,7 +168,7 @@ public class MainActivity extends SherlockActivity {
 			case R.id.switchCameraOption: {
 				// Switch the active camera
             	int cameraid = _prefs.getInt(PREF_CAMERA, 0) + 1;
-            	if (cameraid >= Camera.getNumberOfCameras()) {
+            	if (cameraid >= _cameraCount) {
             		cameraid = 0;
             	}
             	
@@ -225,10 +231,9 @@ public class MainActivity extends SherlockActivity {
 		stopPreview();
 		
 		// Check which camera to use
-		int cameracount = Camera.getNumberOfCameras(), cameraid = -1;
-		if (cameracount > 0) {
-			cameraid = _prefs.getInt(PREF_CAMERA, 0);
-			if (cameraid >= cameracount) {
+		if (_cameraCount > 0) {
+			int cameraid = _prefs.getInt(PREF_CAMERA, 0);
+			if (cameraid >= _cameraCount) {
 				cameraid = 0;
 			}
 
@@ -263,8 +268,16 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	private void initFilter() {
+		// Get the contrast adjustment
+		int contrast = 0;
+		try {
+			contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, "0"));
+		}
+		catch (NumberFormatException e) {}
+		
+		// Create the image filter pipeline
 		CompositeFilter filters = new CompositeFilter();
-		filters.add(new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT));
+		filters.add(new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT, contrast));
 		filters.add(Pictures.createEffectFilter(this));
 		filters.add(new ImageBitmapFilter());
 		_preview.setFilter(filters);
@@ -346,22 +359,6 @@ public class MainActivity extends SherlockActivity {
 		}
 	}
 	
-	private class PreferencesListener implements OnSharedPreferenceChangeListener {
-		@Override
-		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
-			if (PREF_CAMERA.equals(key)) {
-				initCamera();
-			}
-			else if (Pictures.PREF_FILTER.equals(key)) {
-				// Update the action bar icon
-				invalidateOptionsMenu();
-
-				// Change the active image filter
-				initFilter();
-			}
-		}
-	}
-	
 	/**
 	 * Process an camera preview frame
 	 */
@@ -375,7 +372,15 @@ public class MainActivity extends SherlockActivity {
 			_camera = camera;
 			_buffer = new IImageFilter.ImageBuffer(data, width, height);
 			
-			YuvFilter yuvFilter = new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
+			// Get the contrast adjustment
+			int contrast = 0;
+			try {
+				contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, "0"));
+			}
+			catch (NumberFormatException e) {}
+
+			// Create the image filter pipeline
+			YuvFilter yuvFilter = new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT, contrast);
 			_transform = Pictures.createTransformMatrix(
 				MainActivity.this, 
 				yuvFilter.getEffectiveWidth(width, height), 
@@ -415,6 +420,27 @@ public class MainActivity extends SherlockActivity {
 		}
 	}
 	
+	
+	private class PreferencesListener implements OnSharedPreferenceChangeListener {
+		@Override
+		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
+			if (PREF_CAMERA.equals(key)) {
+				initCamera();
+			}
+			else if (Pictures.PREF_FILTER.equals(key)) {
+				// Update the action bar icon
+				invalidateOptionsMenu();
+
+				// Change the active image filter
+				initFilter();
+			}
+			else if (Pictures.PREF_CONTRAST.equals(key)) {
+				// Change the active image filter
+				initFilter();
+			}
+		}
+	}
+
 	private class OrientationListener extends WindowOrientationListener {
 		public OrientationListener() {
 			super(MainActivity.this);

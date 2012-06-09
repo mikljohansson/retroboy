@@ -7,10 +7,12 @@ import android.util.Log;
 public class YuvFilter implements IImageFilter {
 	private static final String TAG = "YuvFilter";
 	private int _width, _height;
+	private float _factor;
 	
-	public YuvFilter(int width, int height) {
+	public YuvFilter(int width, int height, int contrast) {
 		_width = width;
 		_height = height;
+		_factor = (259.0f * ((float)contrast + 255.0f)) / (255.0f * (259.0f - (float)contrast));
 	}
 	
 	@Override
@@ -36,6 +38,7 @@ public class YuvFilter implements IImageFilter {
 		// Downsample and convert the YUV frame to RGB image
 		final int[] image = buffer.image.array();
 		final int framewidthi = buffer.framewidth;
+		final float factor = _factor;
 		int yo = 0;
 		
 		for (float y = 0; y < frameheight; y += stride, yo++) {
@@ -44,8 +47,15 @@ public class YuvFilter implements IImageFilter {
 			for (float x = 0; x < framewidth; x += stride, xo++) {
 				final int ii = (int)x + (int)y * framewidthi;
 				final int io = xo + yo * imagewidth;
-				final int lum = Math.max((((int)data[ii]) & 0xff) - 16, 0);
-				image[io] = 0xff000000 | (lum << 16) | (lum << 8) | lum;	
+				
+				// Convert from YUV luminance
+				final float lum = Math.max((((int)data[ii]) & 0xff) - 16, 0);
+				
+				// Apply the contrast adjustment
+				final int color = Math.min(Math.max(0, (int)(factor * (lum - 128.0f) + 128.0f)), 255);
+				
+				// Output the pixel
+				image[io] = 0xff000000 | (color << 16) | (color << 8) | color;
 			}
 		}
 	}

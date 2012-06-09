@@ -4,6 +4,8 @@
     
     <string name="btn_take_photo">Take Photo</string>
     <string name="btn_auto_focus">Auto Focus</string>
+    <string name="btn_exposure_set">Set</string>
+    <string name="btn_exposure_cancel">Cancel</string>
     
     <string name="menu_option_select_image">Gallery</string>
     <string name="menu_option_discard_image">Discard</string>
@@ -14,10 +16,17 @@
     <string name="menu_option_camera_torch">Torch</string>
     
     <string name="pref_title_filter">Filter</string>
-    <string name="pref_summary_filter">Dithering filter used to process pictures</string>
+    <string name="pref_summary_filter">1-bit dithering filter</string>
 
+    <string name="pref_title_contrast">Contrast</string>
+    <string name="pref_summary_contrast">Adjust image contrast</string>
+    
+    <string name="pref_title_exposure">Exposure Compensation</string>
+    <string name="pref_summary_exposure">Adjust image brightness</string>
+    <string name="pref_format_exposure">%.01f Ev</string>
+    
     <string name="pref_title_review">Review</string>
-    <string name="pref_summary_review">Review images taken with the camera</string>
+    <string name="pref_summary_review">Review pictures taken with the camera</string>
     
     <string name="pref_label_filter_bayer">Bayer - Nintendo® Gameboy®</string>
     <string name="pref_label_filter_atkinson">Atkinson - Apple® Macintosh® OS</string>
