@@ -19,6 +19,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageButton;
@@ -51,6 +52,11 @@ public class MainActivity extends SherlockActivity {
 	 */
 	private WindowOrientationListener _rotationListener;
 	
+	/**
+	 * Listener to receive taken photos
+	 */
+	private TakePhotoListener _takePhotoListener = new TakePhotoListener();
+	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -71,7 +77,7 @@ public class MainActivity extends SherlockActivity {
 		// Connect the take photo button
 		{
 			ImageButton button = (ImageButton)findViewById(R.id.takePhoto);
-			button.setOnClickListener(new TakePhotoListener());
+			button.setOnClickListener(_takePhotoListener);
 		}
 		
 		// Initialize the image filter
@@ -160,6 +166,19 @@ public class MainActivity extends SherlockActivity {
 		}
 	}
 	
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		if (event.getAction() == KeyEvent.ACTION_DOWN) {
+			switch (keyCode) {
+				case KeyEvent.KEYCODE_CAMERA:
+					_takePhotoListener.takePhoto();
+					return true;
+			}
+		}
+		
+		return super.onKeyDown(keyCode, event);
+	}
+	
 	private void initCamera() {
 		stopPreview();
 		
@@ -223,9 +242,13 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	private class TakePhotoListener implements View.OnClickListener, PreviewCallback {
+		public void takePhoto() {
+			_preview.setOneShotPreviewCallback(this);
+		}
+		
 		@Override
 		public void onClick(View v) {
-			_preview.setOneShotPreviewCallback(this);
+			takePhoto();
 		}
 
 		@Override
