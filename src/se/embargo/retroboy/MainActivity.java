@@ -2,6 +2,10 @@ package se.embargo.retroboy;
 
 import java.io.File;
 
+import se.embargo.core.databinding.observable.ChangeEvent;
+import se.embargo.core.databinding.observable.IChangeListener;
+import se.embargo.core.databinding.observable.IObservableValue;
+import se.embargo.core.databinding.observable.WritableValue;
 import se.embargo.core.graphics.Bitmaps;
 import se.embargo.retroboy.filter.BitmapImageFilter;
 import se.embargo.retroboy.filter.CompositeFilter;
@@ -9,7 +13,9 @@ import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.TransformFilter;
 import se.embargo.retroboy.filter.YuvFilter;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
@@ -23,15 +29,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.actionbarsherlock.app.SherlockActivity;
-import com.actionbarsherlock.view.Menu;
-import com.actionbarsherlock.view.MenuInflater;
-import com.actionbarsherlock.view.MenuItem;
+import com.actionbarsherlock.view.Window;
 
 public class MainActivity extends SherlockActivity {
 	private static final String TAG = "MainActivity";
@@ -49,8 +54,7 @@ public class MainActivity extends SherlockActivity {
 	private PreferencesListener _prefsListener = new PreferencesListener();
 	
 	private CameraPreview _preview;
-	private Camera _camera;
-	private Camera.CameraInfo _cameraInfo;
+	private IObservableValue<CameraHandle> _cameraHandle = new WritableValue<CameraHandle>();
 	
 	private int _cameraCount;
 	private boolean _hasCameraFlash;
@@ -86,18 +90,81 @@ public class MainActivity extends SherlockActivity {
 		// Keep screen on while this activity is focused 
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		
+		// Switch to full screen
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		
 		// Force switch to landscape orientation
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
 		// Setup preview display surface
 		setContentView(R.layout.main_activity);
-		_preview = (CameraPreview)findViewById(R.id.preview);
+		_preview = (CameraPreview)findViewById(R.id.cameraPreview);
 		_autoFocusMarker = (ImageView)findViewById(R.id.autoFocusMarker);
-		
+
 		// Connect the take photo button
 		{
 			ImageButton button = (ImageButton)findViewById(R.id.takePhoto);
 			button.setOnClickListener(_takePhotoListener);
+		}
+		
+		// Connect the settings button
+		{
+			final ImageButton button = (ImageButton)findViewById(R.id.editSettingsOption);
+			button.setOnClickListener(new EditSettingsButtonListener());
+		}
+
+		// Connect the contrast button
+		{
+			final ImageButton button = (ImageButton)findViewById(R.id.contrastButton);
+			button.setOnClickListener(new ListPreferenceDialogListener(
+				Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT,
+				R.string.pref_title_contrast, R.array.pref_contrast_labels, R.array.pref_contrast_values));
+		}
+
+		// Connect the image filter button
+		{
+			final ImageButton button = (ImageButton)findViewById(R.id.switchFilterOption);
+			button.setOnClickListener(new ListPreferenceDialogListener(
+				Pictures.PREF_FILTER, Pictures.PREF_FILTER_DEFAULT,
+				R.string.pref_title_filter, R.array.pref_filter_labels, R.array.pref_filter_values));
+		}
+
+		// Connect the switch camera button
+		{
+			final ImageButton button = (ImageButton)findViewById(R.id.switchCameraOption);
+			button.setOnClickListener(new SwitchCameraButtonListener());
+
+			// Disable the switch camera button if the device doesn't have multiple cameras
+			if (_cameraCount < 2) {
+				button.setEnabled(false);
+			}
+		}
+		
+		// Connect the flash button
+		{
+			final ImageButton button = (ImageButton)findViewById(R.id.toggleCameraTorch);
+			button.setOnClickListener(new FlashButtonListener());
+			
+			if (!_hasCameraFlash) {
+				// Disable the flash on/off button if the device doesn't support it
+				button.setEnabled(false);
+			}
+			else {
+				// Disable the flash on/off button if the current camera doesn't support it
+				_cameraHandle.addChangeListener(new IChangeListener<MainActivity.CameraHandle>() {
+					@Override
+					public void handleChange(ChangeEvent<CameraHandle> event) {
+						CameraHandle handle = event.getValue();
+						if (handle != null && (handle.camera.getParameters().getFlashMode() == null || handle.info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT)) {
+							button.setEnabled(false);
+						}
+						else {
+							button.setEnabled(true);
+						}
+					}
+				});
+			}
 		}
 		
 		// Initialize the image filter
@@ -134,89 +201,6 @@ public class MainActivity extends SherlockActivity {
 		stopPreview();
 		super.onDestroy();
 	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		MenuInflater inflater = getSupportMenuInflater();
-		inflater.inflate(R.menu.main_options, menu);
-		
-		// Remove the switch camera button if the device doesn't have multiple cameras
-		if (_cameraCount < 2) {
-			menu.getItem(0).setVisible(false).setEnabled(false);
-		}
-
-		// Set the correct icon for the filter button
-		menu.getItem(1).setIcon(Pictures.getFilterDrawableResource(this));
-		
-		// Remove the flash on/off button if the device doesn't support it
-		if (!_hasCameraFlash) {
-			menu.getItem(3).setVisible(false).setEnabled(false);
-		}
-		
-		// Disable the flash on/off button if the current camera doesn't support it
-		if (_camera != null && (_camera.getParameters().getFlashMode() == null || _cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT)) {
-			menu.getItem(3).setEnabled(false);
-		}
-		
-		return true;
-	}
-	
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		switch (item.getItemId()) {
-			case R.id.switchFilterOption: {
-				Pictures.toggleImageFilter(this);
-				return true;
-			}
-			
-			case R.id.switchCameraOption: {
-				// Switch the active camera
-            	int cameraid = _prefs.getInt(PREF_CAMERA, 0) + 1;
-            	if (cameraid >= _cameraCount) {
-            		cameraid = 0;
-            	}
-            	
-            	SharedPreferences.Editor editor = _prefs.edit();
-            	editor.putInt(PREF_CAMERA, cameraid);
-            	editor.commit();
-            	return true;
-            }
-            
-            case R.id.selectImageOption: {
-            	// Pick a gallery image to process
-				Intent intent = new Intent(this, ImageActivity.class);
-				intent.putExtra(ImageActivity.EXTRA_ACTION, ImageActivity.EXTRA_ACTION_PICK);
-				startActivity(intent);
-	            return true;
-            }
-            
-            case R.id.toggleCameraTorch: {
-            	if (_camera != null) {
-            		Camera.Parameters params = _camera.getParameters();
-            		if (!Camera.Parameters.FLASH_MODE_TORCH.equals(params.getFlashMode())) {
-            			params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
-            		}
-            		else {
-            			params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
-            		}
-            		
-            		_camera.setParameters(params);
-            	}
-            	
-            	return true;
-            }
-
-            case R.id.editSettingsOption: {
-				// Start preferences activity
-				Intent intent = new Intent(this, SettingsActivity.class);
-				startActivity(intent);
-				return true;
-			}
-
-			default:
-				return super.onOptionsItemSelected(item);
-		}
-	}
 	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -242,13 +226,14 @@ public class MainActivity extends SherlockActivity {
 			}
 
 			// Lock the camera
-			_camera = Camera.open(cameraid);
-			_cameraInfo = new Camera.CameraInfo();
-			Camera.getCameraInfo(cameraid, _cameraInfo);
+			Camera camera = Camera.open(cameraid);
+			Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+			Camera.getCameraInfo(cameraid, cameraInfo);
+			_cameraHandle.setValue(new CameraHandle(camera, cameraInfo));
 
 			// Check if camera supports auto-focus
 			if (_hasAutoFocus) {
-				if (_cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+				if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
 					_autoFocusMarker.setVisibility(View.INVISIBLE);
 					_preview.setOnClickListener(null);
 					Log.i(TAG, "Auto-focus disabled");
@@ -261,12 +246,12 @@ public class MainActivity extends SherlockActivity {
 			}
 			
 			// Configure the camera
-			Camera.Parameters params = _camera.getParameters();
+			Camera.Parameters params = camera.getParameters();
 			params.setPreviewFormat(ImageFormat.NV21);
 			
 			// Select preview size that most closely matches the wanted size and dimensions
 			Camera.Size previewSize = null;
-			for (Camera.Size size : _camera.getParameters().getSupportedPreviewSizes()) {
+			for (Camera.Size size : camera.getParameters().getSupportedPreviewSizes()) {
 				if (previewSize == null || 
 					(previewSize.width < Pictures.IMAGE_WIDTH && previewSize.width < size.width ||
 					 previewSize.width > size.width && size.width >= Pictures.IMAGE_WIDTH) &&
@@ -276,14 +261,11 @@ public class MainActivity extends SherlockActivity {
 			}
 			params.setPreviewSize(previewSize.width, previewSize.height);
 			
-			// Invalidate the menu to redraw flash button
-			invalidateOptionsMenu();
-			
 			// Apply the parameter changes
-			_camera.setParameters(params);
+			camera.setParameters(params);
 			
 			// Start the preview
-			_preview.setCamera(_camera, _cameraInfo);
+			_preview.setCamera(camera, cameraInfo);
 		}
 	}
 	
@@ -291,7 +273,7 @@ public class MainActivity extends SherlockActivity {
 		// Get the contrast adjustment
 		int contrast = 0;
 		try {
-			contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, "0"));
+			contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT));
 		}
 		catch (NumberFormatException e) {}
 		
@@ -304,17 +286,27 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	private void stopPreview() {
-		if (_camera != null) {
-			_camera.stopPreview();
+		CameraHandle handle = _cameraHandle.getValue();
+		if (handle != null) {
+			handle.camera.stopPreview();
 			_preview.setCamera(null, null);
-			_camera.release();
-			_camera = null;
-			_cameraInfo = null;
+			handle.camera.release();
+			_cameraHandle.setValue(null);
 		}
 	}
 
 	private static float ratioError(Camera.Size size) {
 		return Math.round(Math.abs((float)Pictures.IMAGE_WIDTH / Pictures.IMAGE_HEIGHT - (float)size.width / size.height) * 10);
+	}
+	
+	private static class CameraHandle {
+		public final Camera camera;
+		public final Camera.CameraInfo info;
+		
+		public CameraHandle(Camera camera, Camera.CameraInfo info) {
+			this.camera = camera;
+			this.info = info;
+		}
 	}
 	
 	private class TakePhotoListener implements View.OnClickListener, PreviewCallback {
@@ -328,32 +320,35 @@ public class MainActivity extends SherlockActivity {
 		}
 
 		@Override
-		public void onPreviewFrame(byte[] data, Camera camera) {
-			Camera.Size size = camera.getParameters().getPreviewSize();
-
-			// Get the current device orientation
-			WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
-			int rotation = _rotationListener.getCurrentRotation(windowManager.getDefaultDisplay().getRotation());
-			
-			if (_prefs.getBoolean(PREF_REVIEW, PREF_REVIEW_DEFAULT)) {
-				// Parameterize the image review activity
-				Intent intent = new Intent(MainActivity.this, ReviewActivity.class);
-				ReviewActivity._inputdata = data;
-				intent.putExtra(ReviewActivity.EXTRA_DATA_WIDTH, size.width);
-				intent.putExtra(ReviewActivity.EXTRA_DATA_HEIGHT, size.height);
-				intent.putExtra(ReviewActivity.EXTRA_DATA_FACING, _cameraInfo.facing);
-				intent.putExtra(ReviewActivity.EXTRA_DATA_ORIENTATION, _cameraInfo.orientation);
-				intent.putExtra(ReviewActivity.EXTRA_DATA_ROTATION, rotation);
+		public void onPreviewFrame(byte[] data, Camera camera_) {
+			CameraHandle handle = _cameraHandle.getValue();
+			if (handle != null) {
+				Camera.Size size = handle.camera.getParameters().getPreviewSize();
+	
+				// Get the current device orientation
+				WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
+				int rotation = _rotationListener.getCurrentRotation(windowManager.getDefaultDisplay().getRotation());
 				
-				// Stop the running preview
-				stopPreview();
-
-				// Start image review
-				startActivity(intent);
-			}
-			else {
-				// Process and save the picture
-				new ProcessFrameTask(camera, data, size.width, size.height, _cameraInfo.facing, _cameraInfo.orientation, rotation).execute();
+				if (_prefs.getBoolean(PREF_REVIEW, PREF_REVIEW_DEFAULT)) {
+					// Parameterize the image review activity
+					Intent intent = new Intent(MainActivity.this, ReviewActivity.class);
+					ReviewActivity._inputdata = data;
+					intent.putExtra(ReviewActivity.EXTRA_DATA_WIDTH, size.width);
+					intent.putExtra(ReviewActivity.EXTRA_DATA_HEIGHT, size.height);
+					intent.putExtra(ReviewActivity.EXTRA_DATA_FACING, handle.info.facing);
+					intent.putExtra(ReviewActivity.EXTRA_DATA_ORIENTATION, handle.info.orientation);
+					intent.putExtra(ReviewActivity.EXTRA_DATA_ROTATION, rotation);
+					
+					// Stop the running preview
+					stopPreview();
+	
+					// Start image review
+					startActivity(intent);
+				}
+				else {
+					// Process and save the picture
+					new ProcessFrameTask(handle.camera, data, size.width, size.height, handle.info.facing, handle.info.orientation, rotation).execute();
+				}
 			}
 		}
 	}
@@ -361,20 +356,21 @@ public class MainActivity extends SherlockActivity {
 	private class AutoFocusListener implements View.OnClickListener, Camera.AutoFocusCallback {
 		@Override
 		public void onClick(View v) {
-			_autoFocusMarker.setImageResource(R.drawable.ic_menu_focus);
+			_autoFocusMarker.setImageResource(R.drawable.ic_focus);
 
-			if (_camera != null) {
-				_camera.autoFocus(this);
+			CameraHandle handle = _cameraHandle.getValue();
+			if (handle != null) {
+				handle.camera.autoFocus(this);
 			}
 		}
 
 		@Override
 		public void onAutoFocus(boolean success, Camera camera) {
 			if (success) {
-				_autoFocusMarker.setImageResource(R.drawable.ic_menu_focus_ok);
+				_autoFocusMarker.setImageResource(R.drawable.ic_focus_ok);
 			}
 			else {
-				_autoFocusMarker.setImageResource(R.drawable.ic_menu_focus_fail);
+				_autoFocusMarker.setImageResource(R.drawable.ic_focus_fail);
 			}
 		}
 	}
@@ -395,7 +391,7 @@ public class MainActivity extends SherlockActivity {
 			// Get the contrast adjustment
 			int contrast = 0;
 			try {
-				contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, "0"));
+				contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT));
 			}
 			catch (NumberFormatException e) {}
 
@@ -440,7 +436,9 @@ public class MainActivity extends SherlockActivity {
 		}
 	}
 	
-	
+	/**
+	 * Listens for preference changes and applies updates
+	 */
 	private class PreferencesListener implements OnSharedPreferenceChangeListener {
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
@@ -448,9 +446,6 @@ public class MainActivity extends SherlockActivity {
 				initCamera();
 			}
 			else if (Pictures.PREF_FILTER.equals(key)) {
-				// Update the action bar icon
-				invalidateOptionsMenu();
-
 				// Change the active image filter
 				initFilter();
 			}
@@ -461,6 +456,9 @@ public class MainActivity extends SherlockActivity {
 		}
 	}
 
+	/**
+	 * Listens for device orientation changes and stores the current orientation
+	 */
 	private class OrientationListener extends WindowOrientationListener {
 		public OrientationListener() {
 			super(MainActivity.this);
@@ -469,5 +467,101 @@ public class MainActivity extends SherlockActivity {
 
 		@Override
 		public void onOrientationChanged(int rotation) {}
+	}
+
+	/**
+	 * Starts the preferences activity
+	 */
+	private class EditSettingsButtonListener implements OnClickListener {
+		@Override
+		public void onClick(View v) {
+			Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+			startActivity(intent);
+		}
+	}
+
+	/**
+	 * Shows the contrast preference dialog
+	 */
+	private class ListPreferenceDialogListener implements OnClickListener, DialogInterface.OnClickListener {
+		private final String _key, _defvalue;
+		private final int _title, _labels, _values;
+		
+		public ListPreferenceDialogListener(String prefname, String prefdefault, int title, int labels, int values) {
+			_key = prefname;
+			_defvalue = prefdefault;
+			_title = title;
+			_labels = labels;
+			_values = values;
+		}
+		
+		@Override
+		public void onClick(View v) {
+			String contrast = _prefs.getString(_key, _defvalue);
+			String[] values = getResources().getStringArray(_values);
+			int checkedItem = 0;
+			
+			for (int i = 0; i < values.length; i++) {
+				if (contrast.equals(values[i])) {
+					checkedItem = i;
+					break;
+				}
+			}
+			
+			AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+			builder.setTitle(_title);
+			builder.setSingleChoiceItems(_labels, checkedItem, this);
+			builder.setNegativeButton(android.R.string.cancel, this);
+			builder.create().show();
+		}
+
+		@Override
+		public void onClick(DialogInterface dialog, int which) {
+			String[] values = getResources().getStringArray(_values);
+			if (which >= 0 && which < values.length) {
+				SharedPreferences.Editor editor = _prefs.edit();
+				editor.putString(_key, values[which]);
+				editor.commit();
+			}
+			
+			dialog.dismiss();
+		}
+	}
+
+	/**
+	 * Toggles the active camera
+	 */
+	private class SwitchCameraButtonListener implements OnClickListener {
+		@Override
+		public void onClick(View v) {
+        	int cameraid = _prefs.getInt(PREF_CAMERA, 0) + 1;
+        	if (cameraid >= _cameraCount) {
+        		cameraid = 0;
+        	}
+        	
+        	SharedPreferences.Editor editor = _prefs.edit();
+        	editor.putInt(PREF_CAMERA, cameraid);
+        	editor.commit();
+		}
+	}
+
+	/**
+	 * Toggles the flash mode
+	 */
+	private class FlashButtonListener implements OnClickListener {
+		@Override
+		public void onClick(View v) {
+    		CameraHandle handle = _cameraHandle.getValue();
+			Camera.Parameters params = handle.camera.getParameters();
+			
+    		if (!Camera.Parameters.FLASH_MODE_TORCH.equals(params.getFlashMode())) {
+    			params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+    		}
+    		else {
+    			params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+    		}
+    		
+    		handle.camera.setParameters(params);
+		}
 	}
 }

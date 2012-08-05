@@ -115,10 +115,6 @@ public class ImageActivity extends SherlockActivity {
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getSupportMenuInflater();
 		inflater.inflate(R.menu.image_options, menu);
-		
-		// Set the correct icon for the filter button
-		menu.getItem(1).setIcon(Pictures.getFilterDrawableResource(this));
-		
 		return true;
 	}
 
@@ -233,9 +229,6 @@ public class ImageActivity extends SherlockActivity {
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
 			if (Pictures.PREF_FILTER.equals(key)) {
-				// Update the action bar icon
-				invalidateOptionsMenu();
-
 				// Process image in background
 				if (_inputpath != null) {
 					new ProcessImageTask(_inputpath, _outputpath).execute();
@@ -272,7 +265,7 @@ public class ImageActivity extends SherlockActivity {
 			// Get the contrast adjustment
 			int contrast = 0;
 			try {
-				contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, "0"));
+				contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT));
 			}
 			catch (NumberFormatException e) {}
 

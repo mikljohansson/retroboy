@@ -7,6 +7,7 @@ import java.io.IOException;
 import se.embargo.core.graphics.Bitmaps;
 import se.embargo.retroboy.filter.AtkinsonFilter;
 import se.embargo.retroboy.filter.BayerFilter;
+import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import android.content.ContentValues;
 import android.content.Context;
@@ -28,9 +29,11 @@ public class Pictures {
 	
 	private static final String PREF_FILTER_BAYER = "bayer";
 	private static final String PREF_FILTER_ATKINSON = "atkinson";
-	private static final String PREF_FILTER_DEFAULT = PREF_FILTER_BAYER;
+	private static final String PREF_FILTER_HALFTONE = "halftone";
+	public static final String PREF_FILTER_DEFAULT = PREF_FILTER_BAYER;
 
 	public static final String PREF_CONTRAST = "contrast";
+	public static final String PREF_CONTRAST_DEFAULT = "0";
 	
 	private static final String PREF_IMAGECOUNT = "imagecount";
 	
@@ -110,8 +113,13 @@ public class Pictures {
 	public static IImageFilter createEffectFilter(Context context) {
 		SharedPreferences prefs = context.getSharedPreferences(PREFS_NAMESPACE, Context.MODE_PRIVATE);
 		String filtertype = prefs.getString(PREF_FILTER, PREF_FILTER_DEFAULT);
+		
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
 			return new AtkinsonFilter();
+		}
+
+		if (PREF_FILTER_HALFTONE.equals(filtertype)) {
+			return new HalftoneFilter();
 		}
 
 		return new BayerFilter();
@@ -158,16 +166,6 @@ public class Pictures {
 		return createTransformMatrix(context, inputwidth, inputheight, facing, orientation, rotation, maxwidth, maxheight, 0);
 	}
 
-	public static int getFilterDrawableResource(Context context) {
-		SharedPreferences prefs = context.getSharedPreferences(PREFS_NAMESPACE, Context.MODE_PRIVATE);
-		String filtertype = prefs.getString(Pictures.PREF_FILTER, PREF_FILTER_DEFAULT);
-		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
-			return R.drawable.ic_menu_atkinson;
-		}
-		
-		return R.drawable.ic_menu_bayer;
-	}
-	
 	public static void toggleImageFilter(Context context) {
 		SharedPreferences prefs = context.getSharedPreferences(PREFS_NAMESPACE, Context.MODE_PRIVATE);
 
@@ -176,6 +174,9 @@ public class Pictures {
 		String result;
 		
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
+			result = PREF_FILTER_HALFTONE;
+		}
+		else if (PREF_FILTER_HALFTONE.equals(filtertype)) {
 			result = PREF_FILTER_BAYER;
 		}
 		else {

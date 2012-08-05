@@ -2,27 +2,27 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item 
         android:id="@+id/discardImageOption" 
-        android:icon="@drawable/ic_menu_delete" 
+        android:icon="@drawable/ic_action_trash" 
         android:title="@string/menu_option_discard_image"
         android:showAsAction="always"/>
     <item 
         android:id="@+id/switchFilterOption" 
-        android:icon="@drawable/ic_menu_bayer" 
+        android:icon="@drawable/ic_action_filter" 
         android:title="@string/menu_option_switch_filter"
         android:showAsAction="always"/>
     <item 
         android:id="@+id/shareImageOption" 
-        android:icon="@drawable/ic_menu_share" 
+        android:icon="@drawable/ic_action_share" 
         android:title="@string/menu_option_share_image"
         android:showAsAction="always"/>
     <item 
         android:id="@+id/selectImageOption" 
-        android:icon="@drawable/ic_menu_gallery" 
+        android:icon="@drawable/ic_action_gallery" 
         android:title="@string/menu_option_select_image"
         android:showAsAction="ifRoom"/>
     <item 
         android:id="@+id/editSettingsOption" 
-        android:icon="@drawable/ic_menu_preferences"
+        android:icon="@drawable/ic_action_settings"
         android:title="@string/menu_option_settings" 
         android:showAsAction="ifRoom"/>
 </menu>

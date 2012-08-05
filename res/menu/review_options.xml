@@ -2,12 +2,12 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item 
         android:id="@+id/discardImageOption" 
-        android:icon="@drawable/ic_menu_delete" 
+        android:icon="@drawable/ic_action_trash" 
         android:title="@string/menu_option_discard_image"
         android:showAsAction="always"/>
     <item 
         android:id="@+id/shareImageOption" 
-        android:icon="@drawable/ic_menu_share" 
+        android:icon="@drawable/ic_action_share" 
         android:title="@string/menu_option_share_image"
         android:showAsAction="always"/>
 </menu>

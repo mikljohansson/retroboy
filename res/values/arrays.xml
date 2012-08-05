@@ -3,10 +3,12 @@
     <string-array name="pref_filter_labels">
         <item>@string/pref_label_filter_bayer</item>
         <item>@string/pref_label_filter_atkinson</item>
+        <item>@string/pref_label_filter_halftone</item>
     </string-array>
     <string-array name="pref_filter_values">
         <item>bayer</item>
         <item>atkinson</item>
+        <item>halftone</item>
     </string-array>
     <string-array name="pref_contrast_labels">
         <item>High</item>

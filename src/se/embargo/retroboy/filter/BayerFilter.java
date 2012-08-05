@@ -2,7 +2,8 @@ package se.embargo.retroboy.filter;
 
 
 public class BayerFilter implements IImageFilter {
-    private static final int[] _bayerThresholdMatrix = new int[] {
+	private static final int _patternsize = 8;
+	private static final int[] _thresholds = new int[] {
     	0, 128, 32, 160, 8, 136, 40, 168, 
     	192, 64, 224, 96, 200, 72, 232, 104, 
     	48, 176, 16, 144, 56, 184, 24, 152, 
@@ -22,7 +23,7 @@ public class BayerFilter implements IImageFilter {
 				final int i = x + y * width;
 				
 				// Apply the threshold
-				final int threshold = _bayerThresholdMatrix[x % 8 + (y % 8) * 8];
+				final int threshold = _thresholds[x % _patternsize + (y % _patternsize) * _patternsize];
 				final int mono = image[i] & 0xff;
 				final int lum = mono <= threshold ? 0 : 255;
 				image[i] = 0xff000000 | (lum << 16) | (lum << 8) | lum;

@@ -14,6 +14,7 @@
     <string name="menu_option_switch_filter">Switch Filter</string>
     <string name="menu_option_share_image">Share</string>
     <string name="menu_option_camera_torch">Torch</string>
+    <string name="menu_option_contrast">Contrast</string>
     
     <string name="pref_title_filter">Filter</string>
     <string name="pref_summary_filter">1-bit dithering filter</string>
@@ -28,8 +29,9 @@
     <string name="pref_title_review">Review</string>
     <string name="pref_summary_review">Review pictures taken with the camera</string>
     
-    <string name="pref_label_filter_bayer">Bayer - Nintendo® Gameboy®</string>
-    <string name="pref_label_filter_atkinson">Atkinson - Apple® Macintosh® OS</string>
+    <string name="pref_label_filter_bayer">Nintendo® Gameboy®</string>
+    <string name="pref_label_filter_atkinson">Apple® Macintosh® OS</string>
+    <string name="pref_label_filter_halftone">Pop Art</string>
     
     <string name="help_processed_image">1-bit processed image</string>
     

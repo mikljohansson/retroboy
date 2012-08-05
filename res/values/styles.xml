@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+	<style name="PreviewButtonLayout">
+	    <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_gravity">center</item>
+        <item name="android:layout_weight">1</item>
+		<item name="android:orientation">horizontal</item>
+		<item name="android:padding">15dip</item>
+	</style>
+    <style name="PreviewButton">
+		<item name="android:layout_width">40dip</item>
+		<item name="android:layout_height">40dip</item>
+		<item name="android:layout_gravity">center</item>
+		<item name="android:scaleType">fitCenter</item>
+	    <item name="android:background">@null</item>
+	</style>
+</resources>

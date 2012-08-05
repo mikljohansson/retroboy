@@ -180,7 +180,7 @@ public class ReviewActivity extends SherlockActivity {
 			// Get the contrast adjustment
 			int contrast = 0;
 			try {
-				contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, "0"));
+				contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT));
 			}
 			catch (NumberFormatException e) {}
 			
