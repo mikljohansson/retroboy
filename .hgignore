@@ -4,3 +4,5 @@ syntax: regexp
 
 syntax: glob
 res/raw/*.bc
+syntax: regexp
+^gen$
