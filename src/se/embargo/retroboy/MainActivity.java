@@ -14,6 +14,7 @@ import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.TransformFilter;
 import se.embargo.retroboy.filter.YuvFilter;
 import se.embargo.retroboy.widget.ListPreferenceDialog;
+import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -28,6 +29,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -39,6 +41,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 
 import com.actionbarsherlock.app.SherlockActivity;
+import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.Window;
 
 public class MainActivity extends SherlockActivity {
@@ -75,6 +78,11 @@ public class MainActivity extends SherlockActivity {
 	private AutoFocusListener _autoFocusListener = new AutoFocusListener();
 	private ImageView _autoFocusMarker;
 	private boolean _hasAutoFocus;
+	
+	/**
+	 * Zoom support
+	 */
+	private IObservableValue<Integer> _zoomLevel = new WritableValue<Integer>(0);
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -115,10 +123,12 @@ public class MainActivity extends SherlockActivity {
 		}
 
 		// Connect the settings button
+		/*
 		{
 			final ImageButton button = (ImageButton)findViewById(R.id.editSettingsButton);
 			button.setOnClickListener(new EditSettingsButtonListener());
 		}
+		*/
 
 		// Connect the contrast button
 		{
@@ -173,6 +183,9 @@ public class MainActivity extends SherlockActivity {
 			}
 		}
 		
+		// Connect the zoom support
+		_cameraHandle.addChangeListener(new ZoomCameraHandler());
+		
 		// Initialize the image filter
 		initFilter();
 	}
@@ -212,12 +225,45 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		return false;
+	}
+	
+	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		if (event.getAction() == KeyEvent.ACTION_DOWN) {
 			switch (keyCode) {
 				case KeyEvent.KEYCODE_CAMERA:
+					// Take photo when the dedicated photo button is pressed
 					_takePhotoListener.takePhoto();
 					return true;
+					
+				case KeyEvent.KEYCODE_VOLUME_UP: {
+					// Zoom in when volume up is pressed
+					CameraHandle handle = _cameraHandle.getValue();
+					if (handle != null) {
+						Camera.Parameters params = handle.camera.getParameters();
+						if (params.isZoomSupported() || params.isSmoothZoomSupported()) {
+							int max = params.getMaxZoom();
+							int val = _zoomLevel.getValue();
+							if (val < max) {
+								_zoomLevel.setValue(val + 1);
+							}
+						}
+					}
+					
+					return true;
+				}
+
+				case KeyEvent.KEYCODE_VOLUME_DOWN: {
+					// Zoom out when volume down is pressed
+					int val = _zoomLevel.getValue();	
+					if (val > 0) {
+						_zoomLevel.setValue(val - 1);
+					}
+					
+					return true;
+				}
 			}
 		}
 		
@@ -545,15 +591,29 @@ public class MainActivity extends SherlockActivity {
 		public void onClick(View v) {
 			String bucketid = getBucketId();
 			String imageid = String.valueOf(getLastImageId());
-			Uri target = MediaStore.Images.Media.EXTERNAL_CONTENT_URI.buildUpon().appendPath(imageid).appendQueryParameter("bucketId", bucketid).build();
+			Uri.Builder builder = MediaStore.Images.Media.EXTERNAL_CONTENT_URI.buildUpon().appendPath(imageid);
+			
+			// Android 3.0+ requires the buckedId in order to show additional images in the folder
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+				builder.appendQueryParameter("bucketId", bucketid);
+			}
+			
+			Uri target = builder.build();
 			Intent intent = new Intent(Intent.ACTION_VIEW, target);
-			startActivity(intent);
+
+			try {
+				startActivity(intent);
+			}
+			catch (ActivityNotFoundException e) {
+				Log.e(TAG, "Could not start gallery activity", e);
+			}
 		}
 	}
 
 	/**
 	 * Starts the preferences activity
 	 */
+	/*
 	private class EditSettingsButtonListener implements OnClickListener {
 		@Override
 		public void onClick(View v) {
@@ -561,6 +621,7 @@ public class MainActivity extends SherlockActivity {
 			startActivity(intent);
 		}
 	}
+	*/
 
 	/**
 	 * Shows the contrast preference dialog
@@ -610,6 +671,52 @@ public class MainActivity extends SherlockActivity {
     		}
     		
     		handle.camera.setParameters(params);
+		}
+	}
+	
+	private class ZoomLevelHandler implements IChangeListener<Integer> {
+		@Override
+		public void handleChange(ChangeEvent<Integer> event) {
+			CameraHandle handle = _cameraHandle.getValue();
+			if (handle != null) {
+				Camera.Parameters params = handle.camera.getParameters();
+				params.setZoom(event.getValue());
+				handle.camera.setParameters(params);
+			}
+		}
+	}
+	
+	private class ZoomSmoothHandler implements IChangeListener<Integer> {
+		@Override
+		public void handleChange(ChangeEvent<Integer> event) {
+			CameraHandle handle = _cameraHandle.getValue();
+			if (handle != null) {
+				handle.camera.startSmoothZoom(event.getValue());
+			}
+		}
+	}
+	
+	private class ZoomCameraHandler implements IChangeListener<CameraHandle> {
+		private ZoomSmoothHandler _zoomSmoothHandler = new ZoomSmoothHandler();
+		private ZoomLevelHandler _zoomLevelHandler = new ZoomLevelHandler();
+		
+		@Override
+		public void handleChange(ChangeEvent<CameraHandle> event) {
+			_zoomLevel.removeChangeListener(_zoomSmoothHandler);
+			_zoomLevel.removeChangeListener(_zoomLevelHandler);
+			_zoomLevel.setValue(0);
+			
+			CameraHandle handle = event.getValue();
+			if (handle != null) {
+				Camera.Parameters params = handle.camera.getParameters();
+				
+				if (params.isSmoothZoomSupported()) {
+					_zoomLevel.addChangeListener(_zoomSmoothHandler);
+				}
+				else if (params.isZoomSupported()) {
+					_zoomLevel.addChangeListener(_zoomLevelHandler);
+				}
+			}
 		}
 	}
 }

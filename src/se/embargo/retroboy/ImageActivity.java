@@ -144,12 +144,14 @@ public class ImageActivity extends SherlockActivity {
             	return true;
             }
 
+            /*
             case R.id.editSettingsButton: {
 				// Start preferences activity
 				Intent intent = new Intent(this, SettingsActivity.class);
 				startActivity(intent);
 				return true;
 			}
+			*/
             
 			default:
 				return super.onOptionsItemSelected(item);

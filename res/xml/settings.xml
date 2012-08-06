@@ -22,9 +22,4 @@
 	    android:summary="@string/pref_summary_exposure"
 	    android:defaultValue="0"/>
 	-->
-	<CheckBoxPreference
-	    android:key="review"
-	    android:title="@string/pref_title_review" 
-	    android:summary="@string/pref_summary_review"
-	    android:defaultValue="true"/>
 </PreferenceScreen>

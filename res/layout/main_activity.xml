@@ -12,6 +12,7 @@
 		android:orientation="horizontal"
 		android:background="@drawable/header_background">
     
+		<!-- 
         <LinearLayout 
             style="@style/PreviewButtonLayout">
 	        <se.embargo.retroboy.widget.PreviewImageButton 
@@ -20,6 +21,7 @@
 		        android:src="@drawable/ic_button_settings"
 		        android:contentDescription="@string/menu_option_settings"/>
         </LinearLayout>
+        -->
         
         <LinearLayout 
             style="@style/PreviewButtonLayout">

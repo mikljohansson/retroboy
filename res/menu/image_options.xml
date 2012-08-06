@@ -15,9 +15,11 @@
         android:icon="@drawable/ic_action_trash" 
         android:title="@string/menu_option_discard_image"
         android:showAsAction="always"/>
+    <!-- 
     <item 
         android:id="@+id/editSettingsButton" 
         android:icon="@drawable/ic_action_settings"
         android:title="@string/menu_option_settings" 
-        android:showAsAction="ifRoom|withText"/>
+        android:showAsAction="ifRoom"/>
+    -->
 </menu>

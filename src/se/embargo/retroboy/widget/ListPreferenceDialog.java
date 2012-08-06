@@ -1,5 +1,6 @@
 package se.embargo.retroboy.widget;
 
+import se.embargo.retroboy.R;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -39,7 +40,7 @@ public class ListPreferenceDialog implements DialogInterface.OnClickListener {
 		AlertDialog.Builder builder = new AlertDialog.Builder(_context);
 		builder.setTitle(_title);
 		builder.setSingleChoiceItems(_labels, checkedItem, this);
-		builder.setNegativeButton(android.R.string.cancel, this);
+		builder.setNegativeButton(R.string.btn_cancel, this);
 		builder.create().show();
 	}
 
