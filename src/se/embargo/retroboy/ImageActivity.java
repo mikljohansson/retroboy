@@ -127,7 +127,7 @@ public class ImageActivity extends SherlockActivity {
                 return true;
             }
             
-            case R.id.discardImageOption: {
+            case R.id.discardImageButton: {
             	// Return to parent activity without saving the image
             	if (_outputpath != null) {
             		// Delete the processed image from disk 
@@ -143,12 +143,12 @@ public class ImageActivity extends SherlockActivity {
                 return true;
             }
 
-			case R.id.switchFilterOption: {
+			case R.id.switchFilterButton: {
 				Pictures.toggleImageFilter(this);
 				return true;
 			}
             
-            case R.id.shareImageOption: {
+            case R.id.shareImageButton: {
             	if (_outputpath != null) {
 	            	Intent intent = new Intent(Intent.ACTION_SEND);
 	            	intent.setType("image/png");
@@ -159,7 +159,7 @@ public class ImageActivity extends SherlockActivity {
             	return true;
             }
             
-            case R.id.selectImageOption: {
+            case R.id.selectImageButton: {
         		// Pick a gallery image to process
             	Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
                 intent.setType("image/*");
@@ -167,7 +167,7 @@ public class ImageActivity extends SherlockActivity {
 	            return true;
             }
 
-            case R.id.editSettingsOption: {
+            case R.id.editSettingsButton: {
 				// Start preferences activity
 				Intent intent = new Intent(this, SettingsActivity.class);
 				startActivity(intent);

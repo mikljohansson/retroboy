@@ -22,7 +22,9 @@ public class PreviewImageButton extends ImageButton {
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		if (event.getAction() == MotionEvent.ACTION_DOWN) {
-			setColorFilter(Color.argb(255, 51, 181, 229));
+			if (isEnabled()) {
+				setColorFilter(Color.argb(255, 51, 181, 229));
+			}
 		} 
 		else if (event.getAction() == MotionEvent.ACTION_UP) {
 			resetColorFilter();

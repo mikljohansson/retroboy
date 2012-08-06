@@ -16,7 +16,7 @@
             style="@style/PreviewButtonLayout">
 	        <se.embargo.retroboy.widget.PreviewImageButton 
 				style="@style/PreviewButton"
-	        	android:id="@+id/editSettingsOption" 
+	        	android:id="@+id/editSettingsButton" 
 		        android:src="@drawable/ic_button_settings"
 		        android:contentDescription="@string/menu_option_settings"/>
         </LinearLayout>
@@ -25,7 +25,7 @@
             style="@style/PreviewButtonLayout">
         	<se.embargo.retroboy.widget.PreviewImageButton 
 				style="@style/PreviewButton"
-	        	android:id="@+id/contrastButton" 
+	        	android:id="@+id/adjustContrastButton" 
 		        android:src="@drawable/ic_button_contrast"
 		        android:contentDescription="@string/menu_option_contrast"/>
         </LinearLayout>
@@ -34,7 +34,7 @@
             style="@style/PreviewButtonLayout">
         	<se.embargo.retroboy.widget.PreviewImageButton 
 				style="@style/PreviewButton"
-	        	android:id="@+id/switchFilterOption" 
+	        	android:id="@+id/switchFilterButton" 
 		        android:src="@drawable/ic_button_filter"
 		        android:contentDescription="@string/menu_option_switch_filter"/>
         </LinearLayout>
@@ -43,7 +43,7 @@
             style="@style/PreviewButtonLayout">
        		<se.embargo.retroboy.widget.PreviewImageButton 
 				style="@style/PreviewButton"
-	        	android:id="@+id/toggleCameraTorch" 
+	        	android:id="@+id/adjustFlashButton" 
 		        android:src="@drawable/ic_button_flash"
 		        android:contentDescription="@string/menu_option_camera_torch"/>
         </LinearLayout>
@@ -52,7 +52,7 @@
             style="@style/PreviewButtonLayout">
 			<se.embargo.retroboy.widget.PreviewImageButton 
 				style="@style/PreviewButton"
-	        	android:id="@+id/switchCameraOption" 
+	        	android:id="@+id/switchCameraButton" 
 		        android:src="@drawable/ic_button_camera"
 		        android:contentDescription="@string/menu_option_switch_camera"/>
         </LinearLayout>
@@ -66,8 +66,16 @@
 		android:layout_alignParentBottom="true"
 		android:background="@drawable/footer_background">
 
+        <se.embargo.core.widget.ThumbnailButton
+			android:id="@+id/openGalleryButton"
+			android:layout_width="48dp"
+			android:layout_height="48dp"
+			android:layout_alignParentLeft="true"
+			android:layout_centerVertical="true"
+			android:layout_marginLeft="8dp"/>
+        
         <ImageButton 
-			android:id="@+id/takePhoto"
+			android:id="@+id/takePhotoButton"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:layout_centerInParent="true"

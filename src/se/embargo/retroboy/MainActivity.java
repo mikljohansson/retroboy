@@ -14,6 +14,7 @@ import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.TransformFilter;
 import se.embargo.retroboy.filter.YuvFilter;
 import android.app.AlertDialog;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -21,11 +22,15 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -33,7 +38,6 @@ import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 import com.actionbarsherlock.app.SherlockActivity;
 import com.actionbarsherlock.view.Window;
@@ -43,9 +47,6 @@ public class MainActivity extends SherlockActivity {
 	
 	public static final String PREF_CAMERA = "camera";
 	
-	public static final String PREF_REVIEW = "review";
-	public static final boolean PREF_REVIEW_DEFAULT = true;
-
 	private SharedPreferences _prefs;
 	
 	/**
@@ -104,19 +105,25 @@ public class MainActivity extends SherlockActivity {
 
 		// Connect the take photo button
 		{
-			ImageButton button = (ImageButton)findViewById(R.id.takePhoto);
+			ImageButton button = (ImageButton)findViewById(R.id.takePhotoButton);
 			button.setOnClickListener(_takePhotoListener);
 		}
 		
+		// Connect the open gallery button
+		{
+			ImageButton button = (ImageButton)findViewById(R.id.openGalleryButton);
+			button.setOnClickListener(new OpenGalleryButtonListener());
+		}
+
 		// Connect the settings button
 		{
-			final ImageButton button = (ImageButton)findViewById(R.id.editSettingsOption);
+			final ImageButton button = (ImageButton)findViewById(R.id.editSettingsButton);
 			button.setOnClickListener(new EditSettingsButtonListener());
 		}
 
 		// Connect the contrast button
 		{
-			final ImageButton button = (ImageButton)findViewById(R.id.contrastButton);
+			final ImageButton button = (ImageButton)findViewById(R.id.adjustContrastButton);
 			button.setOnClickListener(new ListPreferenceDialogListener(
 				Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT,
 				R.string.pref_title_contrast, R.array.pref_contrast_labels, R.array.pref_contrast_values));
@@ -124,7 +131,7 @@ public class MainActivity extends SherlockActivity {
 
 		// Connect the image filter button
 		{
-			final ImageButton button = (ImageButton)findViewById(R.id.switchFilterOption);
+			final ImageButton button = (ImageButton)findViewById(R.id.switchFilterButton);
 			button.setOnClickListener(new ListPreferenceDialogListener(
 				Pictures.PREF_FILTER, Pictures.PREF_FILTER_DEFAULT,
 				R.string.pref_title_filter, R.array.pref_filter_labels, R.array.pref_filter_values));
@@ -132,7 +139,7 @@ public class MainActivity extends SherlockActivity {
 
 		// Connect the switch camera button
 		{
-			final ImageButton button = (ImageButton)findViewById(R.id.switchCameraOption);
+			final ImageButton button = (ImageButton)findViewById(R.id.switchCameraButton);
 			button.setOnClickListener(new SwitchCameraButtonListener());
 
 			// Disable the switch camera button if the device doesn't have multiple cameras
@@ -143,7 +150,7 @@ public class MainActivity extends SherlockActivity {
 		
 		// Connect the flash button
 		{
-			final ImageButton button = (ImageButton)findViewById(R.id.toggleCameraTorch);
+			final ImageButton button = (ImageButton)findViewById(R.id.adjustFlashButton);
 			button.setOnClickListener(new FlashButtonListener());
 			
 			if (!_hasCameraFlash) {
@@ -177,6 +184,9 @@ public class MainActivity extends SherlockActivity {
 		
 		_rotationListener = new OrientationListener();
 		_rotationListener.enable();
+		
+		// Update the last photo thumbnail
+		new GetLastThumbnailTask(true).execute();
 		
 		initCamera();
 	}
@@ -299,6 +309,79 @@ public class MainActivity extends SherlockActivity {
 		return Math.round(Math.abs((float)Pictures.IMAGE_WIDTH / Pictures.IMAGE_HEIGHT - (float)size.width / size.height) * 10);
 	}
 	
+	private long getLastImageId() {
+		ContentResolver resolver = getContentResolver();
+        Uri baseUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+
+        Uri query = baseUri.buildUpon().appendQueryParameter("limit", "1").build();
+        String[] projection = new String[] {
+        	MediaStore.Images.ImageColumns._ID};
+        
+        String selection = 
+        	MediaStore.Images.ImageColumns.MIME_TYPE + "='image/jpeg' AND " +
+        	MediaStore.Images.ImageColumns.BUCKET_ID + '=' + getBucketId();
+        
+        String order = 
+        	MediaStore.Images.ImageColumns.DATE_TAKEN + " DESC," + 
+        	MediaStore.Images.ImageColumns._ID + " DESC";
+
+        Cursor cursor = null;
+        try {
+            cursor = resolver.query(query, projection, selection, null, order);
+            if (cursor != null && cursor.moveToFirst()) {
+                return cursor.getLong(0);
+            }
+        } 
+        finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        
+        return -1;
+	}
+	
+	private class GetLastThumbnailTask extends AsyncTask<Void, Void, Bitmap> {
+		private boolean _sleep;
+		
+		public GetLastThumbnailTask(boolean sleep) {
+			_sleep = sleep;
+		}
+		
+		public GetLastThumbnailTask() {
+			this(false);
+		}
+		
+		@Override
+		protected Bitmap doInBackground(Void... params) {
+	    	if (_sleep) {
+				try {
+					Thread.sleep(500);
+				}
+				catch (InterruptedException e) {}
+	    	}
+	    	
+	        long id = getLastImageId();
+	        if (id >= 0) {
+				return MediaStore.Images.Thumbnails.getThumbnail(
+					getContentResolver(), id, MediaStore.Images.Thumbnails.MINI_KIND, null);
+	        }
+	        
+	        return null;
+		}
+		
+		@Override
+		protected void onPostExecute(Bitmap result) {
+			ImageButton button = (ImageButton)findViewById(R.id.openGalleryButton);
+			button.setImageBitmap(result);
+		}
+	}
+	
+	private String getBucketId() {
+		// Matches code in MediaProvider.computeBucketValues()
+		return String.valueOf(Pictures.getStorageDirectory().toString().toLowerCase().hashCode());
+	}
+	
 	private static class CameraHandle {
 		public final Camera camera;
 		public final Camera.CameraInfo info;
@@ -329,26 +412,8 @@ public class MainActivity extends SherlockActivity {
 				WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
 				int rotation = _rotationListener.getCurrentRotation(windowManager.getDefaultDisplay().getRotation());
 				
-				if (_prefs.getBoolean(PREF_REVIEW, PREF_REVIEW_DEFAULT)) {
-					// Parameterize the image review activity
-					Intent intent = new Intent(MainActivity.this, ReviewActivity.class);
-					ReviewActivity._inputdata = data;
-					intent.putExtra(ReviewActivity.EXTRA_DATA_WIDTH, size.width);
-					intent.putExtra(ReviewActivity.EXTRA_DATA_HEIGHT, size.height);
-					intent.putExtra(ReviewActivity.EXTRA_DATA_FACING, handle.info.facing);
-					intent.putExtra(ReviewActivity.EXTRA_DATA_ORIENTATION, handle.info.orientation);
-					intent.putExtra(ReviewActivity.EXTRA_DATA_ROTATION, rotation);
-					
-					// Stop the running preview
-					stopPreview();
-	
-					// Start image review
-					startActivity(intent);
-				}
-				else {
-					// Process and save the picture
-					new ProcessFrameTask(handle.camera, data, size.width, size.height, handle.info.facing, handle.info.orientation, rotation).execute();
-				}
+				// Process and save the picture
+				new ProcessFrameTask(handle.camera, data, size.width, size.height, handle.info.facing, handle.info.orientation, rotation).execute();
 			}
 		}
 	}
@@ -424,9 +489,9 @@ public class MainActivity extends SherlockActivity {
 		
 		@Override
 		protected void onPostExecute(File result) {
-			// Show confirmation that image was saved
 			if (result != null) {
-				Toast.makeText(MainActivity.this, getString(R.string.toast_saved_image, result.getName()), Toast.LENGTH_SHORT).show();
+				// Update the last photo thumbnail
+				new GetLastThumbnailTask().execute();
 			}
 
 			// Release buffer back to camera
@@ -467,6 +532,20 @@ public class MainActivity extends SherlockActivity {
 
 		@Override
 		public void onOrientationChanged(int rotation) {}
+	}
+
+	/**
+	 * Starts the gallery in the Retroboy folder
+	 */
+	private class OpenGalleryButtonListener implements OnClickListener {
+		@Override
+		public void onClick(View v) {
+			String bucketid = getBucketId();
+			String imageid = String.valueOf(getLastImageId());
+			Uri target = MediaStore.Images.Media.EXTERNAL_CONTENT_URI.buildUpon().appendPath(imageid).appendQueryParameter("bucketId", bucketid).build();
+			Intent intent = new Intent(Intent.ACTION_VIEW, target);
+			startActivity(intent);
+		}
 	}
 
 	/**
