@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item 
-        android:id="@+id/discardImageButton" 
-        android:icon="@drawable/ic_action_trash" 
-        android:title="@string/menu_option_discard_image"
+        android:id="@+id/shareImageButton" 
+        android:icon="@drawable/ic_action_share" 
+        android:title="@string/menu_option_share_image"
         android:showAsAction="always"/>
     <item 
         android:id="@+id/switchFilterButton" 
@@ -11,18 +11,13 @@
         android:title="@string/menu_option_switch_filter"
         android:showAsAction="always"/>
     <item 
-        android:id="@+id/shareImageButton" 
-        android:icon="@drawable/ic_action_share" 
-        android:title="@string/menu_option_share_image"
+        android:id="@+id/discardImageButton" 
+        android:icon="@drawable/ic_action_trash" 
+        android:title="@string/menu_option_discard_image"
         android:showAsAction="always"/>
-    <item 
-        android:id="@+id/selectImageButton" 
-        android:icon="@drawable/ic_action_gallery" 
-        android:title="@string/menu_option_select_image"
-        android:showAsAction="ifRoom"/>
     <item 
         android:id="@+id/editSettingsButton" 
         android:icon="@drawable/ic_action_settings"
         android:title="@string/menu_option_settings" 
-        android:showAsAction="ifRoom"/>
+        android:showAsAction="ifRoom|withText"/>
 </menu>

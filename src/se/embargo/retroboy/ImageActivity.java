@@ -7,6 +7,7 @@ import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.MonochromeFilter;
+import se.embargo.retroboy.widget.ListPreferenceDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
@@ -17,6 +18,8 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Images;
+import android.util.Log;
 import android.widget.ImageView;
 
 import com.actionbarsherlock.app.SherlockActivity;
@@ -25,11 +28,7 @@ import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 
 public class ImageActivity extends SherlockActivity {
-	private static final int GALLERY_RESPONSE_CODE = 1;
-	private static final String EXTRA_NAMESPACE = "se.embargo.retroboy.ImageActivity";
-
-	public static final String EXTRA_ACTION = 				EXTRA_NAMESPACE + ".action";
-	public static final String EXTRA_ACTION_PICK = 			EXTRA_NAMESPACE + ".action.pick";
+	private static final String TAG = "ImageActivity";
 	
 	private SharedPreferences _prefs;
 	
@@ -71,36 +70,19 @@ public class ImageActivity extends SherlockActivity {
 				_outputpath = null;
 			}
 		}
+		
+		// Read input from intent
+		Uri inputuri = (Uri)getIntent().getExtras().get(Intent.EXTRA_STREAM);
+		if (inputuri != null) {
+			_inputpath = inputuri.toString();
+			Log.i(TAG, "Input image: " + _inputpath);
+		}
 
 		// Process image in background
 		if (_outputpath == null && _inputpath != null) {
 			new ProcessImageTask(_inputpath, _outputpath).execute();
 		}
-		
-        // Check if an action has been request
-		String action = getIntent().getStringExtra(EXTRA_ACTION);
-		getIntent().removeExtra(EXTRA_ACTION);
-
-		// Pick a gallery image to process
-    	if (EXTRA_ACTION_PICK.equals(action)) {
-        	Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
-            intent.setType("image/*");
-            startActivityForResult(intent, GALLERY_RESPONSE_CODE);
-        }
     }
-	
-	@Override
-	protected void onResume() {
-		super.onResume();
-		
-		// Initialize the activity name
-		if (_inputpath != null) {
-			String name = new File(_inputpath).getName();
-			if (name != null && !name.isEmpty()) {
-				setTitle(name);
-			}
-		}
-	}
 	
 	@Override
 	public void onSaveInstanceState(Bundle savedInstanceState) {
@@ -144,7 +126,10 @@ public class ImageActivity extends SherlockActivity {
             }
 
 			case R.id.switchFilterButton: {
-				Pictures.toggleImageFilter(this);
+				new ListPreferenceDialog(
+					this, _prefs, 
+					Pictures.PREF_FILTER, Pictures.PREF_FILTER_DEFAULT,
+					R.string.pref_title_filter, R.array.pref_filter_labels, R.array.pref_filter_values).show();
 				return true;
 			}
             
@@ -158,14 +143,6 @@ public class ImageActivity extends SherlockActivity {
             	
             	return true;
             }
-            
-            case R.id.selectImageButton: {
-        		// Pick a gallery image to process
-            	Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
-                intent.setType("image/*");
-                startActivityForResult(intent, GALLERY_RESPONSE_CODE);
-	            return true;
-            }
 
             case R.id.editSettingsButton: {
 				// Start preferences activity
@@ -178,51 +155,9 @@ public class ImageActivity extends SherlockActivity {
 				return super.onOptionsItemSelected(item);
 		}
 	}
-
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		if (resultCode == RESULT_OK) {
-			switch(requestCode){
-				case GALLERY_RESPONSE_CODE:
-					// Query the media store for the image details
-					Uri contenturi = data.getData();
-					Cursor query = getContentResolver().query(
-						contenturi, 
-						new String[] {MediaStore.MediaColumns.TITLE, MediaStore.MediaColumns.MIME_TYPE, MediaStore.MediaColumns.DATA}, 
-						null, null, null);
-					
-					// Read the image from disk
-					if (query.moveToFirst()) {
-						String path = query.getString(query.getColumnIndex(MediaStore.MediaColumns.DATA));
-						
-						if (path != null) {
-							_inputpath = path;
-							_outputpath = null;
-							_imageview.setImageBitmap(null);
-							
-							// Process image in background
-							new ProcessImageTask(_inputpath, null).execute();
-						}
-					}
-
-					query.close();
-					break;
-					
-				default:
-					super.onActivityResult(requestCode, resultCode, data);
-					break;
-			}
-		}
-		else if (_outputpath == null) {
-			// Return to parent if no image was selected and none has been processed already
-			startParentActivity();
-		}
-	}
 	
     private void startParentActivity() {
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(intent);
+        finish();
     }
 	
 	private class PreferencesListener implements OnSharedPreferenceChangeListener {
@@ -259,9 +194,11 @@ public class ImageActivity extends SherlockActivity {
 		@Override
 		protected File doInBackground(Void... params) {
 			// Read the image from disk
-			Bitmap input = Bitmaps.decodeStream(new File(_inputpath), Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
+			Log.i(TAG, "Reading image: " + _inputpath);
+			Uri inputuri = Uri.parse(_inputpath);
+			Bitmap input = Bitmaps.decodeUri(getContentResolver(), inputuri, Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
 			IImageFilter.ImageBuffer buffer = new IImageFilter.ImageBuffer(input);
-
+			
 			// Get the contrast adjustment
 			int contrast = 0;
 			try {
@@ -280,8 +217,27 @@ public class ImageActivity extends SherlockActivity {
 			// Show the processed image
 			publishProgress();
 			
+			// Find the name of the image
+			Cursor cursor = null;
+			String inputname = null;
+			
+			try {
+				cursor = getContentResolver().query(inputuri, new String[] {Images.Media.DISPLAY_NAME}, null, null, null);
+				if (cursor != null && cursor.moveToFirst()) {
+					inputname = cursor.getString(0);
+					Log.i(TAG, "Image name: " + inputname);					
+				}
+			}
+			finally {
+				if (cursor != null) {
+					cursor.close();
+				}
+			}
+			
 			// Write the image to disk
-			return Pictures.compress(ImageActivity.this, _inputpath, _outputpath, _output);
+			File result = Pictures.compress(ImageActivity.this, inputname, _outputpath, _output);
+			Log.i(TAG, "Wrote image: " + result);
+			return result;
 		}
 		
 		@Override

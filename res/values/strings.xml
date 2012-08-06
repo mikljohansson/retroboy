@@ -31,7 +31,7 @@
     
     <string name="pref_label_filter_bayer">Nintendo® Gameboy®</string>
     <string name="pref_label_filter_atkinson">Apple® Macintosh® OS</string>
-    <string name="pref_label_filter_halftone">Pop Art</string>
+    <string name="pref_label_filter_halftone">Roy Lichtenstein</string>
     
     <string name="help_processed_image">1-bit processed image</string>
     

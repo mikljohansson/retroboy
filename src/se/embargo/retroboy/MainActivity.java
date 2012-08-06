@@ -13,10 +13,9 @@ import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.TransformFilter;
 import se.embargo.retroboy.filter.YuvFilter;
-import android.app.AlertDialog;
+import se.embargo.retroboy.widget.ListPreferenceDialog;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
@@ -318,7 +317,7 @@ public class MainActivity extends SherlockActivity {
         	MediaStore.Images.ImageColumns._ID};
         
         String selection = 
-        	MediaStore.Images.ImageColumns.MIME_TYPE + "='image/jpeg' AND " +
+        	MediaStore.Images.ImageColumns.MIME_TYPE + "='image/png' AND " +
         	MediaStore.Images.ImageColumns.BUCKET_ID + '=' + getBucketId();
         
         String order = 
@@ -373,7 +372,11 @@ public class MainActivity extends SherlockActivity {
 		@Override
 		protected void onPostExecute(Bitmap result) {
 			ImageButton button = (ImageButton)findViewById(R.id.openGalleryButton);
+			View layout = (View)button.getParent();
+			
 			button.setImageBitmap(result);
+			layout.setVisibility(result != null ? View.VISIBLE : View.INVISIBLE);
+			button.setEnabled(result != null);
 		}
 	}
 	
@@ -562,48 +565,14 @@ public class MainActivity extends SherlockActivity {
 	/**
 	 * Shows the contrast preference dialog
 	 */
-	private class ListPreferenceDialogListener implements OnClickListener, DialogInterface.OnClickListener {
-		private final String _key, _defvalue;
-		private final int _title, _labels, _values;
-		
+	private class ListPreferenceDialogListener extends ListPreferenceDialog implements OnClickListener {
 		public ListPreferenceDialogListener(String prefname, String prefdefault, int title, int labels, int values) {
-			_key = prefname;
-			_defvalue = prefdefault;
-			_title = title;
-			_labels = labels;
-			_values = values;
+			super(MainActivity.this, _prefs, prefname, prefdefault, title, labels, values);
 		}
 		
 		@Override
 		public void onClick(View v) {
-			String contrast = _prefs.getString(_key, _defvalue);
-			String[] values = getResources().getStringArray(_values);
-			int checkedItem = 0;
-			
-			for (int i = 0; i < values.length; i++) {
-				if (contrast.equals(values[i])) {
-					checkedItem = i;
-					break;
-				}
-			}
-			
-			AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-			builder.setTitle(_title);
-			builder.setSingleChoiceItems(_labels, checkedItem, this);
-			builder.setNegativeButton(android.R.string.cancel, this);
-			builder.create().show();
-		}
-
-		@Override
-		public void onClick(DialogInterface dialog, int which) {
-			String[] values = getResources().getStringArray(_values);
-			if (which >= 0 && which < values.length) {
-				SharedPreferences.Editor editor = _prefs.edit();
-				editor.putString(_key, values[which]);
-				editor.commit();
-			}
-			
-			dialog.dismiss();
+			show();
 		}
 	}
 
