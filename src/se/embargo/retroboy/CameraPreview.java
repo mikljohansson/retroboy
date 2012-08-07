@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import se.embargo.core.SystemInfo;
 import se.embargo.core.graphics.Bitmaps;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.YuvFilter;
@@ -68,6 +69,11 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 
 			_camera.setPreviewCallbackWithBuffer(this);
 			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
+			
+			// Add more buffers to increase parallelism on powerful devices
+			if (SystemInfo.getNumberOfCores() > 1) {
+				_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);	
+			}
 			
 			initTransform();
 			startPreview();

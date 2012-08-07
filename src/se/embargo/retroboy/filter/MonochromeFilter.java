@@ -34,6 +34,7 @@ public class MonochromeFilter implements IImageFilter {
 			image[i] = 0xff000000 | (color << 16) | (color << 8) | color;
 		}
 
+		// Calculate the global Otsu threshold
 		buffer.threshold = YuvFilter.getGlobalThreshold(
 			buffer.imagewidth, buffer.imageheight, image, histogram);
 	}

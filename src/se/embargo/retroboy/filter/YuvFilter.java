@@ -65,7 +65,8 @@ public class YuvFilter implements IImageFilter {
 				image[io] = 0xff000000 | (color << 16) | (color << 8) | color;
 			}
 		}
-		
+
+		// Calculate the global Otsu threshold
 		buffer.threshold = getGlobalThreshold(
 			imagewidth, imageheight, image, histogram);
 	}
@@ -102,8 +103,7 @@ public class YuvFilter implements IImageFilter {
 		
 			float mB = csum / wB;
 			float mF = (sum - csum) / wF;
-			float sb = (float)wB * (float)wF * (mB - mF) * (mB - mF);
-			//float sb = (float)wB * (float)wF * (mF - mB);
+			float sb = (float)wB * (float)wF * (mF - mB);
 		
 			// Check if new maximum found
 			if (sb > fmax) {
