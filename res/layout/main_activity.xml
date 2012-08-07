@@ -55,7 +55,7 @@
 			<se.embargo.retroboy.widget.PreviewImageButton 
 				style="@style/PreviewButton"
 	        	android:id="@+id/switchCameraButton" 
-		        android:src="@drawable/ic_button_camera"
+		        android:src="@drawable/ic_button_camera_rotate"
 		        android:contentDescription="@string/menu_option_switch_camera"/>
         </LinearLayout>
 				
