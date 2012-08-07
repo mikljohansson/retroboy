@@ -70,8 +70,7 @@ void filter() {
 	
 		float mB = csum / wB;
 		float mF = (sum - csum) / wF;
-		float sb = (float)wB * (float)wF * (mB - mF) * (mB - mF);
-		//float sb = (float)wB * (float)wF * (mF - mB);
+		float sb = (float)wB * (float)wF * (mF - mB);
 	
 		// Check if new maximum found
 		if (sb > fmax) {
