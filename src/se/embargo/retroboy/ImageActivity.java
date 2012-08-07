@@ -17,6 +17,8 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images;
 import android.util.Log;
@@ -37,7 +39,7 @@ public class ImageActivity extends SherlockActivity {
 	 */
 	private PreferencesListener _prefsListener = new PreferencesListener();
 
-	private String _inputpath;
+	private ImageInfo _inputinfo;
 	private String _outputpath;
 	
 	private ImageView _imageview;
@@ -48,7 +50,7 @@ public class ImageActivity extends SherlockActivity {
 
 		// Restore instance state
 		if (savedInstanceState != null) {
-			_inputpath = savedInstanceState.getString("inputpath");
+			_inputinfo = savedInstanceState.getParcelable("inputinfo");
 			_outputpath = savedInstanceState.getString("outputpath");
 		}
 
@@ -74,13 +76,31 @@ public class ImageActivity extends SherlockActivity {
 		// Read input from intent
 		Uri inputuri = (Uri)getIntent().getExtras().get(Intent.EXTRA_STREAM);
 		if (inputuri != null) {
-			_inputpath = inputuri.toString();
-			Log.i(TAG, "Input image: " + _inputpath);
+			// Find the image info
+			Cursor cursor = null;
+			
+			try {
+				cursor = getContentResolver().query(inputuri, new String[] {Images.Media.DISPLAY_NAME, Images.Media.ORIENTATION}, null, null, null);
+				if (cursor != null && cursor.moveToFirst()) {
+					_inputinfo = new ImageInfo(inputuri, cursor.getString(0), cursor.getInt(1));
+					Log.i(TAG, "Image name: " + _inputinfo.filename);					
+				}
+			}
+			finally {
+				if (cursor != null) {
+					cursor.close();
+				}
+			}
 		}
 
+		// Set application title
+		if (_inputinfo != null) {
+			getSupportActionBar().setTitle(_inputinfo.filename);
+		}
+		
 		// Process image in background
-		if (_outputpath == null && _inputpath != null) {
-			new ProcessImageTask(_inputpath, _outputpath).execute();
+		if (_outputpath == null && _inputinfo != null) {
+			new ProcessImageTask(_inputinfo, _outputpath).execute();
 		}
     }
 	
@@ -89,7 +109,7 @@ public class ImageActivity extends SherlockActivity {
 		 super.onSaveInstanceState(savedInstanceState);
 		 
 		 // Store instance state
-		 savedInstanceState.putString("inputpath", _inputpath);
+		 savedInstanceState.putParcelable("inputinfo", _inputinfo);
 		 savedInstanceState.putString("outputpath", _outputpath);
 	}
 	
@@ -109,6 +129,33 @@ public class ImageActivity extends SherlockActivity {
                 return true;
             }
             
+            case R.id.shareImageButton: {
+            	if (_outputpath != null) {
+	            	Intent intent = new Intent(Intent.ACTION_SEND);
+	            	intent.setType("image/png");
+	            	intent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://" + _outputpath));
+	            	startActivity(Intent.createChooser(intent, getText(R.string.menu_option_share_image)));
+            	}
+            	
+            	return true;
+            }
+
+			case R.id.switchFilterButton: {
+				new ListPreferenceDialog(
+					this, _prefs, 
+					Pictures.PREF_FILTER, Pictures.PREF_FILTER_DEFAULT,
+					R.string.pref_title_filter, R.array.pref_filter_labels, R.array.pref_filter_values).show();
+				return true;
+			}
+            
+			case R.id.adjustContrastButton: {
+				new ListPreferenceDialog(
+					this, _prefs, 
+					Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT,
+					R.string.pref_title_contrast, R.array.pref_contrast_labels, R.array.pref_contrast_values).show();
+				return true;
+			}
+
             case R.id.discardImageButton: {
             	// Return to parent activity without saving the image
             	if (_outputpath != null) {
@@ -123,25 +170,6 @@ public class ImageActivity extends SherlockActivity {
             	
             	startParentActivity();
                 return true;
-            }
-
-			case R.id.switchFilterButton: {
-				new ListPreferenceDialog(
-					this, _prefs, 
-					Pictures.PREF_FILTER, Pictures.PREF_FILTER_DEFAULT,
-					R.string.pref_title_filter, R.array.pref_filter_labels, R.array.pref_filter_values).show();
-				return true;
-			}
-            
-            case R.id.shareImageButton: {
-            	if (_outputpath != null) {
-	            	Intent intent = new Intent(Intent.ACTION_SEND);
-	            	intent.setType("image/png");
-	            	intent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://" + _outputpath));
-	            	startActivity(Intent.createChooser(intent, getText(R.string.menu_option_share_image)));
-            	}
-            	
-            	return true;
             }
 
             /*
@@ -161,20 +189,58 @@ public class ImageActivity extends SherlockActivity {
     private void startParentActivity() {
         finish();
     }
+    
+    /**
+     * Holds information about a gallery image
+     */
+    private static class ImageInfo implements Parcelable {
+    	public Uri uri;
+    	public String filename;
+    	public int orientation;
+    	
+    	public ImageInfo(Uri uri, String filename, int orientation) {
+    		this.uri = uri;
+    		this.filename = filename;
+    		this.orientation = orientation;
+    	}
+
+		@Override
+		public int describeContents() {
+			return 0;
+		}
+
+		@Override
+		public void writeToParcel(Parcel dest, int flags) {
+			dest.writeString(uri.toString());
+			dest.writeString(filename);
+			dest.writeInt(orientation);
+		}
+		
+		private ImageInfo(Parcel in) {
+			uri = Uri.parse(in.readString());
+			filename = in.readString();
+			orientation = in.readInt();
+		}
+		
+		@SuppressWarnings("unused")
+		public static final Parcelable.Creator<ImageInfo> CREATOR = new Parcelable.Creator<ImageInfo>() {
+		    public ImageInfo createFromParcel(Parcel in) {
+		        return new ImageInfo(in);
+		    }
+		
+		    public ImageInfo[] newArray(int size) {
+		        return new ImageInfo[size];
+		    }
+		};
+    }
 	
 	private class PreferencesListener implements OnSharedPreferenceChangeListener {
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
-			if (Pictures.PREF_FILTER.equals(key)) {
+			if (Pictures.PREF_FILTER.equals(key) || Pictures.PREF_CONTRAST.equals(key)) {
 				// Process image in background
-				if (_inputpath != null) {
-					new ProcessImageTask(_inputpath, _outputpath).execute();
-				}
-			}
-			else if (Pictures.PREF_CONTRAST.equals(key)) {
-				// Process image in background
-				if (_inputpath != null) {
-					new ProcessImageTask(_inputpath, _outputpath).execute();
+				if (_inputinfo != null) {
+					new ProcessImageTask(_inputinfo, _outputpath).execute();
 				}
 			}
 		}
@@ -184,22 +250,20 @@ public class ImageActivity extends SherlockActivity {
 	 * Process an image read from disk
 	 */
 	private class ProcessImageTask extends AsyncTask<Void, Void, File> {
-		private final String _inputpath;
+		private final ImageInfo _inputinfo;
 		private final String _outputpath;
 		private Bitmap _output;
 
-		public ProcessImageTask(String inputpath, String outputpath) {
-			_inputpath = inputpath;
+		public ProcessImageTask(ImageInfo inputinfo, String outputpath) {
+			_inputinfo = inputinfo;
 			_outputpath = outputpath;
 		}
 
 		@Override
 		protected File doInBackground(Void... params) {
 			// Read the image from disk
-			Log.i(TAG, "Reading image: " + _inputpath);
-			Uri inputuri = Uri.parse(_inputpath);
-			Bitmap input = Bitmaps.decodeUri(getContentResolver(), inputuri, Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
-			IImageFilter.ImageBuffer buffer = new IImageFilter.ImageBuffer(input);
+			Log.i(TAG, "Reading image: " + _inputinfo.uri);
+			Bitmap input = Bitmaps.decodeUri(getContentResolver(), _inputinfo.uri, Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
 			
 			// Get the contrast adjustment
 			int contrast = 0;
@@ -208,36 +272,31 @@ public class ImageActivity extends SherlockActivity {
 			}
 			catch (NumberFormatException e) {}
 
-			// Apply the image filter to the current image			
+			// Rotate the image as needed
+			if (_inputinfo.orientation != 0) {
+				Bitmaps.Transform transform = Bitmaps.createTransform(
+					input.getWidth(), input.getHeight(),
+					input.getWidth(), input.getHeight(),
+					0, _inputinfo.orientation, false);
+				input = Bitmaps.transform(input, transform);
+			}
+			
+			// Create the image filter pipeline
+			IImageFilter.ImageBuffer buffer = new IImageFilter.ImageBuffer(input);
 			CompositeFilter filter = new CompositeFilter();
 			filter.add(new MonochromeFilter(contrast));
 			filter.add(Pictures.createEffectFilter(ImageActivity.this));
 			filter.add(new ImageBitmapFilter());
+
+			// Apply the image filter to the current image			
 			filter.accept(buffer);
 			_output = buffer.bitmap;
 			
 			// Show the processed image
 			publishProgress();
 			
-			// Find the name of the image
-			Cursor cursor = null;
-			String inputname = null;
-			
-			try {
-				cursor = getContentResolver().query(inputuri, new String[] {Images.Media.DISPLAY_NAME}, null, null, null);
-				if (cursor != null && cursor.moveToFirst()) {
-					inputname = cursor.getString(0);
-					Log.i(TAG, "Image name: " + inputname);					
-				}
-			}
-			finally {
-				if (cursor != null) {
-					cursor.close();
-				}
-			}
-			
 			// Write the image to disk
-			File result = Pictures.compress(ImageActivity.this, inputname, _outputpath, _output);
+			File result = Pictures.compress(ImageActivity.this, _inputinfo.filename, _outputpath, _output);
 			Log.i(TAG, "Wrote image: " + result);
 			return result;
 		}
