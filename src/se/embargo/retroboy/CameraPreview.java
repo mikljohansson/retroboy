@@ -84,22 +84,25 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 	
 	@Override
 	public void onPreviewFrame(byte[] data, Camera camera) {
-		if (_callback != null) {
-			// Delegate to an additional callback
-			_callback.onPreviewFrame(data, camera);
-			_callback = null;
-		}
-		else {
-			// Submit a task to process the image
-			FilterTask task = _bufferpool.poll();
-			if (task != null) {
-				task.init(data, camera);
+		// data may be null if buffer was too small
+		if (data != null) {
+			if (_callback != null) {
+				// Delegate to an additional callback
+				_callback.onPreviewFrame(data, camera);
+				_callback = null;
 			}
 			else {
-				task = new FilterTask(data, camera);
+				// Submit a task to process the image
+				FilterTask task = _bufferpool.poll();
+				if (task != null) {
+					task.init(data, camera);
+				}
+				else {
+					task = new FilterTask(data, camera);
+				}
+				
+				_threadpool.submit(task);
 			}
-			
-			_threadpool.submit(task);
 		}
 	}
 

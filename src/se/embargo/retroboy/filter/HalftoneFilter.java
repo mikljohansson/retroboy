@@ -16,7 +16,7 @@ public class HalftoneFilter implements IImageFilter {
 		final int width = buffer.imagewidth, height = buffer.imageheight;
 		
 		// Allocate a buffer to hold the luminance
-		final int cellwidth = width / _patternsize + 1, cellheight = height / _patternsize + 1;
+		final int cellwidth = width / _patternsize + _patternsize, cellheight = height / _patternsize + _patternsize;
 		int[] cells = _bufferpool.poll();
 		
 		if (cells == null || cells.length != cellwidth * cellheight) {
