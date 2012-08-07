@@ -6,17 +6,22 @@ public class AtkinsonFilter implements IImageFilter {
     	final int[] image = buffer.image.array();
 		final int width = buffer.imagewidth, height = buffer.imageheight;
 
+		// Factor used to offset the threshold to compensate for too dark or bright images
+		final int threshold = buffer.threshold;
+		
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				final int i = x + y * width;
+				final int mono = image[i] & 0xff;
 
 				// Apply the threshold
-				final int mono = image[i] & 0xff;
-				final int lum = mono < 128 ? 0 : 255;
-				final int err = (mono - lum) / 8;
+				final int lum = mono < threshold ? 0 : 255;
+				
+				// Output the pixel
 				image[i] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
 				
 				// Propagate the error
+				final int err = (mono - lum) / 8;
 				if (err != 0) {
 					propagate(image, err, i + 1); 
 					propagate(image, err, i + 2);

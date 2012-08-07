@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class HalftoneFilter implements IImageFilter {
     private static final int _patternsize = 6;
-	private static final int[] _thresholds = new int[_patternsize * _patternsize];
+	private static final float[] _thresholds = new float[_patternsize * _patternsize];
 	
 	private Queue<int[]> _bufferpool = new ConcurrentLinkedQueue<int[]>();
     
@@ -36,15 +36,18 @@ public class HalftoneFilter implements IImageFilter {
 			}
 		}
 		
+		// Factor used to offset the threshold to compensate for too dark or bright images
+		final float factor = (float)buffer.threshold / 128;
+		
 		// Apply the threshold for each dithering cell
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				final int ii = (x / _patternsize) + (y / _patternsize) * cellwidth;
 				final int oi = x + y * width;
+				final int mono = (cells[ii] / _thresholds.length) & 0xff;
 				
 				// Apply the threshold
-				final int threshold = _thresholds[x % _patternsize + (y % _patternsize) * _patternsize];
-				final int mono = (cells[ii] / _thresholds.length) & 0xff;
+				final int threshold = (int)(_thresholds[x % _patternsize + (y % _patternsize) * _patternsize] * factor);
 				final int lum = mono <= threshold ? 0 : 255;
 				image[oi] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
 			}

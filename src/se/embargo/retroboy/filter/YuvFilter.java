@@ -1,6 +1,7 @@
 package se.embargo.retroboy.filter;
 
 import java.nio.IntBuffer;
+import java.util.Arrays;
 
 import android.util.Log;
 
@@ -41,6 +42,9 @@ public class YuvFilter implements IImageFilter {
 		final float factor = _factor;
 		int yo = 0;
 		
+		final int[] histogram = buffer.histogram;
+		Arrays.fill(histogram, 0);
+		
 		for (float y = 0; y < frameheight; y += stride, yo++) {
 			int xo = 0;
 
@@ -54,10 +58,61 @@ public class YuvFilter implements IImageFilter {
 				// Apply the contrast adjustment
 				final int color = Math.min(Math.max(0, (int)(factor * (lum - 128.0f) + 128.0f)), 255);
 				
+				// Build the histogram used to calculate the global threshold
+				histogram[color]++;
+				
 				// Output the pixel
 				image[io] = 0xff000000 | (color << 16) | (color << 8) | color;
 			}
 		}
+		
+		buffer.threshold = getGlobalThreshold(
+			imagewidth, imageheight, image, histogram);
+	}
+	
+	public static int getGlobalThreshold(int imagewidth, int imageheight, final int[] image, final int[] histogram) {
+		float sum = 0;
+		int pixels = imagewidth * imageheight;
+		
+		for (int i = 0; i < histogram.length; i++) {
+			sum += (float)(histogram[i] * i);
+		}
+		
+		float csum = 0;
+		int wB = 0;
+		int wF = 0;
+		
+		float fmax = -1.0f;
+		int threshold = 0;
+		
+		for (int i = 0; i < 255; i++) {
+			// Weight background
+			wB += histogram[i];
+			if (wB == 0) { 
+				continue;
+			}
+		
+			// Weight foreground
+			wF = pixels - wB;
+			if (wF == 0) {
+				break;
+			}
+		
+			csum += (float)(histogram[i] * i);
+		
+			float mB = csum / wB;
+			float mF = (sum - csum) / wF;
+			float sb = (float)wB * (float)wF * (mB - mF) * (mB - mF);
+			//float sb = (float)wB * (float)wF * (mF - mB);
+		
+			// Check if new maximum found
+			if (sb > fmax) {
+				fmax = sb;
+				threshold = i + 1;
+			}
+		}
+		
+		return Math.max(2, Math.min(threshold, 254));
 	}
 
 	public int getEffectiveWidth(int framewidth, int frameheight) {

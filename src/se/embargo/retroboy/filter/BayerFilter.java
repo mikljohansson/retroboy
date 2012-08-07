@@ -3,7 +3,7 @@ package se.embargo.retroboy.filter;
 
 public class BayerFilter implements IImageFilter {
 	private static final int _patternsize = 8;
-	private static final int[] _thresholds = new int[] {
+	private static final float[] _thresholds = new float[] {
     	0, 128, 32, 160, 8, 136, 40, 168, 
     	192, 64, 224, 96, 200, 72, 232, 104, 
     	48, 176, 16, 144, 56, 184, 24, 152, 
@@ -18,14 +18,19 @@ public class BayerFilter implements IImageFilter {
     	final int[] image = buffer.image.array();
 		final int width = buffer.imagewidth, height = buffer.imageheight;
 		
+		// Factor used to offset the threshold to compensate for too dark or bright images
+		final float factor = (float)buffer.threshold / 128;
+		
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				final int i = x + y * width;
+				final int mono = image[i] & 0xff;
 				
 				// Apply the threshold
-				final int threshold = _thresholds[x % _patternsize + (y % _patternsize) * _patternsize];
-				final int mono = image[i] & 0xff;
+				final int threshold = (int)(_thresholds[x % _patternsize + (y % _patternsize) * _patternsize] * factor);
 				final int lum = mono <= threshold ? 0 : 255;
+				
+				// Output the pixel
 				image[i] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
 			}
 		}

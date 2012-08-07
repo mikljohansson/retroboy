@@ -1,5 +1,7 @@
 package se.embargo.retroboy.filter;
 
+import java.util.Arrays;
+
 import android.graphics.Color;
 
 public class MonochromeFilter implements IImageFilter {
@@ -14,6 +16,9 @@ public class MonochromeFilter implements IImageFilter {
 		final int[] image = buffer.image.array();
 		final float factor = _factor;
 		
+		final int[] histogram = buffer.histogram;
+		Arrays.fill(histogram, 0);
+		
 		for (int i = 0, last = buffer.imagewidth * buffer.imageheight; i != last; i++) {
 			final int pix = image[i];
 			
@@ -22,8 +27,14 @@ public class MonochromeFilter implements IImageFilter {
 			
 			// Apply the contrast adjustment
 			final int color = Math.min(Math.max(0, (int)(factor * (lum - 128.0f) + 128.0f)), 255);
+
+			// Build the histogram used to calculate the global threshold
+			histogram[color]++;
 			
 			image[i] = 0xff000000 | (color << 16) | (color << 8) | color;
 		}
+
+		buffer.threshold = YuvFilter.getGlobalThreshold(
+			buffer.imagewidth, buffer.imageheight, image, histogram);
 	}
 }
