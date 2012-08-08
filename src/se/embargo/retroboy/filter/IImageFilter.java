@@ -6,9 +6,21 @@ import android.graphics.Bitmap;
 
 public interface IImageFilter {
 	public class ImageBuffer {
+		/**
+		 * Raw image data, typically YUV format
+		 */
 		public byte[] frame;
+		
+		/**
+		 * Width and height of the raw data
+		 */
 		public final int framewidth, frameheight;
-
+		
+		/**
+		 * Sequence number of this frame 
+		 */
+		public long frameseq;
+		
 		public IntBuffer image;
 		public int imagewidth, imageheight;
 

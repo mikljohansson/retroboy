@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import se.embargo.core.SystemInfo;
+import se.embargo.core.concurrent.Parallel;
 import se.embargo.core.graphics.Bitmaps;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.YuvFilter;
@@ -24,6 +24,7 @@ import android.view.WindowManager;
 class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camera.PreviewCallback {
 	private ExecutorService _threadpool = Executors.newCachedThreadPool();
 	private Queue<FilterTask> _bufferpool = new ConcurrentLinkedQueue<FilterTask>();
+	private long _frameseq = 0, _lastframeseq = -1;
 	
 	private SurfaceHolder _holder;
 	
@@ -35,6 +36,12 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 	private Bitmaps.Transform _transform;
 	
 	private Camera.PreviewCallback _callback;
+	
+	/**
+	 * Statistics for framerate calculation
+	 */
+	private long _framestat = 0;
+	private long _laststat = 0;
 	
 	public CameraPreview(Context context) {
 		this(context, null);
@@ -70,8 +77,8 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			_camera.setPreviewCallbackWithBuffer(this);
 			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
 			
-			// Add more buffers to increase parallelism on powerful devices
-			if (SystemInfo.getNumberOfCores() > 1) {
+			// Add more buffers to increase parallelism on multicore devices
+			if (Parallel.getNumberOfCores() > 1) {
 				_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);	
 			}
 			
@@ -134,7 +141,9 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 				}
 			}
 			
-			// Begin the preview.
+			// Begin the preview
+			_framestat = 0;
+			_laststat = System.nanoTime();
 			_camera.startPreview();
 		}
 	}
@@ -185,6 +194,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			
 			// Reinitialize the buffer with the new data
 			_buffer.frame = data;
+			_buffer.frameseq = _frameseq++;
 			_camera = camera;
 		}
 		
@@ -193,8 +203,27 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			// Filter the preview image
 			_filter.accept(_buffer);
 			
+			// Check frame sequence number and drop out-of-sequence frames
+			Canvas canvas = null;
+			synchronized (this) {
+				if (_lastframeseq > _buffer.frameseq) {
+					// Release the buffers
+					_bufferpool.offer(this);
+
+					// Must hold canvas before releasing camera buffer or out-of-memory will result..
+					synchronized (_camera) {
+						_camera.addCallbackBuffer(_buffer.frame);
+					}
+					
+					Log.w(TAG, "Dropped frame " + _buffer.frameseq + ", last frame was " + _lastframeseq);
+					return;
+				}
+				
+				_lastframeseq = _buffer.frameseq;
+				canvas = _holder.lockCanvas();
+			}
+			
 			// Must hold canvas before releasing camera buffer or out-of-memory will result..
-			Canvas canvas = _holder.lockCanvas();
 			synchronized (_camera) {
 				_camera.addCallbackBuffer(_buffer.frame);
 			}
@@ -202,6 +231,17 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			// Draw and transform camera frame
 			if (canvas != null) {
 				canvas.drawBitmap(_buffer.bitmap, _transform.matrix, _paint);
+				
+				// Calculate the framerate
+				if (++_framestat >= 25) {
+					long ts = System.nanoTime();
+					Log.i(TAG, "Framerate: " + ((double)_framestat / (((double)ts - (double)_laststat) / 1000000000d)));
+					
+					_framestat = 0;
+					_laststat = System.nanoTime();
+				}
+
+				// Switch to next buffer
 				_holder.unlockCanvasAndPost(canvas);
 			}
 			
