@@ -72,4 +72,14 @@ public class HalftoneFilter implements IImageFilter {
 	private static double cos1(double v) { 
 		return Math.cos(2 * Math.PI * v); 
 	}
+
+	@Override
+	public int getEffectiveWidth(int framewidth, int frameheight) {
+		return 0;
+	}
+
+	@Override
+	public int getEffectiveHeight(int framewidth, int frameheight) {
+		return 0;
+	}
 }

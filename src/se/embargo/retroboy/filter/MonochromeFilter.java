@@ -38,4 +38,14 @@ public class MonochromeFilter implements IImageFilter {
 		buffer.threshold = YuvFilter.getGlobalThreshold(
 			buffer.imagewidth, buffer.imageheight, image, histogram);
 	}
+
+	@Override
+	public int getEffectiveWidth(int framewidth, int frameheight) {
+		return 0;
+	}
+
+	@Override
+	public int getEffectiveHeight(int framewidth, int frameheight) {
+		return 0;
+	}
 }

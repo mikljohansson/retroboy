@@ -55,7 +55,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		super(context, attrs, defStyle);
 		
 		// Default filter
-		_filter = new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT, 0);
+		_filter = new YuvFilter(480, 360, 0);
 
 		// Install a SurfaceHolder.Callback so we get notified when the surface is created and destroyed.
 		_holder = getHolder();
@@ -91,8 +91,13 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		_callback = callback;
 	}
 
+	/**
+	 * Sets the active image filter
+	 * @param filter	Image filter to use
+	 */
 	public void setFilter(IImageFilter filter) {
 		_filter = filter;
+		initTransform();
 	}
 	
 	@Override
@@ -151,7 +156,6 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 	private void initTransform() {
 		if (_cameraInfo != null && _previewSize != null) {
 			int width = getWidth(), height = getHeight();
-			YuvFilter yuvFilter = new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT, 0);
 			
 			// Get the current device orientation
 			WindowManager windowManager = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
@@ -160,8 +164,8 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			// Rotate and flip the image when drawing it onto the surface
 			_transform = Pictures.createTransformMatrix(
 				getContext(), 
-				yuvFilter.getEffectiveWidth(_previewSize.width, _previewSize.height), 
-				yuvFilter.getEffectiveHeight(_previewSize.width, _previewSize.height), 
+				_filter.getEffectiveWidth(_previewSize.width, _previewSize.height), 
+				_filter.getEffectiveHeight(_previewSize.width, _previewSize.height), 
 				_cameraInfo.facing, _cameraInfo.orientation, rotation, 
 				Math.max(width, height), Math.min(width, height),
 				Bitmaps.FLAG_ENLARGE);

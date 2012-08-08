@@ -19,4 +19,14 @@ public class BitmapImageFilter implements IImageFilter {
 		buffer.imageheight = imageheight;
 		buffer.bitmap.copyPixelsToBuffer(buffer.image);
 	}
+
+	@Override
+	public int getEffectiveWidth(int framewidth, int frameheight) {
+		return 0;
+	}
+
+	@Override
+	public int getEffectiveHeight(int framewidth, int frameheight) {
+		return 0;
+	}
 }

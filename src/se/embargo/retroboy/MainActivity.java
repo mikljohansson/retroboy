@@ -42,6 +42,8 @@ import android.widget.ImageView;
 
 import com.actionbarsherlock.app.SherlockActivity;
 import com.actionbarsherlock.view.Menu;
+import com.actionbarsherlock.view.MenuInflater;
+import com.actionbarsherlock.view.MenuItem;
 import com.actionbarsherlock.view.Window;
 
 public class MainActivity extends SherlockActivity {
@@ -123,12 +125,10 @@ public class MainActivity extends SherlockActivity {
 		}
 
 		// Connect the settings button
-		/*
 		{
 			final ImageButton button = (ImageButton)findViewById(R.id.editSettingsButton);
 			button.setOnClickListener(new EditSettingsButtonListener());
 		}
-		*/
 
 		// Connect the contrast button
 		{
@@ -305,16 +305,20 @@ public class MainActivity extends SherlockActivity {
 			params.setPreviewFormat(ImageFormat.NV21);
 			
 			// Select preview size that most closely matches the wanted size and dimensions
+			Pictures.Resolution resolution = Pictures.getResolution(_prefs);
 			Camera.Size previewSize = null;
+			Log.i(TAG, "Selected output resolution: " + resolution);
+			
 			for (Camera.Size size : camera.getParameters().getSupportedPreviewSizes()) {
 				if (previewSize == null || 
-					(previewSize.width < Pictures.IMAGE_WIDTH && previewSize.width < size.width ||
-					 previewSize.width > size.width && size.width >= Pictures.IMAGE_WIDTH) &&
-					ratioError(previewSize) >= ratioError(size)) {
+					(previewSize.width < resolution.width && previewSize.width < size.width ||
+					 previewSize.width > size.width && size.width >= resolution.width) &&
+					ratioError(previewSize, resolution) >= ratioError(size, resolution)) {
 					previewSize = size;
 				}
 			}
 			params.setPreviewSize(previewSize.width, previewSize.height);
+			Log.i(TAG, "Found preview resolution: " + previewSize.width + "x" + previewSize.height);
 			
 			// Apply the parameter changes
 			camera.setParameters(params);
@@ -325,16 +329,13 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	private void initFilter() {
-		// Get the contrast adjustment
-		int contrast = 0;
-		try {
-			contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT));
-		}
-		catch (NumberFormatException e) {}
+		// Get the resolution and contrast from preferences
+		Pictures.Resolution resolution = Pictures.getResolution(_prefs);
+		int contrast = Pictures.getContrast(_prefs);
 		
 		// Create the image filter pipeline
 		CompositeFilter filters = new CompositeFilter();
-		filters.add(new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT, contrast));
+		filters.add(new YuvFilter(resolution.width, resolution.height, contrast));
 		filters.add(Pictures.createEffectFilter(this));
 		filters.add(new ImageBitmapFilter());
 		_preview.setFilter(filters);
@@ -350,8 +351,8 @@ public class MainActivity extends SherlockActivity {
 		}
 	}
 
-	private static float ratioError(Camera.Size size) {
-		return Math.round(Math.abs((float)Pictures.IMAGE_WIDTH / Pictures.IMAGE_HEIGHT - (float)size.width / size.height) * 10);
+	private static float ratioError(Camera.Size size, Pictures.Resolution resolution) {
+		return Math.round(Math.abs((float)resolution.width / resolution.height - (float)size.width / size.height) * 10);
 	}
 	
 	private long getLastImageId() {
@@ -502,20 +503,18 @@ public class MainActivity extends SherlockActivity {
 			_camera = camera;
 			_buffer = new IImageFilter.ImageBuffer(data, width, height);
 			
-			// Get the contrast adjustment
-			int contrast = 0;
-			try {
-				contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT));
-			}
-			catch (NumberFormatException e) {}
+			// Get the resolution and contrast from preferences
+			Pictures.Resolution resolution = Pictures.getResolution(_prefs);
+			int contrast = Pictures.getContrast(_prefs);
 
 			// Create the image filter pipeline
-			YuvFilter yuvFilter = new YuvFilter(Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT, contrast);
+			YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast);
 			_transform = Pictures.createTransformMatrix(
 				MainActivity.this, 
 				yuvFilter.getEffectiveWidth(width, height), 
 				yuvFilter.getEffectiveHeight(width, height), 
-				facing, orientation, rotation);
+				facing, orientation, rotation,
+				resolution);
 			
 			CompositeFilter filter = new CompositeFilter();
 			filter.add(yuvFilter);
@@ -557,6 +556,7 @@ public class MainActivity extends SherlockActivity {
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
 			if (PREF_CAMERA.equals(key)) {
+				// Reinitialize the camera
 				initCamera();
 			}
 			else if (Pictures.PREF_FILTER.equals(key)) {
@@ -564,6 +564,13 @@ public class MainActivity extends SherlockActivity {
 				initFilter();
 			}
 			else if (Pictures.PREF_CONTRAST.equals(key)) {
+				// Change the active image filter
+				initFilter();
+			}
+			else if (Pictures.PREF_RESOLUTION.equals(key)) {
+				// Reinitialize the camera
+				initCamera();
+				
 				// Change the active image filter
 				initFilter();
 			}
@@ -613,7 +620,6 @@ public class MainActivity extends SherlockActivity {
 	/**
 	 * Starts the preferences activity
 	 */
-	/*
 	private class EditSettingsButtonListener implements OnClickListener {
 		@Override
 		public void onClick(View v) {
@@ -621,7 +627,6 @@ public class MainActivity extends SherlockActivity {
 			startActivity(intent);
 		}
 	}
-	*/
 
 	/**
 	 * Shows the contrast preference dialog

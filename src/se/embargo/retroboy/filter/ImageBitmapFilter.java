@@ -18,4 +18,14 @@ public class ImageBitmapFilter implements IImageFilter {
 		
 		buffer.bitmap.copyPixelsFromBuffer(IntBuffer.wrap(buffer.image.array(), 0, buffer.imagewidth * buffer.imageheight));
 	}
+
+	@Override
+	public int getEffectiveWidth(int framewidth, int frameheight) {
+		return 0;
+	}
+
+	@Override
+	public int getEffectiveHeight(int framewidth, int frameheight) {
+		return 0;
+	}
 }

@@ -57,8 +57,8 @@ public class ImageActivity extends SherlockActivity {
 		_prefs = getSharedPreferences(Pictures.PREFS_NAMESPACE, MODE_PRIVATE);
 		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
 		
-		setContentView(R.layout.image_activity);
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+		setContentView(R.layout.image_activity);
 		
 		_imageview = (ImageView)findViewById(R.id.processedImage);
 		
@@ -172,14 +172,12 @@ public class ImageActivity extends SherlockActivity {
                 return true;
             }
 
-            /*
             case R.id.editSettingsButton: {
 				// Start preferences activity
 				Intent intent = new Intent(this, SettingsActivity.class);
 				startActivity(intent);
 				return true;
 			}
-			*/
             
 			default:
 				return super.onOptionsItemSelected(item);
@@ -237,7 +235,7 @@ public class ImageActivity extends SherlockActivity {
 	private class PreferencesListener implements OnSharedPreferenceChangeListener {
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
-			if (Pictures.PREF_FILTER.equals(key) || Pictures.PREF_CONTRAST.equals(key)) {
+			if (Pictures.PREF_FILTER.equals(key) || Pictures.PREF_CONTRAST.equals(key) || Pictures.PREF_RESOLUTION.equals(key)) {
 				// Process image in background
 				if (_inputinfo != null) {
 					new ProcessImageTask(_inputinfo, _outputpath).execute();
@@ -261,16 +259,13 @@ public class ImageActivity extends SherlockActivity {
 
 		@Override
 		protected File doInBackground(Void... params) {
+			// Get the resolution and contrast from preferences
+			Pictures.Resolution resolution = Pictures.getResolution(_prefs);
+			int contrast = Pictures.getContrast(_prefs);
+
 			// Read the image from disk
 			Log.i(TAG, "Reading image: " + _inputinfo.uri);
-			Bitmap input = Bitmaps.decodeUri(getContentResolver(), _inputinfo.uri, Pictures.IMAGE_WIDTH, Pictures.IMAGE_HEIGHT);
-			
-			// Get the contrast adjustment
-			int contrast = 0;
-			try {
-				contrast = Integer.parseInt(_prefs.getString(Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT));
-			}
-			catch (NumberFormatException e) {}
+			Bitmap input = Bitmaps.decodeUri(getContentResolver(), _inputinfo.uri, resolution.width, resolution.height);
 
 			// Rotate the image as needed
 			if (_inputinfo.orientation != 0) {

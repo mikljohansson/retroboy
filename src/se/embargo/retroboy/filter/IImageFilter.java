@@ -5,6 +5,31 @@ import java.nio.IntBuffer;
 import android.graphics.Bitmap;
 
 public interface IImageFilter {
+	/**
+	 * Filter one frame
+	 * @param buffer	Frame to process
+	 */
+	public void accept(ImageBuffer buffer);
+	
+	/**
+	 * Returns the output image width
+	 * @param framewidth	Raw input frame width
+	 * @param frameheight	Raw input frame height
+	 * @return				Image width
+	 */
+	public int getEffectiveWidth(int framewidth, int frameheight);
+	
+	/**
+	 * Returns the output image height
+	 * @param framewidth	Raw input frame width
+	 * @param frameheight	Raw input frame height
+	 * @return				Image height
+	 */
+	public int getEffectiveHeight(int framewidth, int frameheight);
+
+	/**
+	 * Camera frame buffer
+	 */
 	public class ImageBuffer {
 		/**
 		 * Raw image data, typically YUV format
@@ -48,6 +73,4 @@ public interface IImageFilter {
 			bitmap.copyPixelsToBuffer(image);
 		}
 	}
-	
-	public void accept(ImageBuffer buffer);
 }

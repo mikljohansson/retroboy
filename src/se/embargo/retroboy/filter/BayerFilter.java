@@ -35,4 +35,14 @@ public class BayerFilter implements IImageFilter {
 			}
 		}
 	}
+
+	@Override
+	public int getEffectiveWidth(int framewidth, int frameheight) {
+		return 0;
+	}
+
+	@Override
+	public int getEffectiveHeight(int framewidth, int frameheight) {
+		return 0;
+	}
 }

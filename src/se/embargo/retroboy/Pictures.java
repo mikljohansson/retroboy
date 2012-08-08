@@ -34,17 +34,73 @@ public class Pictures {
 
 	public static final String PREF_CONTRAST = "contrast";
 	public static final String PREF_CONTRAST_DEFAULT = "0";
+
+	public static final String PREF_RESOLUTION = "resolution";
+	public static final String PREF_RESOLUTION_DEFAULT = "480x360";
 	
 	private static final String PREF_IMAGECOUNT = "imagecount";
 	
 	private static final String DIRECTORY = "Retroboy";
 	private static final String FILENAME = "IMGR%04d.png";
 
-	public static final int IMAGE_WIDTH = 480, IMAGE_HEIGHT = 360;
+	public static class Resolution {
+		public final int width, height;
+		
+		public Resolution(int width, int height) {
+			this.width = width;
+			this.height = height;
+		}
+		
+		@Override
+		public String toString() {
+			return width + "x" + height;
+		}
+	}
 	
+	/**
+	 * @return	The directory where images are stored
+	 */
 	public static File getStorageDirectory() {
 		File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
 		return new File(path + "/" + DIRECTORY);
+	}
+	
+	/**
+	 * Get the contrast adjustment from preferences
+	 * @param prefs	Preferences to get the contrast from
+	 * @return		The selected contrast adjustment, [-100, 100]
+	 */
+	public static int getContrast(SharedPreferences prefs) {
+		String contrast = prefs.getString(Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT);
+		try {
+			return Integer.parseInt(contrast);
+		}
+		catch (NumberFormatException e) {}
+		
+		Log.w(TAG, "Failed to parse contrast preference " + contrast);
+		return 0;
+	}
+
+	/**
+	 * Get the preview resolution
+	 * @param prefs	Preferences to get the resolution from
+	 * @return		The selected preview resultion
+	 */
+	public static Resolution getResolution(SharedPreferences prefs) {
+		String resolution = prefs.getString(Pictures.PREF_RESOLUTION, Pictures.PREF_RESOLUTION_DEFAULT);
+		String[] components = resolution.split("x");
+		
+		if (components.length == 2) {
+			try {
+				int width = Integer.parseInt(components[0]),
+					height = Integer.parseInt(components[1]);
+				return new Resolution(width, height);
+			}
+			catch (NumberFormatException e) {}
+		}
+		
+		Log.w(TAG, "Failed to parse resolution " + resolution);
+		return new Resolution(480, 360);
 	}
 	
 	public static File compress(Context context, String inputname, String outputpath, Bitmap bm) {
@@ -156,15 +212,16 @@ public class Pictures {
 	}
 
 	public static Bitmaps.Transform createTransformMatrix(
-			Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation) {
+			Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation,
+			Resolution resolution) {
 		int maxwidth, maxheight;
 		if (inputwidth >= inputheight) {
-			maxwidth = IMAGE_WIDTH;
-			maxheight = IMAGE_HEIGHT;
+			maxwidth = resolution.width;
+			maxheight = resolution.height;
 		}
 		else {
-			maxwidth = IMAGE_HEIGHT;
-			maxheight = IMAGE_WIDTH;
+			maxwidth = resolution.height;
+			maxheight = resolution.width;
 		}
 		
 		return createTransformMatrix(context, inputwidth, inputheight, facing, orientation, rotation, maxwidth, maxheight, 0);

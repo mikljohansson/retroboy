@@ -39,4 +39,14 @@ public class AtkinsonFilter implements IImageFilter {
 		final int lum = Math.min(Math.max(0, (image[i] & 0xff) + err), 255);
 		image[i] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
 	}
+
+	@Override
+	public int getEffectiveWidth(int framewidth, int frameheight) {
+		return 0;
+	}
+
+	@Override
+	public int getEffectiveHeight(int framewidth, int frameheight) {
+		return 0;
+	}
 }

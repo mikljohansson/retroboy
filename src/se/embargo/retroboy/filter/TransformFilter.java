@@ -13,4 +13,14 @@ public class TransformFilter implements IImageFilter {
 	public void accept(ImageBuffer buffer) {
 		buffer.bitmap = Bitmaps.transform(buffer.bitmap, _transform);
 	}
+
+	@Override
+	public int getEffectiveWidth(int framewidth, int frameheight) {
+		return _transform.width;
+	}
+
+	@Override
+	public int getEffectiveHeight(int framewidth, int frameheight) {
+		return _transform.height;
+	}
 }
