@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<se.embargo.retroboy.widget.ControlPanelLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:minHeight="76dp"
+	android:background="@drawable/bg_header_pattern">
+	
+    <LinearLayout 
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_centerVertical="true"
+        android:orientation="horizontal">
+		<LinearLayout 
+			style="@style/PreviewButtonLayout">
+			<se.embargo.retroboy.widget.PreviewImageButton 
+				style="@style/PreviewButton"
+				android:id="@+id/editSettingsButton" 
+				android:src="@drawable/ic_button_settings"
+				android:contentDescription="@string/menu_option_settings"/>
+		</LinearLayout>
+			
+		<LinearLayout 
+			style="@style/PreviewButtonLayout">
+			<se.embargo.retroboy.widget.PreviewImageButton 
+				style="@style/PreviewButton"
+				android:id="@+id/adjustContrastButton" 
+				android:src="@drawable/ic_button_contrast"
+				android:contentDescription="@string/menu_option_contrast"/>
+		</LinearLayout>
+			
+		<LinearLayout 
+			style="@style/PreviewButtonLayout">
+			<se.embargo.retroboy.widget.PreviewImageButton 
+				style="@style/PreviewButton"
+				android:id="@+id/switchFilterButton" 
+				android:src="@drawable/ic_button_filter"
+				android:contentDescription="@string/menu_option_switch_filter"/>
+		</LinearLayout>
+				
+		<LinearLayout 
+			style="@style/PreviewButtonLayout">
+			<se.embargo.retroboy.widget.PreviewImageButton 
+				style="@style/PreviewButton"
+				android:id="@+id/adjustFlashButton" 
+				android:src="@drawable/ic_button_flash"
+				android:contentDescription="@string/menu_option_camera_torch"/>
+		</LinearLayout>
+		  				
+		<LinearLayout 
+			style="@style/PreviewButtonLayout">
+			<se.embargo.retroboy.widget.PreviewImageButton 
+				style="@style/PreviewButton"
+				android:id="@+id/switchCameraButton" 
+				android:src="@drawable/ic_button_camera_rotate"
+				android:contentDescription="@string/menu_option_switch_camera"/>
+		</LinearLayout>
+	</LinearLayout>
+</se.embargo.retroboy.widget.ControlPanelLayout>

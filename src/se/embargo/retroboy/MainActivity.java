@@ -42,8 +42,6 @@ import android.widget.ImageView;
 
 import com.actionbarsherlock.app.SherlockActivity;
 import com.actionbarsherlock.view.Menu;
-import com.actionbarsherlock.view.MenuInflater;
-import com.actionbarsherlock.view.MenuItem;
 import com.actionbarsherlock.view.Window;
 
 public class MainActivity extends SherlockActivity {
@@ -305,20 +303,20 @@ public class MainActivity extends SherlockActivity {
 			params.setPreviewFormat(ImageFormat.NV21);
 			
 			// Select preview size that most closely matches the wanted size and dimensions
-			Pictures.Resolution resolution = Pictures.getResolution(_prefs);
-			Camera.Size previewSize = null;
-			Log.i(TAG, "Selected output resolution: " + resolution);
+			Pictures.Resolution target = Pictures.getResolution(_prefs);
+			Camera.Size optimal = null;
+			Log.i(TAG, "Target output resolution: " + target);
 			
-			for (Camera.Size size : camera.getParameters().getSupportedPreviewSizes()) {
-				if (previewSize == null || 
-					(previewSize.width < resolution.width && previewSize.width < size.width ||
-					 previewSize.width > size.width && size.width >= resolution.width) &&
-					ratioError(previewSize, resolution) >= ratioError(size, resolution)) {
-					previewSize = size;
+			for (Camera.Size candidate : camera.getParameters().getSupportedPreviewSizes()) {
+				if (optimal == null || ratioError(candidate, target) < ratioError(optimal, target) ||
+					((optimal.width < target.width && optimal.width < candidate.width ||
+					  optimal.width > candidate.width && candidate.width >= target.width) &&
+					 ratioError(candidate, target) == ratioError(optimal, target))) {
+					optimal = candidate;
 				}
 			}
-			params.setPreviewSize(previewSize.width, previewSize.height);
-			Log.i(TAG, "Found preview resolution: " + previewSize.width + "x" + previewSize.height);
+			params.setPreviewSize(optimal.width, optimal.height);
+			Log.i(TAG, "Found preview resolution: " + optimal.width + "x" + optimal.height);
 			
 			// Apply the parameter changes
 			camera.setParameters(params);

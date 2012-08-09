@@ -1,123 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	android:layout_width="fill_parent"
-	android:layout_height="fill_parent">
-
-    <LinearLayout
-        android:id="@+id/header"
-		android:layout_width="fill_parent"
-		android:layout_height="wrap_content"
-		android:layout_alignParentTop="true"
-		android:baselineAligned="false"
-		android:orientation="horizontal"
-		android:background="@drawable/header_background">
-    
-        <LinearLayout 
-            style="@style/PreviewButtonLayout">
-	        <se.embargo.retroboy.widget.PreviewImageButton 
-				style="@style/PreviewButton"
-	        	android:id="@+id/editSettingsButton" 
-		        android:src="@drawable/ic_button_settings"
-		        android:contentDescription="@string/menu_option_settings"/>
-        </LinearLayout>
-        
-        <LinearLayout 
-            style="@style/PreviewButtonLayout">
-        	<se.embargo.retroboy.widget.PreviewImageButton 
-				style="@style/PreviewButton"
-	        	android:id="@+id/adjustContrastButton" 
-		        android:src="@drawable/ic_button_contrast"
-		        android:contentDescription="@string/menu_option_contrast"/>
-        </LinearLayout>
-        
-        <LinearLayout 
-            style="@style/PreviewButtonLayout">
-        	<se.embargo.retroboy.widget.PreviewImageButton 
-				style="@style/PreviewButton"
-	        	android:id="@+id/switchFilterButton" 
-		        android:src="@drawable/ic_button_filter"
-		        android:contentDescription="@string/menu_option_switch_filter"/>
-        </LinearLayout>
-        	
-        <LinearLayout 
-            style="@style/PreviewButtonLayout">
-       		<se.embargo.retroboy.widget.PreviewImageButton 
-				style="@style/PreviewButton"
-	        	android:id="@+id/adjustFlashButton" 
-		        android:src="@drawable/ic_button_flash"
-		        android:contentDescription="@string/menu_option_camera_torch"/>
-        </LinearLayout>
-       			    
-        <LinearLayout 
-            style="@style/PreviewButtonLayout">
-			<se.embargo.retroboy.widget.PreviewImageButton 
-				style="@style/PreviewButton"
-	        	android:id="@+id/switchCameraButton" 
-		        android:src="@drawable/ic_button_camera_rotate"
-		        android:contentDescription="@string/menu_option_switch_camera"/>
-        </LinearLayout>
-				
-	</LinearLayout>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical"
+	android:background="#000000">
+	<include layout="@layout/camera_preference_bar"/>
     
     <RelativeLayout
-        android:id="@+id/footer"
-		android:layout_width="fill_parent"
-		android:layout_height="wrap_content"
-		android:layout_alignParentBottom="true"
-		android:background="@drawable/footer_background">
-
-        <LinearLayout
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_alignParentLeft="true"
-			android:layout_centerVertical="true"
-			android:layout_marginLeft="8dp"
-			android:background="@drawable/rounded_corners"
-			android:visibility="invisible"
-			android:padding="2dp">
-	        <se.embargo.core.widget.ThumbnailButton
-				android:id="@+id/openGalleryButton"
-				android:layout_width="40dp"
-				android:layout_height="40dp"/>
-        </LinearLayout>
-        
-        <ImageButton 
-			android:id="@+id/takePhotoButton"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_centerInParent="true"
-			android:background="@null"
-			android:src="@drawable/ic_button_camera"
-			android:contentDescription="@string/btn_take_photo"/>
-	    
-	</RelativeLayout>    
-    
-    <FrameLayout
-		android:layout_width="fill_parent"
-		android:layout_height="fill_parent"
-		android:layout_below="@id/header"
-		android:layout_above="@id/footer"
- 		android:orientation="vertical">
+		android:layout_width="match_parent"
+		android:layout_height="0dp"
+		android:layout_weight="1">
 	
-		<se.embargo.retroboy.CameraPreview 
-			android:id="@+id/cameraPreview"
-			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:layout_gravity="center"/>
-	
-		<RelativeLayout
-			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:layout_gravity="center">
+	    <se.embargo.retroboy.widget.PreviewFrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_centerInParent="true"
+            android:background="#00ff00">
+	        <se.embargo.retroboy.CameraPreview 
+				android:id="@+id/cameraPreview"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"/>
 		    <ImageView 
 				android:id="@+id/autoFocusMarker"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
+				android:layout_width="64dp"
+				android:layout_height="64dp"
 				android:layout_centerInParent="true"
 				android:visibility="invisible"
 				android:src="@drawable/ic_focus"
 				android:contentDescription="@string/btn_auto_focus"/>
-		</RelativeLayout>
-	</FrameLayout>
-
-</RelativeLayout>
+		</se.embargo.retroboy.widget.PreviewFrameLayout>
+	</RelativeLayout>
+    
+	<include layout="@layout/camera_control_bar"/>
+</LinearLayout>
