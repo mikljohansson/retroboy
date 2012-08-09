@@ -35,8 +35,6 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 	private IImageFilter _filter;
 	private Bitmaps.Transform _transform;
 	
-	private Camera.PreviewCallback _callback;
-	
 	/**
 	 * Statistics for framerate calculation
 	 */
@@ -87,10 +85,6 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		}
 	}
 	
-	public void setOneShotPreviewCallback(Camera.PreviewCallback callback) {
-		_callback = callback;
-	}
-
 	/**
 	 * Sets the active image filter
 	 * @param filter	Image filter to use
@@ -104,23 +98,16 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 	public void onPreviewFrame(byte[] data, Camera camera) {
 		// data may be null if buffer was too small
 		if (data != null) {
-			if (_callback != null) {
-				// Delegate to an additional callback
-				_callback.onPreviewFrame(data, camera);
-				_callback = null;
+			// Submit a task to process the image
+			FilterTask task = _bufferpool.poll();
+			if (task != null) {
+				task.init(data, camera);
 			}
 			else {
-				// Submit a task to process the image
-				FilterTask task = _bufferpool.poll();
-				if (task != null) {
-					task.init(data, camera);
-				}
-				else {
-					task = new FilterTask(data, camera);
-				}
-				
-				_threadpool.submit(task);
+				task = new FilterTask(data, camera);
 			}
+			
+			_threadpool.submit(task);
 		}
 	}
 

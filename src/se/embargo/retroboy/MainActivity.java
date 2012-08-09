@@ -1,7 +1,5 @@
 package se.embargo.retroboy;
 
-import java.io.File;
-
 import se.embargo.core.databinding.observable.ChangeEvent;
 import se.embargo.core.databinding.observable.IChangeListener;
 import se.embargo.core.databinding.observable.IObservableValue;
@@ -14,6 +12,7 @@ import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.TransformFilter;
 import se.embargo.retroboy.filter.YuvFilter;
 import se.embargo.retroboy.widget.ListPreferenceDialog;
+import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -196,7 +195,7 @@ public class MainActivity extends SherlockActivity {
 		_rotationListener.enable();
 		
 		// Update the last photo thumbnail
-		new GetLastThumbnailTask(true).execute();
+		new GetLastThumbnailTask().execute();
 		
 		initCamera();
 	}
@@ -352,10 +351,10 @@ public class MainActivity extends SherlockActivity {
 	private static float ratioError(Camera.Size size, Pictures.Resolution resolution) {
 		return Math.round(Math.abs((float)resolution.width / resolution.height - (float)size.width / size.height) * 10);
 	}
-	
+
 	private long getLastImageId() {
 		ContentResolver resolver = getContentResolver();
-        Uri baseUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+		Uri baseUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
 
         Uri query = baseUri.buildUpon().appendQueryParameter("limit", "1").build();
         String[] projection = new String[] {
@@ -385,49 +384,44 @@ public class MainActivity extends SherlockActivity {
         return -1;
 	}
 	
+	private static String getBucketId() {
+		// Matches code in MediaProvider.computeBucketValues()
+		return String.valueOf(Pictures.getStorageDirectory().toString().toLowerCase().hashCode());
+	}
+
+	private Bitmap getPreviousThumbnail() {
+        long id = getLastImageId();
+        if (id >= 0) {
+			return MediaStore.Images.Thumbnails.getThumbnail(getContentResolver(), id, MediaStore.Images.Thumbnails.MINI_KIND, null);
+        }
+        
+        return null;
+	}
+	
+	private void setPreviousThumbnail(Bitmap result) {
+		ImageButton button = (ImageButton)findViewById(R.id.openGalleryButton);
+		View layout = (View)button.getParent();
+		
+		button.setImageBitmap(result);
+		layout.setVisibility(result != null ? View.VISIBLE : View.INVISIBLE);
+		button.setEnabled(result != null);
+	}
+	
 	private class GetLastThumbnailTask extends AsyncTask<Void, Void, Bitmap> {
-		private boolean _sleep;
-		
-		public GetLastThumbnailTask(boolean sleep) {
-			_sleep = sleep;
-		}
-		
-		public GetLastThumbnailTask() {
-			this(false);
-		}
-		
 		@Override
 		protected Bitmap doInBackground(Void... params) {
-	    	if (_sleep) {
-				try {
-					Thread.sleep(500);
-				}
-				catch (InterruptedException e) {}
-	    	}
+			try {
+				Thread.sleep(500);
+			}
+			catch (InterruptedException e) {}
 	    	
-	        long id = getLastImageId();
-	        if (id >= 0) {
-				return MediaStore.Images.Thumbnails.getThumbnail(
-					getContentResolver(), id, MediaStore.Images.Thumbnails.MINI_KIND, null);
-	        }
-	        
-	        return null;
+	    	return getPreviousThumbnail();
 		}
 		
 		@Override
 		protected void onPostExecute(Bitmap result) {
-			ImageButton button = (ImageButton)findViewById(R.id.openGalleryButton);
-			View layout = (View)button.getParent();
-			
-			button.setImageBitmap(result);
-			layout.setVisibility(result != null ? View.VISIBLE : View.INVISIBLE);
-			button.setEnabled(result != null);
+			setPreviousThumbnail(result);
 		}
-	}
-	
-	private String getBucketId() {
-		// Matches code in MediaProvider.computeBucketValues()
-		return String.valueOf(Pictures.getStorageDirectory().toString().toLowerCase().hashCode());
 	}
 	
 	private static class CameraHandle {
@@ -441,8 +435,14 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	private class TakePhotoListener implements View.OnClickListener, PreviewCallback {
+		private boolean _capture = false;
+		
 		public void takePhoto() {
-			_preview.setOneShotPreviewCallback(this);
+			CameraHandle handle = _cameraHandle.getValue();
+			if (handle != null) {
+				_capture = true;
+				handle.camera.setPreviewCallbackWithBuffer(this);
+			}
 		}
 		
 		@Override
@@ -453,14 +453,17 @@ public class MainActivity extends SherlockActivity {
 		@Override
 		public void onPreviewFrame(byte[] data, Camera camera_) {
 			CameraHandle handle = _cameraHandle.getValue();
-			if (handle != null) {
-				Camera.Size size = handle.camera.getParameters().getPreviewSize();
+
+			// data may be null if buffer was too small
+			if (handle != null && data != null && _capture) {
+				_capture = false;
 	
 				// Get the current device orientation
 				WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
 				int rotation = _rotationListener.getCurrentRotation(windowManager.getDefaultDisplay().getRotation());
 				
 				// Process and save the picture
+				Camera.Size size = handle.camera.getParameters().getPreviewSize();
 				new ProcessFrameTask(handle.camera, data, size.width, size.height, handle.info.facing, handle.info.orientation, rotation).execute();
 			}
 		}
@@ -491,15 +494,23 @@ public class MainActivity extends SherlockActivity {
 	/**
 	 * Process an camera preview frame
 	 */
-	private class ProcessFrameTask extends AsyncTask<Void, Void, File> {
+	private class ProcessFrameTask extends AsyncTask<Void, Void, Bitmap> {
 		private Camera _camera;
 		private IImageFilter _filter;
 		private IImageFilter.ImageBuffer _buffer;
 		private Bitmaps.Transform _transform;
+		private ProgressDialog _progress;
 
 		public ProcessFrameTask(Camera camera, byte[] data, int width, int height, int facing, int orientation, int rotation) {
 			_camera = camera;
 			_buffer = new IImageFilter.ImageBuffer(data, width, height);
+			
+			// Show a progress dialog
+			_progress = new ProgressDialog(MainActivity.this);
+			_progress.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+			_progress.setIndeterminate(true);
+			_progress.setMessage(getResources().getString(R.string.msg_saving_image));
+			_progress.show();
 			
 			// Get the resolution and contrast from preferences
 			Pictures.Resolution resolution = Pictures.getResolution(_prefs);
@@ -525,25 +536,30 @@ public class MainActivity extends SherlockActivity {
 		}
 
 		@Override
-		protected File doInBackground(Void... params) {
+		protected Bitmap doInBackground(Void... params) {
 			// Apply the image filter to the current image			
 			_filter.accept(_buffer);
 			
 			// Write the image to disk
-			return Pictures.compress(MainActivity.this, null, null, _buffer.bitmap);
+			Pictures.compress(MainActivity.this, null, null, _buffer.bitmap);
+		
+			// Update the last photo thumbnail
+			return getPreviousThumbnail();
 		}
 		
 		@Override
-		protected void onPostExecute(File result) {
-			if (result != null) {
-				// Update the last photo thumbnail
-				new GetLastThumbnailTask().execute();
-			}
+		protected void onPostExecute(Bitmap result) {
+			// Continue preview
+			_progress.dismiss();
+			_camera.setPreviewCallbackWithBuffer(_preview);
 
 			// Release buffer back to camera
 			synchronized (_camera) {
 				_camera.addCallbackBuffer(_buffer.frame);
 			}
+			
+			// Update the last image thumbnail
+			setPreviousThumbnail(result);
 		}
 	}
 	
