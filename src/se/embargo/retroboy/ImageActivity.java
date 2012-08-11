@@ -8,6 +8,7 @@ import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.MonochromeFilter;
 import se.embargo.retroboy.widget.ListPreferenceDialog;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
@@ -43,6 +44,8 @@ public class ImageActivity extends SherlockActivity {
 	private String _outputpath;
 	
 	private ImageView _imageview;
+	
+	private ProcessImageTask _task = null;
 	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
@@ -103,6 +106,20 @@ public class ImageActivity extends SherlockActivity {
 			new ProcessImageTask(_inputinfo, _outputpath).execute();
 		}
     }
+
+	@Override
+	protected void onDestroy() {
+		dismiss();
+		super.onDestroy();
+	}
+	
+	private void dismiss() {
+		// Cancel any image processing tasks
+		if (_task != null) {
+			_task.cancel(false);
+			_task = null;
+		}
+	}
 	
 	@Override
 	public void onSaveInstanceState(Bundle savedInstanceState) {
@@ -251,10 +268,22 @@ public class ImageActivity extends SherlockActivity {
 		private final ImageInfo _inputinfo;
 		private final String _outputpath;
 		private Bitmap _output;
+		private ProgressDialog _progress;
 
 		public ProcessImageTask(ImageInfo inputinfo, String outputpath) {
 			_inputinfo = inputinfo;
 			_outputpath = outputpath;
+			_task = this;
+		}
+		
+		@Override
+		protected void onPreExecute() {
+			// Show a progress dialog
+			_progress = new ProgressDialog(ImageActivity.this);
+			_progress.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+			_progress.setIndeterminate(true);
+			_progress.setMessage(getResources().getString(R.string.msg_saving_image));
+			_progress.show();
 		}
 
 		@Override
@@ -287,9 +316,6 @@ public class ImageActivity extends SherlockActivity {
 			filter.accept(buffer);
 			_output = buffer.bitmap;
 			
-			// Show the processed image
-			publishProgress();
-			
 			// Write the image to disk
 			File result = Pictures.compress(ImageActivity.this, _inputinfo.filename, _outputpath, _output);
 			Log.i(TAG, "Wrote image: " + result);
@@ -297,16 +323,29 @@ public class ImageActivity extends SherlockActivity {
 		}
 		
 		@Override
-		protected void onProgressUpdate(Void... params) {
-			// Show the processed image
-			if (_output != null) {
-				_imageview.setImageBitmap(_output);
-			}
+		protected void onCancelled() {
+			// Close the progress dialog
+			dismiss();
 		}
 		
 		@Override
 		protected void onPostExecute(File result) {
+			// Remember the written file in case the filter or contrast is changed
 			ImageActivity.this._outputpath = result.toString();
+			
+			// Show the processed image
+			_imageview.setImageBitmap(_output);
+			
+			// Close the progress dialog
+			dismiss();
+		}
+		
+		private void dismiss() {
+			if (_task == this) {
+				_task = null;
+			}
+			
+			_progress.dismiss();
 		}
 	}
 }

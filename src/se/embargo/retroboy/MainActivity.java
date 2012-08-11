@@ -83,6 +83,11 @@ public class MainActivity extends SherlockActivity {
 	 */
 	private IObservableValue<Integer> _zoomLevel = new WritableValue<Integer>(0);
 	
+	/**
+	 * Currently running image processing task
+	 */
+	private ProcessFrameTask _task = null;
+	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -339,6 +344,13 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	private void stopPreview() {
+		// Cancel any image processing tasks
+		if (_task != null) {
+			_task.cancel(false);
+			_task = null;
+		}
+		
+		// Stop the preview and release the camera
 		CameraHandle handle = _cameraHandle.getValue();
 		if (handle != null) {
 			handle.camera.stopPreview();
@@ -504,14 +516,8 @@ public class MainActivity extends SherlockActivity {
 		public ProcessFrameTask(Camera camera, byte[] data, int width, int height, int facing, int orientation, int rotation) {
 			_camera = camera;
 			_buffer = new IImageFilter.ImageBuffer(data, width, height);
-			
-			// Show a progress dialog
-			_progress = new ProgressDialog(MainActivity.this);
-			_progress.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-			_progress.setIndeterminate(true);
-			_progress.setMessage(getResources().getString(R.string.msg_saving_image));
-			_progress.show();
-			
+			_task = this;
+
 			// Get the resolution and contrast from preferences
 			Pictures.Resolution resolution = Pictures.getResolution(_prefs);
 			int contrast = Pictures.getContrast(_prefs);
@@ -534,6 +540,16 @@ public class MainActivity extends SherlockActivity {
 			filter.add(new ImageBitmapFilter());
 			_filter = filter;
 		}
+		
+		@Override
+		protected void onPreExecute() {
+			// Show a progress dialog
+			_progress = new ProgressDialog(MainActivity.this);
+			_progress.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+			_progress.setIndeterminate(true);
+			_progress.setMessage(getResources().getString(R.string.msg_saving_image));
+			_progress.show();
+		}
 
 		@Override
 		protected Bitmap doInBackground(Void... params) {
@@ -548,18 +564,36 @@ public class MainActivity extends SherlockActivity {
 		}
 		
 		@Override
+		protected void onCancelled() {
+			// Close the progress dialog and restart preview
+			dismiss();
+		}
+		
+		@Override
 		protected void onPostExecute(Bitmap result) {
-			// Continue preview
-			_progress.dismiss();
-			_camera.setPreviewCallbackWithBuffer(_preview);
-
-			// Release buffer back to camera
-			synchronized (_camera) {
-				_camera.addCallbackBuffer(_buffer.frame);
-			}
-			
 			// Update the last image thumbnail
 			setPreviousThumbnail(result);
+			
+			// Close the progress dialog and restart preview
+			dismiss();
+		}
+			
+		private void dismiss() {
+			if (_task == this) {
+				_task = null;
+			}
+
+			_progress.dismiss();
+			
+			// Continue preview
+			if (!isCancelled()) {
+				_camera.setPreviewCallbackWithBuffer(_preview);
+
+				// Release buffer back to camera
+				synchronized (_camera) {
+					_camera.addCallbackBuffer(_buffer.frame);
+				}
+			}
 		}
 	}
 	
