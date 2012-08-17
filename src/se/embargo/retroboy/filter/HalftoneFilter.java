@@ -2,59 +2,94 @@ package se.embargo.retroboy.filter;
 
 import java.util.Arrays;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ArrayBlockingQueue;
+
+import se.embargo.core.concurrent.ForBody;
+import se.embargo.core.concurrent.Parallel;
 
 public class HalftoneFilter implements IImageFilter {
     private static final int _patternsize = 6;
 	private static final float[] _thresholds = new float[_patternsize * _patternsize];
 	
-	private Queue<int[]> _bufferpool = new ConcurrentLinkedQueue<int[]>();
+	private static class FilterItem {
+		public ImageBuffer buffer;
+		final public int[] cells;
+
+		public FilterItem(int cellwidth, int cellheight) {
+			cells = new int[cellwidth * cellheight];
+		}
+	}
+	
+	private Queue<FilterItem> _bufferpool = new ArrayBlockingQueue<FilterItem>(16);
+	private FilterBody _body = new FilterBody();
     
     @Override
 	public void accept(ImageBuffer buffer) {
-    	final int[] image = buffer.image.array();
-		final int width = buffer.imagewidth, height = buffer.imageheight;
-		
 		// Allocate a buffer to hold the luminance
+		final int width = buffer.imagewidth, height = buffer.imageheight;
 		final int cellwidth = width / _patternsize + _patternsize, cellheight = height / _patternsize + _patternsize;
-		int[] cells = _bufferpool.poll();
+		FilterItem item = _bufferpool.poll();
 		
-		if (cells == null || cells.length != cellwidth * cellheight) {
-			cells = new int[cellwidth * cellheight];
+		if (item == null || item.cells.length != cellwidth * cellheight) {
+			item = new FilterItem(cellwidth, cellheight);
 		}
 		
-		Arrays.fill(cells, 0);
+		Arrays.fill(item.cells, 0);
+		item.buffer = buffer;
+
+		// Must process chunks of whole dithering cells
+		int grainsize = height / Parallel.getNumberOfCores() / 4;
+		grainsize -= grainsize % _patternsize;
+		grainsize = Math.max(grainsize, _patternsize);
 		
-		// Summarize the luminance for each dithering cell
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				final int ii = x + y * width;
-				final int oi = (x / _patternsize) + (y / _patternsize) * cellwidth;
-				
-				final int mono = image[ii] & 0xff;
-				cells[oi] += mono;
-			}
-		}
+		// Process lines of dithering cells in parallel
+		Parallel.forRange(_body, item, 0, height, grainsize);
 		
-		// Factor used to offset the threshold to compensate for too dark or bright images
-		final float factor = (float)buffer.threshold / 128;
-		
-		// Apply the threshold for each dithering cell
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				final int ii = (x / _patternsize) + (y / _patternsize) * cellwidth;
-				final int oi = x + y * width;
-				final int mono = (cells[ii] / _thresholds.length) & 0xff;
-				
-				// Apply the threshold
-				final int threshold = (int)(_thresholds[x % _patternsize + (y % _patternsize) * _patternsize] * factor);
-				final int lum = mono <= threshold ? 0 : 255;
-				image[oi] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
-			}
-		}
-		
-		_bufferpool.offer(cells);
+		// Release work item back to pool
+		_bufferpool.offer(item);
 	}
+    
+    private class FilterBody implements ForBody<FilterItem> {
+		@Override
+		public void run(FilterItem item, int it, int last) {
+	    	final int[] image = item.buffer.image.array(), cells = item.cells;
+			final int width = item.buffer.imagewidth;
+			final int cellwidth = width / _patternsize + _patternsize;
+
+			// Summarize the luminance for each dithering cell
+			for (int y = it; y < last; y++) {
+				final int yi = y * width, 
+						  yo = (y / _patternsize) * cellwidth;
+				
+				for (int x = 0; x < width; x++) {
+					final int ii = x + yi;
+					final int oi = (x / _patternsize) + yo;
+					cells[oi] += image[ii] & 0xff;
+				}
+			}
+			
+			// Factor used to offset the threshold to compensate for too dark or bright images
+			final float factor = (float)item.buffer.threshold / 128;
+			
+			// Apply the threshold for each dithering cell
+			for (int y = it; y < last; y++) {
+				final int yo = y * width, 
+						  yi = (y / _patternsize) * cellwidth, 
+						  yt = (y % _patternsize) * _patternsize;
+
+				for (int x = 0; x < width; x++) {
+					final int ii = (x / _patternsize) + yi;
+					final int oi = x + yo;
+					final int mono = (cells[ii] / _thresholds.length) & 0xff;
+					
+					// Apply the threshold
+					final int threshold = (int)(_thresholds[x % _patternsize + yt] * factor);
+					final int lum = mono <= threshold ? 0 : 255;
+					image[oi] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
+				}
+			}
+		}
+    }
 	
     /**
      * Static constructor to initialize the matrix

@@ -2,13 +2,20 @@ package se.embargo.retroboy.filter;
 
 import java.nio.IntBuffer;
 import java.util.Arrays;
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 
+import se.embargo.core.concurrent.MapReduceBody;
+import se.embargo.core.concurrent.Parallel;
 import android.util.Log;
 
 public class YuvFilter implements IImageFilter {
 	private static final String TAG = "YuvFilter";
 	private int _width, _height;
 	private float _factor;
+	
+	private Queue<int[]> _bufferpool = new ArrayBlockingQueue<int[]>(256);
+	private FilterBody _body = new FilterBody();
 	
 	public YuvFilter(int width, int height, int contrast) {
 		_width = width;
@@ -18,14 +25,13 @@ public class YuvFilter implements IImageFilter {
 	
 	@Override
 	public void accept(ImageBuffer buffer) {
-		final byte[] data = buffer.frame;
-		final float framewidth = buffer.framewidth, frameheight = buffer.frameheight;
-		
 		// Select the dimension that most closely matches the bounds
+		final float framewidth = buffer.framewidth, frameheight = buffer.frameheight;
 		final float stride = getStride(framewidth, frameheight);
-		final int imagewidth = (int)(framewidth / stride), 
-				  imageheight = (int)(frameheight / stride),
-				  imagesize = imagewidth * imageheight + imagewidth * 4;
+		
+		buffer.imagewidth = (int)(framewidth / stride); 
+		buffer.imageheight = (int)(frameheight / stride);
+		final int imagesize = buffer.imagewidth * buffer.imageheight + buffer.imagewidth * 4;
 		
 		// Change the buffer dimensions
 		if (buffer.image == null || buffer.image.array().length < imagesize) {
@@ -33,44 +39,83 @@ public class YuvFilter implements IImageFilter {
 			buffer.image = IntBuffer.wrap(new int[imagesize]);
 		}
 		
-		buffer.imagewidth = imagewidth;
-		buffer.imageheight = imageheight;
-
-		// Downsample and convert the YUV frame to RGB image
-		final int[] image = buffer.image.array();
-		final int framewidthi = buffer.framewidth;
-		final float factor = _factor;
-		int yo = 0;
-		
-		final int[] histogram = buffer.histogram;
-		Arrays.fill(histogram, 0);
-		
-		for (float y = 0; y < frameheight; y += stride, yo++) {
-			int xo = 0;
-
-			for (float x = 0; x < framewidth; x += stride, xo++) {
-				final int ii = (int)x + (int)y * framewidthi;
-				final int io = xo + yo * imagewidth;
-				
-				// Convert from YUV luminance
-				final float lum = Math.max((((int)data[ii]) & 0xff) - 16, 0);
-				
-				// Apply the contrast adjustment
-				final int color = Math.min(Math.max(0, (int)(factor * (lum - 128.0f) + 128.0f)), 255);
-				
-				// Build the histogram used to calculate the global threshold
-				histogram[color]++;
-				
-				// Output the pixel
-				image[io] = 0xff000000 | (color << 16) | (color << 8) | color;
-			}
-		}
+		// Downsample and convert the YUV frame to RGB image in parallel
+		int[] histogram = Parallel.mapReduce(_body, buffer, 0, buffer.frameheight);
 
 		// Calculate the global Otsu threshold
 		buffer.threshold = getGlobalThreshold(
-			imagewidth, imageheight, image, histogram);
+			buffer.imagewidth, buffer.imageheight, buffer.image.array(), histogram);
+		
+		// Release histogram back to pool
+		_bufferpool.offer(histogram);
 	}
 	
+	private class FilterBody implements MapReduceBody<ImageBuffer, int[]> {
+		@Override
+		public int[] map(ImageBuffer buffer, int it, int last) {
+			// Select the dimension that most closely matches the bounds
+			final float framewidth = buffer.framewidth, frameheight = buffer.frameheight;
+			final float stride = getStride(framewidth, frameheight);
+			final byte[] data = buffer.frame;
+
+			final int[] image = buffer.image.array();
+			final int framewidthi = buffer.framewidth,
+					  imagewidth = buffer.imagewidth;
+			final float factor = _factor;
+
+			// Space to hold an image histogram
+			int[] histogram = _bufferpool.poll();
+			if (histogram == null) {
+				histogram = new int[256];
+			}
+			
+			Arrays.fill(histogram, 0);
+			
+			// Convert YUV chunk to monochrome
+			int yo = (int)((float)it / stride) * imagewidth;
+			for (float y = it; y < last; y += stride, yo += imagewidth) {
+				int xo = yo, 
+					yi = (int)y * framewidthi;
+
+				for (float x = 0; x < framewidth; x += stride, xo++) {
+					final int ii = (int)x + yi;
+					
+					// Convert from YUV luminance
+					final float lum = ((int)data[ii]) & 0xff;
+					
+					// Apply the contrast adjustment
+					final int color = Math.max(0, Math.min((int)(factor * (lum - 144.0f) + 128.0f), 255));
+					
+					// Build the histogram used to calculate the global threshold
+					histogram[color]++;
+					
+					// Output the pixel
+					image[xo] = 0xff000000 | (color << 16) | (color << 8) | color;
+				}
+			}
+			
+			return histogram;
+		}
+
+		@Override
+		public int[] reduce(int[] lhs, int[] rhs) {
+			for (int i = 0; i < lhs.length; i++) {
+				lhs[i] += rhs[i];
+			}
+			
+			_bufferpool.offer(rhs);
+			return lhs;
+		}
+	}
+	
+	/**
+	 * Calculates the global luminance threshold using Otsu's method 
+	 * @param imagewidth	Width of input image
+	 * @param imageheight	Height of input image
+	 * @param image			Input image buffer
+	 * @param histogram		Histogram of the input image, length must be 256 
+	 * @return				The global threshold color
+	 */
 	public static int getGlobalThreshold(int imagewidth, int imageheight, final int[] image, final int[] histogram) {
 		float sum = 0;
 		int pixels = imagewidth * imageheight;
@@ -86,7 +131,7 @@ public class YuvFilter implements IImageFilter {
 		float fmax = -1.0f;
 		int threshold = 0;
 		
-		for (int i = 0; i < 255; i++) {
+		for (int i = 0; i < histogram.length; i++) {
 			// Weight background
 			wB += histogram[i];
 			if (wB == 0) { 

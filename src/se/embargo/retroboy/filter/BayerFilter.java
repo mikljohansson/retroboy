@@ -1,5 +1,8 @@
 package se.embargo.retroboy.filter;
 
+import se.embargo.core.concurrent.ForBody;
+import se.embargo.core.concurrent.Parallel;
+
 
 public class BayerFilter implements IImageFilter {
 	private static final int _patternsize = 8;
@@ -12,29 +15,41 @@ public class BayerFilter implements IImageFilter {
     	204, 76, 236, 108, 196, 68, 228, 100, 
     	60, 188, 28, 156, 52, 180, 20, 148, 
     	237, 124, 220, 92, 229, 116, 212, 84};
+	
+	private static final FilterBody _body = new FilterBody();
     
     @Override
 	public void accept(ImageBuffer buffer) {
-    	final int[] image = buffer.image.array();
-		final int width = buffer.imagewidth, height = buffer.imageheight;
-		
-		// Factor used to offset the threshold to compensate for too dark or bright images
-		final float factor = (float)buffer.threshold / 128;
-		
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				final int i = x + y * width;
-				final int mono = image[i] & 0xff;
+		Parallel.forRange(_body, buffer, 0, buffer.imageheight);
+	}
+    
+    private static class FilterBody implements ForBody<ImageBuffer> {
+		@Override
+		public void run(ImageBuffer buffer, int it, int last) {
+	    	final int[] image = buffer.image.array();
+			final int width = buffer.imagewidth;
+
+			// Factor used to offset the threshold to compensate for too dark or bright images
+			final float factor = (float)buffer.threshold / 128;
+			
+			for (int y = it; y < last; y++) {
+				final int yi = y * width,
+						  yt = (y % _patternsize) * _patternsize;
 				
-				// Apply the threshold
-				final int threshold = (int)(_thresholds[x % _patternsize + (y % _patternsize) * _patternsize] * factor);
-				final int lum = mono <= threshold ? 0 : 255;
-				
-				// Output the pixel
-				image[i] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
+				for (int x = 0; x < width; x++) {
+					final int i = x + yi;
+					final int mono = image[i] & 0xff;
+					
+					// Apply the threshold
+					final int threshold = (int)(_thresholds[x % _patternsize + yt] * factor);
+					final int lum = mono <= threshold ? 0 : 255;
+					
+					// Output the pixel
+					image[i] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
+				}
 			}
 		}
-	}
+    }
 
 	@Override
 	public int getEffectiveWidth(int framewidth, int frameheight) {
