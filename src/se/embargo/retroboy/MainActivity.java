@@ -235,6 +235,11 @@ public class MainActivity extends SherlockActivity {
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		if (event.getAction() == KeyEvent.ACTION_DOWN) {
 			switch (keyCode) {
+				case KeyEvent.KEYCODE_FOCUS:
+					// Trigger auto focus when dedicated photo button is pressed half way
+					_autoFocusListener.autoFocus();
+					return true;
+			
 				case KeyEvent.KEYCODE_CAMERA:
 					// Take photo when the dedicated photo button is pressed
 					_takePhotoListener.takePhoto();
@@ -482,14 +487,18 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	private class AutoFocusListener implements View.OnClickListener, Camera.AutoFocusCallback {
-		@Override
-		public void onClick(View v) {
+		public void autoFocus() {
 			_autoFocusMarker.setImageResource(R.drawable.ic_focus);
 
 			CameraHandle handle = _cameraHandle.getValue();
 			if (handle != null) {
 				handle.camera.autoFocus(this);
 			}
+		}
+
+		@Override
+		public void onClick(View v) {
+			autoFocus();
 		}
 
 		@Override
