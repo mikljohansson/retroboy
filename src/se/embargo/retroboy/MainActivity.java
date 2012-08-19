@@ -232,45 +232,62 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	@Override
+	public boolean onKeyUp(int keyCode, KeyEvent event) {
+		switch (keyCode) {
+			case KeyEvent.KEYCODE_FOCUS:
+			case KeyEvent.KEYCODE_CAMERA:
+				// Reset auto focus when dedicated photo button is released
+				_autoFocusListener.resetFocus();
+				return true;
+		}
+
+		return super.onKeyUp(keyCode, event);
+	}
+	
+	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		if (event.getAction() == KeyEvent.ACTION_DOWN) {
-			switch (keyCode) {
-				case KeyEvent.KEYCODE_FOCUS:
-					// Trigger auto focus when dedicated photo button is pressed half way
+		switch (keyCode) {
+			case KeyEvent.KEYCODE_FOCUS:
+				// Trigger auto focus when dedicated photo button is pressed half way
+				if (event.getRepeatCount() == 0) {
 					_autoFocusListener.autoFocus();
-					return true;
-			
-				case KeyEvent.KEYCODE_CAMERA:
+				}
+				
+				return true;
+		
+			case KeyEvent.KEYCODE_CAMERA:
+				if (event.getRepeatCount() == 0 && event.getAction() == KeyEvent.ACTION_DOWN) {
 					// Take photo when the dedicated photo button is pressed
 					_takePhotoListener.takePhoto();
-					return true;
-					
-				case KeyEvent.KEYCODE_VOLUME_UP: {
-					// Zoom in when volume up is pressed
-					CameraHandle handle = _cameraHandle.getValue();
-					if (handle != null) {
-						Camera.Parameters params = handle.camera.getParameters();
-						if (params.isZoomSupported() || params.isSmoothZoomSupported()) {
-							int max = params.getMaxZoom();
-							int val = _zoomLevel.getValue();
-							if (val < max) {
-								_zoomLevel.setValue(val + 1);
-							}
+				}
+				
+				return true;
+				
+			case KeyEvent.KEYCODE_VOLUME_UP: {
+				// Zoom in when volume up is pressed
+				CameraHandle handle = _cameraHandle.getValue();
+				if (handle != null) {
+					Camera.Parameters params = handle.camera.getParameters();
+					if (params.isZoomSupported() || params.isSmoothZoomSupported()) {
+						int max = params.getMaxZoom();
+						int val = _zoomLevel.getValue();
+						if (val < max) {
+							_zoomLevel.setValue(val + 1);
 						}
 					}
-					
-					return true;
 				}
+					
+				return true;
+			}
 
-				case KeyEvent.KEYCODE_VOLUME_DOWN: {
-					// Zoom out when volume down is pressed
-					int val = _zoomLevel.getValue();	
-					if (val > 0) {
-						_zoomLevel.setValue(val - 1);
-					}
-					
-					return true;
+			case KeyEvent.KEYCODE_VOLUME_DOWN: {
+				// Zoom out when volume down is pressed
+				int val = _zoomLevel.getValue();	
+				if (val > 0) {
+					_zoomLevel.setValue(val - 1);
 				}
+				
+				return true;
 			}
 		}
 		
@@ -493,6 +510,15 @@ public class MainActivity extends SherlockActivity {
 			CameraHandle handle = _cameraHandle.getValue();
 			if (handle != null) {
 				handle.camera.autoFocus(this);
+			}
+		}
+		
+		public void resetFocus() {
+			_autoFocusMarker.setImageResource(R.drawable.ic_focus);
+
+			CameraHandle handle = _cameraHandle.getValue();
+			if (handle != null) {
+				handle.camera.cancelAutoFocus();
 			}
 		}
 
