@@ -1,5 +1,7 @@
 package se.embargo.retroboy;
 
+import java.io.File;
+
 import se.embargo.core.databinding.observable.ChangeEvent;
 import se.embargo.core.databinding.observable.IChangeListener;
 import se.embargo.core.databinding.observable.IObservableValue;
@@ -468,12 +470,9 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	private class TakePhotoListener implements View.OnClickListener, PreviewCallback {
-		private boolean _capture = false;
-		
 		public void takePhoto() {
 			CameraHandle handle = _cameraHandle.getValue();
 			if (handle != null) {
-				_capture = true;
 				handle.camera.setPreviewCallbackWithBuffer(this);
 			}
 		}
@@ -488,16 +487,18 @@ public class MainActivity extends SherlockActivity {
 			CameraHandle handle = _cameraHandle.getValue();
 
 			// data may be null if buffer was too small
-			if (handle != null && data != null && _capture) {
-				_capture = false;
+			if (handle != null && data != null) {
+				Log.d(TAG, "Captured frame to save");
+				
+				// Stop receiving camera frames
+				handle.camera.setPreviewCallbackWithBuffer(null);
 	
 				// Get the current device orientation
 				WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
 				int rotation = _rotationListener.getCurrentRotation(windowManager.getDefaultDisplay().getRotation());
 				
 				// Process and save the picture
-				Camera.Size size = handle.camera.getParameters().getPreviewSize();
-				new ProcessFrameTask(handle.camera, data, size.width, size.height, handle.info.facing, handle.info.orientation, rotation).execute();
+				new ProcessFrameTask(handle, data, rotation).execute();
 			}
 		}
 	}
@@ -541,15 +542,14 @@ public class MainActivity extends SherlockActivity {
 	 * Process an camera preview frame
 	 */
 	private class ProcessFrameTask extends AsyncTask<Void, Void, Bitmap> {
-		private Camera _camera;
 		private IImageFilter _filter;
 		private IImageFilter.ImageBuffer _buffer;
 		private Bitmaps.Transform _transform;
 		private ProgressDialog _progress;
 
-		public ProcessFrameTask(Camera camera, byte[] data, int width, int height, int facing, int orientation, int rotation) {
-			_camera = camera;
-			_buffer = new IImageFilter.ImageBuffer(data, width, height);
+		public ProcessFrameTask(CameraHandle handle, byte[] data, int rotation) {
+			Camera.Size size = handle.camera.getParameters().getPreviewSize();
+			_buffer = new IImageFilter.ImageBuffer(data, size.width, size.height);
 			_task = this;
 
 			// Get the resolution and contrast from preferences
@@ -560,9 +560,9 @@ public class MainActivity extends SherlockActivity {
 			YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast);
 			_transform = Pictures.createTransformMatrix(
 				MainActivity.this, 
-				yuvFilter.getEffectiveWidth(width, height), 
-				yuvFilter.getEffectiveHeight(width, height), 
-				facing, orientation, rotation,
+				yuvFilter.getEffectiveWidth(size.width, size.height), 
+				yuvFilter.getEffectiveHeight(size.width, size.height), 
+				handle.info.facing, handle.info.orientation, rotation,
 				resolution);
 			
 			CompositeFilter filter = new CompositeFilter();
@@ -587,11 +587,14 @@ public class MainActivity extends SherlockActivity {
 
 		@Override
 		protected Bitmap doInBackground(Void... params) {
+			Log.d(TAG, "Processing captured image");
+			
 			// Apply the image filter to the current image			
 			_filter.accept(_buffer);
 			
 			// Write the image to disk
-			Pictures.compress(MainActivity.this, null, null, _buffer.bitmap);
+			File file = Pictures.compress(MainActivity.this, null, null, _buffer.bitmap);
+			Log.i(TAG, "Wrote image to disk: " + file);
 		
 			// Update the last photo thumbnail
 			return getPreviousThumbnail();
@@ -599,6 +602,8 @@ public class MainActivity extends SherlockActivity {
 		
 		@Override
 		protected void onCancelled() {
+			Log.w(TAG, "Image processing was cancelled");
+			
 			// Close the progress dialog and restart preview
 			dismiss();
 		}
@@ -610,6 +615,8 @@ public class MainActivity extends SherlockActivity {
 			
 			// Close the progress dialog and restart preview
 			dismiss();
+
+			Log.i(TAG, "Successfully captured image");
 		}
 			
 		private void dismiss() {
@@ -621,12 +628,7 @@ public class MainActivity extends SherlockActivity {
 			
 			// Continue preview
 			if (!isCancelled()) {
-				_camera.setPreviewCallbackWithBuffer(_preview);
-
-				// Release buffer back to camera
-				synchronized (_camera) {
-					_camera.addCallbackBuffer(_buffer.frame);
-				}
+				_preview.initPreview();
 			}
 		}
 	}

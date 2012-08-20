@@ -71,7 +71,25 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		
 		if (_camera != null) {
 			_previewSize = _camera.getParameters().getPreviewSize();
+		}
 
+		initPreview();
+
+		if (_camera != null) {
+			initTransform();
+			startPreview();
+		}
+	}
+	
+	/**
+	 * Restarts a paused preview
+	 */
+	public void initPreview() {
+		if (_camera != null) {
+			// Clear the buffer queue
+			_camera.setPreviewCallbackWithBuffer(null);
+			
+			// Install this as the preview handle
 			_camera.setPreviewCallbackWithBuffer(this);
 			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
 			
@@ -79,9 +97,6 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			if (Parallel.getNumberOfCores() > 1) {
 				_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);	
 			}
-			
-			initTransform();
-			startPreview();
 		}
 	}
 	
