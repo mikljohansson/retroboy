@@ -235,8 +235,7 @@ public class MainActivity extends SherlockActivity {
 	public boolean onKeyUp(int keyCode, KeyEvent event) {
 		switch (keyCode) {
 			case KeyEvent.KEYCODE_FOCUS:
-			case KeyEvent.KEYCODE_CAMERA:
-				// Reset auto focus when dedicated photo button is released
+				// Reset auto focus when dedicated photo button is completely released
 				_autoFocusListener.resetFocus();
 				return true;
 		}
