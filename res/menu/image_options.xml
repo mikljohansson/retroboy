@@ -23,6 +23,6 @@
     <item 
         android:id="@+id/editSettingsButton" 
         android:icon="@drawable/ic_action_settings"
-        android:title="@string/menu_option_settings" 
+        android:title="@string/menu_option_resolution" 
         android:showAsAction="never"/>
 </menu>

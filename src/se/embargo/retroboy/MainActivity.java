@@ -131,7 +131,10 @@ public class MainActivity extends SherlockActivity {
 		// Connect the settings button
 		{
 			final ImageButton button = (ImageButton)findViewById(R.id.editSettingsButton);
-			button.setOnClickListener(new EditSettingsButtonListener());
+			//button.setOnClickListener(new EditSettingsButtonListener());
+			button.setOnClickListener(new ListPreferenceDialogListener(
+				Pictures.PREF_RESOLUTION, Pictures.PREF_RESOLUTION_DEFAULT,
+				R.string.pref_title_resolution, R.array.pref_resolution_labels, R.array.pref_resolution_values));
 		}
 
 		// Connect the contrast button
@@ -639,24 +642,23 @@ public class MainActivity extends SherlockActivity {
 	private class PreferencesListener implements OnSharedPreferenceChangeListener {
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
-			if (PREF_CAMERA.equals(key)) {
-				// Reinitialize the camera
-				initCamera();
-			}
-			else if (Pictures.PREF_FILTER.equals(key)) {
-				// Change the active image filter
-				initFilter();
-			}
-			else if (Pictures.PREF_CONTRAST.equals(key)) {
-				// Change the active image filter
-				initFilter();
-			}
-			else if (Pictures.PREF_RESOLUTION.equals(key)) {
-				// Reinitialize the camera
-				initCamera();
-				
-				// Change the active image filter
-				initFilter();
+			CameraHandle handle = _cameraHandle.getValue();
+			if (handle != null) {
+				if (PREF_CAMERA.equals(key)) {
+					// Reinitialize the camera
+					initCamera();
+				}
+				else if (Pictures.PREF_FILTER.equals(key) || Pictures.PREF_CONTRAST.equals(key)) {
+					// Change the active image filter
+					initFilter();
+				}
+				else if (Pictures.PREF_RESOLUTION.equals(key)) {
+					// Reinitialize the camera
+					initCamera();
+					
+					// Change the active image filter
+					initFilter();
+				}
 			}
 		}
 	}
@@ -704,6 +706,7 @@ public class MainActivity extends SherlockActivity {
 	/**
 	 * Starts the preferences activity
 	 */
+	/*
 	private class EditSettingsButtonListener implements OnClickListener {
 		@Override
 		public void onClick(View v) {
@@ -711,6 +714,7 @@ public class MainActivity extends SherlockActivity {
 			startActivity(intent);
 		}
 	}
+	*/
 
 	/**
 	 * Shows the contrast preference dialog

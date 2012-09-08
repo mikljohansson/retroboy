@@ -191,8 +191,14 @@ public class ImageActivity extends SherlockActivity {
 
             case R.id.editSettingsButton: {
 				// Start preferences activity
+            	/*
 				Intent intent = new Intent(this, SettingsActivity.class);
 				startActivity(intent);
+				*/
+    			new ListPreferenceDialog(
+    				this, _prefs,
+    				Pictures.PREF_RESOLUTION, Pictures.PREF_RESOLUTION_DEFAULT,
+    				R.string.pref_title_resolution, R.array.pref_resolution_labels, R.array.pref_resolution_values).show();
 				return true;
 			}
             
