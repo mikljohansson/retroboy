@@ -2,6 +2,7 @@ package se.embargo.retroboy.filter;
 
 import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
+import se.embargo.retroboy.Palettes;
 
 public class PaletteFilter implements IImageFilter {
 	private final FilterBody _body = new FilterBody();
@@ -30,7 +31,7 @@ public class PaletteFilter implements IImageFilter {
 				
 				for (int x = 0; x < width; x++) {
 					final int i = x + yi;
-					image[i] = getNearestColor(image[i]);
+					image[i] = Palettes.getNearestColor(image[i], _palette);
 				}
 			}
 		}
@@ -44,24 +45,5 @@ public class PaletteFilter implements IImageFilter {
 	@Override
 	public int getEffectiveHeight(int framewidth, int frameheight) {
 		return 0;
-	}
-	
-	private int getNearestColor(int pixel) {
-		int color = 0, mindistance = 0xffffff;
-		
-		// Find palette color with minimum Euclidean distance to pixel 
-		for (int i = 0; i < _palette.length; i++) {
-			final int d1 = ((pixel & 0x00ff0000) - (_palette[i] & 0x00ff0000)) >> 16,
-					  d2 = ((pixel & 0x0000ff00) - (_palette[i] & 0x0000ff00)) >> 8,
-					  d3 = ((pixel & 0x000000ff) - (_palette[i] & 0x000000ff));
-			final int distance = d1 * d1 + d2 * d2 + d3 * d3;
-			
-			if (distance < mindistance) {
-				color = _palette[i];
-				mindistance = distance;
-			}
-		}
-		
-		return color;
 	}
 }

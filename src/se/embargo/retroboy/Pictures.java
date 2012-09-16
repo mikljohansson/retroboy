@@ -9,7 +9,6 @@ import se.embargo.retroboy.filter.AtkinsonFilter;
 import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
-import se.embargo.retroboy.filter.PaletteFilter;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -179,11 +178,11 @@ public class Pictures {
 		String filtertype = prefs.getString(PREF_FILTER, PREF_FILTER_DEFAULT);
 		
 		if (PREF_FILTER_GAMEBOY_SCREEN.equals(filtertype)) {
-			return new BayerFilter(Palettes.GAMEBOY_SCREEN);
+			return new BayerFilter(Palettes.GAMEBOY_SCREEN, false);
 		}
 
 		if (PREF_FILTER_COMMODORE_64.equals(filtertype)) {
-			return new PaletteFilter(Palettes.COMMODORE_64);
+			return new BayerFilter(Palettes.COMMODORE_64, true);
 		}
 
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
@@ -194,7 +193,7 @@ public class Pictures {
 			return new HalftoneFilter();
 		}
 
-		return new BayerFilter(Palettes.GAMEBOY_CAMERA);
+		return new BayerFilter(Palettes.GAMEBOY_CAMERA, false);
 	}
 	
 	public static Bitmaps.Transform createTransformMatrix(

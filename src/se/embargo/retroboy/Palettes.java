@@ -34,4 +34,27 @@ public class Palettes {
 		0xFF84D29A,
 		0xFFB55E6C,
 		0xFF959595};
+	
+	public static int getNearestColor(final int r, final int g, final int b, final int[] palette) {
+		int color = 0, mindistance = 0xffffff;
+		
+		// Find palette color with minimum Euclidean distance to pixel 
+		for (int i = 0; i < palette.length; i++) {
+			final int d1 = r - ((palette[i] & 0x00ff0000) >> 16),
+					  d2 = g - ((palette[i] & 0x0000ff00) >> 8),
+					  d3 = b - (palette[i] & 0x000000ff);
+			final int distance = d1 * d1 + d2 * d2 + d3 * d3;
+			
+			if (distance < mindistance) {
+				color = palette[i];
+				mindistance = distance;
+			}
+		}
+		
+		return color;
+	}
+	
+	public static int getNearestColor(final int pixel, final int[] palette) {
+		return getNearestColor((pixel & 0x00ff0000) >> 16, (pixel & 0x0000ff00) >> 8, (pixel & 0x000000ff), palette);
+	}
 }

@@ -15,12 +15,23 @@ public class YuvFilter implements IImageFilter {
 	private float _factor;
 	
 	private Queue<int[]> _bufferpool = new ArrayBlockingQueue<int[]>(256);
-	private FilterBody _body = new FilterBody();
+	private MapReduceBody<ImageBuffer, int[]> _body;
 	
-	public YuvFilter(int width, int height, int contrast) {
+	public YuvFilter(int width, int height, int contrast, boolean color) {
 		_width = width;
 		_height = height;
 		_factor = (259.0f * ((float)contrast + 255.0f)) / (255.0f * (259.0f - (float)contrast));
+		
+		if (color) {
+			_body = new ColorBody();
+		}
+		else {
+			_body = new MonochromeBody();
+		}
+	}
+	
+	public YuvFilter(int width, int height, int contrast) {
+		this(width, height, contrast, false);
 	}
 	
 	@Override
@@ -51,10 +62,84 @@ public class YuvFilter implements IImageFilter {
 		_bufferpool.offer(histogram);
 	}
 	
-	private class FilterBody implements MapReduceBody<ImageBuffer, int[]> {
+	private abstract class FilterBody implements MapReduceBody<ImageBuffer, int[]> {
+		@Override
+		public int[] reduce(int[] lhs, int[] rhs) {
+			for (int i = 0; i < lhs.length; i++) {
+				lhs[i] += rhs[i];
+			}
+			
+			_bufferpool.offer(rhs);
+			return lhs;
+		}
+	}
+	
+	private class ColorBody extends FilterBody {
 		@Override
 		public int[] map(ImageBuffer buffer, int it, int last) {
-			// Select the dimension that most closely matches the bounds
+			final float framewidth = buffer.framewidth, 
+					    frameheight = buffer.frameheight;
+			final float stride = getStride(framewidth, frameheight);
+			final byte[] data = buffer.frame;
+
+			final int[] image = buffer.image.array();
+			final int framewidthi = buffer.framewidth,
+					  imagewidth = buffer.imagewidth,
+					  framesizei = buffer.framewidth * buffer.frameheight;
+			final float factor = _factor;
+
+			// Space to hold an image histogram
+			int[] histogram = _bufferpool.poll();
+			if (histogram == null) {
+				histogram = new int[256];
+			}
+			
+			Arrays.fill(histogram, 0);
+			
+			// Convert YUV chunk to color
+			int yo = (int)((float)it / stride) * imagewidth;
+			for (float y = it; y < last; y += stride, yo += imagewidth) {
+				int xi = 0, 
+					yi = (int)y * framewidthi;
+				
+				int uvp = framesizei + ((int)y >> 1) * framewidthi, 
+					u = 0, v = 0;  
+				
+				for (float x = 0; x < framewidth && xi < imagewidth; x += stride, xi++) {
+					final int xo = yo + xi;
+					final int ii = (int)x + yi;
+					
+					// Convert from YUV luminance
+					final float lum = (((int)data[ii]) & 0xff) - 16.0f;
+					
+					// Apply the contrast adjustment
+					final int lumi = Math.max(0, Math.min((int)(factor * (lum - 128.0f) + 128.0f), 255));
+					
+					// Build the histogram used to calculate the global threshold
+					histogram[lumi]++;
+					
+					if ((xi & 1) == 0) {  
+						v = (((int)data[uvp++]) & 0xff) - 128;  
+						u = (((int)data[uvp++]) & 0xff) - 128;  
+					}
+					
+					int y1192 = 1192 * lumi;
+					int r = Math.max(0, Math.min(y1192 + 1634 * v, 262143));
+					int g = Math.max(0, Math.min(y1192 - 833 * v - 400 * u, 262143));  
+					int b = Math.max(0, Math.min(y1192 + 2066 * u, 262143));
+					
+					// Output the pixel
+					image[xo] = 0xff000000 | ((b << 6) & 0x00ff0000)  | ((g >> 2) & 0x0000ff00) |  ((r >> 10) & 0x000000ff);
+				}
+			}
+			
+			return histogram;
+		}
+	}
+	
+	private class MonochromeBody extends FilterBody {
+		@Override
+		public int[] map(ImageBuffer buffer, int it, int last) {
 			final float framewidth = buffer.framewidth, frameheight = buffer.frameheight;
 			final float stride = getStride(framewidth, frameheight);
 			final byte[] data = buffer.frame;
@@ -97,16 +182,6 @@ public class YuvFilter implements IImageFilter {
 			}
 			
 			return histogram;
-		}
-
-		@Override
-		public int[] reduce(int[] lhs, int[] rhs) {
-			for (int i = 0; i < lhs.length; i++) {
-				lhs[i] += rhs[i];
-			}
-			
-			_bufferpool.offer(rhs);
-			return lhs;
 		}
 	}
 	
