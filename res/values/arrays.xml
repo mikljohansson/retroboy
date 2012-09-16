@@ -6,26 +6,29 @@
 	    <item>640x480</item>
 		<item>480x360</item>
 	    <item>320x240</item>
+	    <item>256x224</item>
 	</string-array>
     <string-array name="pref_resolution_values">
 		<item>960x720</item>
         <item>640x480</item>
         <item>480x360</item>
 		<item>320x240</item>
+		<item>256x224</item>
 	</string-array>
     
-    <string name="pref_filter_default">bayer</string>
+    <string name="pref_filter_default">nintendo_gameboy_camera</string>
     <string-array name="pref_filter_labels">
+        <item>Gameboy® Camera</item>
         <item>Nintendo® Gameboy®</item>
         <item>Apple® Macintosh® OS</item>
         <item>Roy Lichtenstein</item>
     </string-array>
     <string-array name="pref_filter_values">
-        <item>bayer</item>
+        <item>nintendo_gameboy_camera</item>
+        <item>nintendo_gameboy_screen</item>
         <item>atkinson</item>
         <item>halftone</item>
     </string-array>
-    
     
 	<string name="pref_contrast_default">0</string>
     <string-array name="pref_contrast_labels">

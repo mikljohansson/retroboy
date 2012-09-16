@@ -6,7 +6,8 @@ import java.io.IOException;
 
 import se.embargo.core.graphics.Bitmaps;
 import se.embargo.retroboy.filter.AtkinsonFilter;
-import se.embargo.retroboy.filter.BayerFilter;
+import se.embargo.retroboy.filter.GameboyCameraFilter;
+import se.embargo.retroboy.filter.GameboyScreenFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import android.content.ContentValues;
@@ -27,10 +28,11 @@ public class Pictures {
 	
 	public static final String PREF_FILTER = "filter";
 	
-	private static final String PREF_FILTER_BAYER = "bayer";
+	private static final String PREF_FILTER_GAMEBOY_CAMERA = "nintendo_gameboy_camera";
+	private static final String PREF_FILTER_GAMEBOY_SCREEN = "nintendo_gameboy_screen";
 	private static final String PREF_FILTER_ATKINSON = "atkinson";
 	private static final String PREF_FILTER_HALFTONE = "halftone";
-	public static final String PREF_FILTER_DEFAULT = PREF_FILTER_BAYER;
+	public static final String PREF_FILTER_DEFAULT = PREF_FILTER_GAMEBOY_CAMERA;
 
 	public static final String PREF_CONTRAST = "contrast";
 	public static final String PREF_CONTRAST_DEFAULT = "0";
@@ -175,6 +177,10 @@ public class Pictures {
 		SharedPreferences prefs = context.getSharedPreferences(PREFS_NAMESPACE, Context.MODE_PRIVATE);
 		String filtertype = prefs.getString(PREF_FILTER, PREF_FILTER_DEFAULT);
 		
+		if (PREF_FILTER_GAMEBOY_SCREEN.equals(filtertype)) {
+			return new GameboyScreenFilter();
+		}
+
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
 			return new AtkinsonFilter();
 		}
@@ -183,7 +189,7 @@ public class Pictures {
 			return new HalftoneFilter();
 		}
 
-		return new BayerFilter();
+		return new GameboyCameraFilter();
 	}
 	
 	public static Bitmaps.Transform createTransformMatrix(
@@ -239,7 +245,7 @@ public class Pictures {
 			result = PREF_FILTER_HALFTONE;
 		}
 		else if (PREF_FILTER_HALFTONE.equals(filtertype)) {
-			result = PREF_FILTER_BAYER;
+			result = PREF_FILTER_GAMEBOY_CAMERA;
 		}
 		else {
 			result = PREF_FILTER_ATKINSON;
