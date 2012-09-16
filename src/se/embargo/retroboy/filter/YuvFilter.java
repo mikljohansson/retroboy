@@ -83,10 +83,10 @@ public class YuvFilter implements IImageFilter {
 					final int ii = (int)x + yi;
 					
 					// Convert from YUV luminance
-					final float lum = ((int)data[ii]) & 0xff;
+					final float lum = (((int)data[ii]) & 0xff) - 16.0f;
 					
 					// Apply the contrast adjustment
-					final int color = Math.max(0, Math.min((int)(factor * (lum - 144.0f) + 128.0f), 255));
+					final int color = Math.max(0, Math.min((int)(factor * (lum - 128.0f) + 128.0f), 255));
 					
 					// Build the histogram used to calculate the global threshold
 					histogram[color]++;

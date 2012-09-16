@@ -6,10 +6,10 @@ import java.io.IOException;
 
 import se.embargo.core.graphics.Bitmaps;
 import se.embargo.retroboy.filter.AtkinsonFilter;
-import se.embargo.retroboy.filter.GameboyCameraFilter;
-import se.embargo.retroboy.filter.GameboyScreenFilter;
+import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
+import se.embargo.retroboy.filter.PaletteFilter;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -30,6 +30,7 @@ public class Pictures {
 	
 	private static final String PREF_FILTER_GAMEBOY_CAMERA = "nintendo_gameboy_camera";
 	private static final String PREF_FILTER_GAMEBOY_SCREEN = "nintendo_gameboy_screen";
+	private static final String PREF_FILTER_COMMODORE_64 = "commodore_64";
 	private static final String PREF_FILTER_ATKINSON = "atkinson";
 	private static final String PREF_FILTER_HALFTONE = "halftone";
 	public static final String PREF_FILTER_DEFAULT = PREF_FILTER_GAMEBOY_CAMERA;
@@ -178,7 +179,11 @@ public class Pictures {
 		String filtertype = prefs.getString(PREF_FILTER, PREF_FILTER_DEFAULT);
 		
 		if (PREF_FILTER_GAMEBOY_SCREEN.equals(filtertype)) {
-			return new GameboyScreenFilter();
+			return new BayerFilter(Palettes.GAMEBOY_SCREEN);
+		}
+
+		if (PREF_FILTER_COMMODORE_64.equals(filtertype)) {
+			return new PaletteFilter(Palettes.COMMODORE_64);
 		}
 
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
@@ -189,7 +194,7 @@ public class Pictures {
 			return new HalftoneFilter();
 		}
 
-		return new GameboyCameraFilter();
+		return new BayerFilter(Palettes.GAMEBOY_CAMERA);
 	}
 	
 	public static Bitmaps.Transform createTransformMatrix(

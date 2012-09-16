@@ -3,7 +3,7 @@ package se.embargo.retroboy.filter;
 import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
 
-public class GameboyCameraFilter implements IImageFilter {
+public class BayerFilter implements IImageFilter {
 	private static final int[] _matrix = new int[] {
     	1, 49, 13, 61, 4, 52, 16, 63, 
     	33, 17, 45, 29, 36, 20, 48, 32, 
@@ -14,15 +14,22 @@ public class GameboyCameraFilter implements IImageFilter {
     	11, 59, 7, 55, 10, 58, 6, 54, 
     	43, 27, 39, 23, 42, 26, 38, 22};
 
-	private static final int[] _palette = new int[256];
-	private static final FilterBody _body = new FilterBody();
+	private final int[] _palette = new int[256];
+	private final FilterBody _body = new FilterBody();
+	
+	public BayerFilter(int[] palette) {
+		int step = 256 / palette.length;
+		for (int i = 0; i < 256; i++) {
+			_palette[i] = palette[i / step];
+		}
+	}
     
     @Override
 	public void accept(ImageBuffer buffer) {
 		Parallel.forRange(_body, buffer, 0, buffer.imageheight);
 	}
     
-    private static class FilterBody implements ForBody<ImageBuffer> {
+    private class FilterBody implements ForBody<ImageBuffer> {
 		@Override
 		public void run(ImageBuffer buffer, int it, int last) {
 	    	final int[] image = buffer.image.array();
@@ -53,15 +60,5 @@ public class GameboyCameraFilter implements IImageFilter {
 	@Override
 	public int getEffectiveHeight(int framewidth, int frameheight) {
 		return 0;
-	}
-
-    /**
-     * Static constructor to initialize the palette
-     */
-	{
-		final int[] palette = {0xff000000, 0xff858585, 0xffaaaaaa, 0xffffffff};
-		for (int i = 0; i < 256; i++) {
-			_palette[i] = palette[i / 64];
-		}
 	}
 }
