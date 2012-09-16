@@ -28,14 +28,17 @@ public class GameboyCameraFilter implements IImageFilter {
 	    	final int[] image = buffer.image.array();
 			final int width = buffer.imagewidth;
 			
+			// Factor used to compensate for too dark or bright images
+			final float factor = 128f / buffer.threshold;
+
 			for (int y = it; y < last; y++) {
 				final int yi = y * width,
 						  yt = (y % 8) * 8;
 				
 				for (int x = 0; x < width; x++) {
 					final int i = x + yi;
-					final int mono = image[i] & 0xff;
-					final int lum = Math.min(mono + _matrix[x % 8 + yt], 255);
+					final float mono = image[i] & 0xff;
+					final int lum = Math.min((int)(mono * factor) + _matrix[x % 8 + yt], 255);
 					image[i] = _palette[lum];
 				}
 			}

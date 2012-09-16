@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="pref_resolution_default">480x360</string>
+	<string name="pref_resolution_default">320x240</string>
     <string-array name="pref_resolution_labels">
-		<item>960x720</item>
-	    <item>640x480</item>
-		<item>480x360</item>
+	    <item>Game Boy® Camera</item>
 	    <item>320x240</item>
-	    <item>256x224</item>
+		<item>480x320</item>
+	    <item>640x480</item>
+        <item>960x720</item>
 	</string-array>
     <string-array name="pref_resolution_values">
-		<item>960x720</item>
-        <item>640x480</item>
-        <item>480x360</item>
-		<item>320x240</item>
 		<item>256x224</item>
+		<item>320x240</item>
+        <item>480x360</item>
+        <item>640x480</item>
+		<item>960x720</item>
 	</string-array>
     
     <string name="pref_filter_default">nintendo_gameboy_camera</string>
     <string-array name="pref_filter_labels">
-        <item>Gameboy® Camera</item>
-        <item>Nintendo® Gameboy®</item>
+        <item>Game Boy® Camera</item>
+        <item>Nintendo® Game Boy®</item>
         <item>Apple® Macintosh® OS</item>
         <item>Roy Lichtenstein</item>
     </string-array>

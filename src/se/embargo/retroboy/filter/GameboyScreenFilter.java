@@ -18,16 +18,16 @@ public class GameboyScreenFilter implements IImageFilter {
 	    	final int[] image = buffer.image.array();
 			final int width = buffer.imagewidth;
 
-			// Factor used to offset the threshold to compensate for too dark or bright images
-			final int compensation = 128 - buffer.threshold;
+			// Factor used to compensate for too dark or bright images
+			final float factor = 128f / buffer.threshold;
 			
 			for (int y = it; y < last; y++) {
 				final int yi = y * width;
 				
 				for (int x = 0; x < width; x++) {
 					final int i = x + yi;
-					final int mono = image[i] & 0xff;
-					final int lum = Math.max(0, Math.min(mono + compensation, 255));
+					final float mono = image[i] & 0xff;
+					final int lum = Math.max(0, Math.min((int)(mono * factor), 255));
 					image[i] = _palette[lum];
 				}
 			}
