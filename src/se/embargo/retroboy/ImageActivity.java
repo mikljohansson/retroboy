@@ -314,8 +314,13 @@ public class ImageActivity extends SherlockActivity {
 			// Create the image filter pipeline
 			IImageFilter.ImageBuffer buffer = new IImageFilter.ImageBuffer(input);
 			CompositeFilter filter = new CompositeFilter();
-			filter.add(new MonochromeFilter(contrast));
-			filter.add(Pictures.createEffectFilter(ImageActivity.this));
+			
+			IImageFilter effect = Pictures.createEffectFilter(ImageActivity.this);
+			if (!effect.isColorFilter()) {
+				filter.add(new MonochromeFilter(contrast));
+			}
+			
+			filter.add(effect);
 			filter.add(new ImageBitmapFilter());
 
 			// Apply the image filter to the current image			

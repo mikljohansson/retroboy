@@ -20,15 +20,15 @@
     <string-array name="pref_filter_labels">
         <item>Game Boy® Camera</item>
         <item>Nintendo® Game Boy®</item>
-        <!-- <item>Commodore® 64</item>  -->
         <item>Apple® Macintosh® OS</item>
+        <item>Commodore® 64</item>
         <item>Roy Lichtenstein</item>
     </string-array>
     <string-array name="pref_filter_values">
         <item>nintendo_gameboy_camera</item>
         <item>nintendo_gameboy_screen</item>
-        <!-- <item>commodore_64</item> -->
         <item>atkinson</item>
+        <item>commodore_64</item>
         <item>halftone</item>
     </string-array>
     

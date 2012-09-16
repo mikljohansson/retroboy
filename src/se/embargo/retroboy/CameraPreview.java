@@ -53,7 +53,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		super(context, attrs, defStyle);
 		
 		// Default filter
-		_filter = new YuvFilter(480, 360, 0);
+		_filter = new YuvFilter(480, 360, 0, true);
 
 		// Install a SurfaceHolder.Callback so we get notified when the surface is created and destroyed.
 		_holder = getHolder();

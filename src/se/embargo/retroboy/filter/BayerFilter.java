@@ -4,7 +4,7 @@ import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.Palettes;
 
-public class BayerFilter implements IImageFilter {
+public class BayerFilter extends AbstractFilter {
 	private static final int[] _matrix64 = new int[] {
     	1, 49, 13, 61, 4, 52, 16, 63, 
     	33, 17, 45, 29, 36, 20, 48, 32, 
@@ -119,12 +119,7 @@ public class BayerFilter implements IImageFilter {
     }
 
     @Override
-	public int getEffectiveWidth(int framewidth, int frameheight) {
-		return 0;
-	}
-
-	@Override
-	public int getEffectiveHeight(int framewidth, int frameheight) {
-		return 0;
-	}
+    public boolean isColorFilter() {
+    	return _body instanceof ColorBody;
+    }
 }

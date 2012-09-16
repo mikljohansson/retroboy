@@ -363,8 +363,9 @@ public class MainActivity extends SherlockActivity {
 		
 		// Create the image filter pipeline
 		CompositeFilter filters = new CompositeFilter();
-		filters.add(new YuvFilter(resolution.width, resolution.height, contrast));
-		filters.add(Pictures.createEffectFilter(this));
+		IImageFilter effect = Pictures.createEffectFilter(this);
+		filters.add(new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter()));
+		filters.add(effect);
 		filters.add(new ImageBitmapFilter());
 		_preview.setFilter(filters);
 	}
@@ -560,7 +561,8 @@ public class MainActivity extends SherlockActivity {
 			int contrast = Pictures.getContrast(_prefs);
 
 			// Create the image filter pipeline
-			YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast);
+			IImageFilter effect = Pictures.createEffectFilter(MainActivity.this);
+			YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter());
 			_transform = Pictures.createTransformMatrix(
 				MainActivity.this, 
 				yuvFilter.getEffectiveWidth(size.width, size.height), 
@@ -573,7 +575,7 @@ public class MainActivity extends SherlockActivity {
 			filter.add(new ImageBitmapFilter());
 			filter.add(new TransformFilter(_transform));
 			filter.add(new BitmapImageFilter());
-			filter.add(Pictures.createEffectFilter(MainActivity.this));
+			filter.add(effect);
 			filter.add(new ImageBitmapFilter());
 			_filter = filter;
 		}

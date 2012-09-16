@@ -3,7 +3,7 @@ package se.embargo.retroboy.filter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CompositeFilter implements IImageFilter {
+public class CompositeFilter extends AbstractFilter {
 	private List<IImageFilter> _filters = new ArrayList<IImageFilter>();
 	
 	public void add(IImageFilter filter) {
@@ -39,5 +39,16 @@ public class CompositeFilter implements IImageFilter {
 		}
 		
 		return 0;
-}
+	}
+
+	@Override
+	public boolean isColorFilter() {
+		for (IImageFilter filter : _filters) {
+			if (filter.isColorFilter()) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
 }

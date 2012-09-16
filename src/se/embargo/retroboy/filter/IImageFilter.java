@@ -28,6 +28,11 @@ public interface IImageFilter {
 	public int getEffectiveHeight(int framewidth, int frameheight);
 
 	/**
+	 * @return	Returns true if this is a color filter 
+	 */
+	public boolean isColorFilter();	
+	
+	/**
 	 * Camera frame buffer
 	 */
 	public class ImageBuffer {

@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import android.graphics.Color;
 
-public class MonochromeFilter implements IImageFilter {
+public class MonochromeFilter extends AbstractFilter {
 	private float _factor;
 	
 	public MonochromeFilter(int contrast) {
@@ -37,15 +37,5 @@ public class MonochromeFilter implements IImageFilter {
 		// Calculate the global Otsu threshold
 		buffer.threshold = YuvFilter.getGlobalThreshold(
 			buffer.imagewidth, buffer.imageheight, image, histogram);
-	}
-
-	@Override
-	public int getEffectiveWidth(int framewidth, int frameheight) {
-		return 0;
-	}
-
-	@Override
-	public int getEffectiveHeight(int framewidth, int frameheight) {
-		return 0;
 	}
 }

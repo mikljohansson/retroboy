@@ -2,7 +2,7 @@ package se.embargo.retroboy.filter;
 
 import se.embargo.core.graphics.Bitmaps;
 
-public class TransformFilter implements IImageFilter {
+public class TransformFilter extends AbstractFilter {
 	private Bitmaps.Transform _transform;
 	
 	public TransformFilter(Bitmaps.Transform transform) {

@@ -30,10 +30,6 @@ public class YuvFilter implements IImageFilter {
 		}
 	}
 	
-	public YuvFilter(int width, int height, int contrast) {
-		this(width, height, contrast, false);
-	}
-	
 	@Override
 	public void accept(ImageBuffer buffer) {
 		// Select the dimension that most closely matches the bounds
@@ -78,14 +74,14 @@ public class YuvFilter implements IImageFilter {
 		@Override
 		public int[] map(ImageBuffer buffer, int it, int last) {
 			final float framewidth = buffer.framewidth, 
-					    frameheight = buffer.frameheight;
+					    frameheight = buffer.frameheight,
+					    framesize = framewidth * frameheight;
 			final float stride = getStride(framewidth, frameheight);
 			final byte[] data = buffer.frame;
 
 			final int[] image = buffer.image.array();
 			final int framewidthi = buffer.framewidth,
-					  imagewidth = buffer.imagewidth,
-					  framesizei = buffer.framewidth * buffer.frameheight;
+					  imagewidth = buffer.imagewidth;
 			final float factor = _factor;
 
 			// Space to hold an image histogram
@@ -102,15 +98,15 @@ public class YuvFilter implements IImageFilter {
 				int xi = 0, 
 					yi = (int)y * framewidthi;
 				
-				int uvp = framesizei + ((int)y >> 1) * framewidthi, 
-					u = 0, v = 0;  
+				float uvp = framesize + ((int)y >> 1) * framewidthi; 
+				int u = 0, v = 0;  
 				
 				for (float x = 0; x < framewidth && xi < imagewidth; x += stride, xi++) {
 					final int xo = yo + xi;
 					final int ii = (int)x + yi;
 					
 					// Convert from YUV luminance
-					final float lum = (((int)data[ii]) & 0xff) - 16.0f;
+					final float lum = ((int)data[ii] & 0xff) - 16.0f;
 					
 					// Apply the contrast adjustment
 					final int lumi = Math.max(0, Math.min((int)(factor * (lum - 128.0f) + 128.0f), 255));
@@ -118,11 +114,15 @@ public class YuvFilter implements IImageFilter {
 					// Build the histogram used to calculate the global threshold
 					histogram[lumi]++;
 					
-					if ((xi & 1) == 0) {  
-						v = (((int)data[uvp++]) & 0xff) - 128;  
-						u = (((int)data[uvp++]) & 0xff) - 128;  
+					// Fetch new UV values every other iteration
+					if ((xi & 0x01) == 0) {  
+						final int uvpi = (int)uvp & 0xfffffffe;
+						v = ((int)data[(int)uvpi] & 0xff) - 128;  
+						u = ((int)data[(int)uvpi + 1] & 0xff) - 128;
+						uvp += stride + stride;
 					}
 					
+					// Convert to RGB
 					int y1192 = 1192 * lumi;
 					int r = Math.max(0, Math.min(y1192 + 1634 * v, 262143));
 					int g = Math.max(0, Math.min(y1192 - 833 * v - 400 * u, 262143));  
@@ -237,14 +237,21 @@ public class YuvFilter implements IImageFilter {
 		return Math.max(2, Math.min(threshold, 254));
 	}
 
+	@Override
 	public int getEffectiveWidth(int framewidth, int frameheight) {
 		final float stride = getStride(framewidth, frameheight); 
 		return Math.min((int)(framewidth / stride), _width);
 	}
 	
+	@Override
 	public int getEffectiveHeight(int framewidth, int frameheight) {
 		final float stride = getStride(framewidth, frameheight); 
 		return Math.min((int)(frameheight / stride), _height);
+	}
+	
+	@Override
+	public boolean isColorFilter() {
+		return _body instanceof ColorBody;
 	}
 
 	private float getStride(float framewidth, float frameheight) {

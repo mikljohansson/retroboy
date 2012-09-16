@@ -4,7 +4,7 @@ import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.Palettes;
 
-public class PaletteFilter implements IImageFilter {
+public class PaletteFilter extends AbstractFilter {
 	private final FilterBody _body = new FilterBody();
 	private final int[] _palette;
 	
@@ -37,13 +37,8 @@ public class PaletteFilter implements IImageFilter {
 		}
     }
 
-	@Override
-	public int getEffectiveWidth(int framewidth, int frameheight) {
-		return 0;
-	}
-
-	@Override
-	public int getEffectiveHeight(int framewidth, int frameheight) {
-		return 0;
-	}
+    @Override
+    public boolean isColorFilter() {
+    	return true;
+    }
 }

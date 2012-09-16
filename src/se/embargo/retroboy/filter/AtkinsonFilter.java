@@ -1,6 +1,6 @@
 package se.embargo.retroboy.filter;
 
-public class AtkinsonFilter implements IImageFilter {
+public class AtkinsonFilter extends AbstractFilter {
     @Override
 	public void accept(ImageBuffer buffer) {
     	final int[] image = buffer.image.array();
@@ -36,15 +36,5 @@ public class AtkinsonFilter implements IImageFilter {
 	private static final void propagate(final int[] image, final int err, final int i) {
 		// No need to check bound, buffer has 2+ extra lines
 		image[i] = Math.min(Math.max(0, (image[i] & 0xff) + err), 255);
-	}
-
-	@Override
-	public int getEffectiveWidth(int framewidth, int frameheight) {
-		return 0;
-	}
-
-	@Override
-	public int getEffectiveHeight(int framewidth, int frameheight) {
-		return 0;
 	}
 }

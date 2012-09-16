@@ -7,7 +7,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
 
-public class HalftoneFilter implements IImageFilter {
+public class HalftoneFilter extends AbstractFilter {
     private static final int _patternsize = 6;
 	private static final float[] _thresholds = new float[_patternsize * _patternsize];
 	
@@ -106,15 +106,5 @@ public class HalftoneFilter implements IImageFilter {
 
 	private static double cos1(double v) { 
 		return Math.cos(2 * Math.PI * v); 
-	}
-
-	@Override
-	public int getEffectiveWidth(int framewidth, int frameheight) {
-		return 0;
-	}
-
-	@Override
-	public int getEffectiveHeight(int framewidth, int frameheight) {
-		return 0;
 	}
 }

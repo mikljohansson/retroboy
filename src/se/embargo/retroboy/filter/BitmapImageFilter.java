@@ -3,7 +3,7 @@ package se.embargo.retroboy.filter;
 import java.nio.IntBuffer;
 
 
-public class BitmapImageFilter implements IImageFilter {
+public class BitmapImageFilter extends AbstractFilter {
 	@Override
 	public void accept(ImageBuffer buffer) {
 		final int imagewidth = buffer.bitmap.getWidth(),
@@ -18,15 +18,5 @@ public class BitmapImageFilter implements IImageFilter {
 		buffer.imagewidth = imagewidth;
 		buffer.imageheight = imageheight;
 		buffer.bitmap.copyPixelsToBuffer(buffer.image);
-	}
-
-	@Override
-	public int getEffectiveWidth(int framewidth, int frameheight) {
-		return 0;
-	}
-
-	@Override
-	public int getEffectiveHeight(int framewidth, int frameheight) {
-		return 0;
 	}
 }
