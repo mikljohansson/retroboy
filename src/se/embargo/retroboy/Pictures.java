@@ -5,6 +5,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import se.embargo.core.graphics.Bitmaps;
+import se.embargo.retroboy.color.LuminancePalette;
+import se.embargo.retroboy.color.Palettes;
+import se.embargo.retroboy.color.YuvPalette;
 import se.embargo.retroboy.filter.AtkinsonFilter;
 import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
@@ -18,7 +21,6 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Surface;
-import android.widget.Toast;
 
 public class Pictures {
 	private static final String TAG = "Pictures";
@@ -178,11 +180,11 @@ public class Pictures {
 		String filtertype = prefs.getString(PREF_FILTER, PREF_FILTER_DEFAULT);
 		
 		if (PREF_FILTER_GAMEBOY_SCREEN.equals(filtertype)) {
-			return new BayerFilter(Palettes.GAMEBOY_SCREEN, false);
+			return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_SCREEN), false);
 		}
 
 		if (PREF_FILTER_COMMODORE_64.equals(filtertype)) {
-			return new BayerFilter(Palettes.COMMODORE_64, true);
+			return new BayerFilter(new LuminancePalette(Palettes.COMMODORE_64), true);
 		}
 
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
@@ -193,7 +195,7 @@ public class Pictures {
 			return new HalftoneFilter();
 		}
 
-		return new BayerFilter(Palettes.GAMEBOY_CAMERA, false);
+		return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_CAMERA), false);
 	}
 	
 	public static Bitmaps.Transform createTransformMatrix(
@@ -236,43 +238,5 @@ public class Pictures {
 		}
 		
 		return createTransformMatrix(context, inputwidth, inputheight, facing, orientation, rotation, maxwidth, maxheight, 0);
-	}
-
-	public static void toggleImageFilter(Context context) {
-		SharedPreferences prefs = context.getSharedPreferences(PREFS_NAMESPACE, Context.MODE_PRIVATE);
-
-		// Switch the active image filter
-		String filtertype = prefs.getString(PREF_FILTER, PREF_FILTER_DEFAULT);
-		String result;
-		
-		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
-			result = PREF_FILTER_HALFTONE;
-		}
-		else if (PREF_FILTER_HALFTONE.equals(filtertype)) {
-			result = PREF_FILTER_GAMEBOY_CAMERA;
-		}
-		else {
-			result = PREF_FILTER_ATKINSON;
-		}
-		
-		// Notify the user about the filter name
-		Toast.makeText(context, getFilterLabel(context, result), Toast.LENGTH_SHORT).show();
-
-		// Commit the change to the preferences
-		SharedPreferences.Editor editor = prefs.edit();
-		editor.putString(PREF_FILTER, result);
-		editor.commit();
-	}
-	
-	private static String getFilterLabel(Context context, String filter) {
-		String[] values = context.getResources().getStringArray(R.array.pref_filter_values),
-				 labels = context.getResources().getStringArray(R.array.pref_filter_labels);
-		for (int i = 0; i < values.length && i < labels.length; i++) {
-			if (filter.equals(values[i])) {
-				return labels[i];
-			}
-		}
-		
-		return "";
 	}
 }

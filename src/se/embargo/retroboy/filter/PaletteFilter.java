@@ -2,16 +2,16 @@ package se.embargo.retroboy.filter;
 
 import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
-import se.embargo.retroboy.Palettes;
+import se.embargo.retroboy.color.IPalette;
 
 public class PaletteFilter extends AbstractFilter {
 	private final FilterBody _body = new FilterBody();
-	private final int[] _palette;
+	private final IPalette _palette;
 	
 	/**
 	 * @param palette	Color palette in ABGR (Alpha, Blue, Green, Red)
 	 */
-	public PaletteFilter(int[] palette) {
+	public PaletteFilter(IPalette palette) {
 		_palette = palette;
 	}
     
@@ -31,7 +31,7 @@ public class PaletteFilter extends AbstractFilter {
 				
 				for (int x = 0; x < width; x++) {
 					final int i = x + yi;
-					image[i] = Palettes.getNearestColor(image[i], _palette);
+					image[i] = _palette.getNearestColor(image[i]);
 				}
 			}
 		}

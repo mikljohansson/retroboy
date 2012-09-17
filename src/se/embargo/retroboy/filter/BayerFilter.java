@@ -2,7 +2,7 @@ package se.embargo.retroboy.filter;
 
 import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
-import se.embargo.retroboy.Palettes;
+import se.embargo.retroboy.color.IPalette;
 
 public class BayerFilter extends AbstractFilter {
 	private static final int[] _matrix64 = new int[] {
@@ -25,8 +25,8 @@ public class BayerFilter extends AbstractFilter {
 	private final int _patternsize;
 	private final ForBody<ImageBuffer> _body;
 	
-	public BayerFilter(int[] palette, boolean color) {
-		switch (palette.length) {
+	public BayerFilter(IPalette palette, boolean color) {
+		switch (palette.getPaletteSize()) {
 			case 16:
 				_matrix = _matrix16;
 				_patternsize = 4;
@@ -55,9 +55,9 @@ public class BayerFilter extends AbstractFilter {
 	}
     
     private class ColorBody implements ForBody<ImageBuffer> {
-    	private final int[] _palette;
+    	private final IPalette _palette;
     	
-		public ColorBody(int[] palette) {
+		public ColorBody(IPalette palette) {
 			_palette = palette;
 		}
 
@@ -77,10 +77,10 @@ public class BayerFilter extends AbstractFilter {
 					final int i = x + yi;
 					final int pixel = image[i];
 					final int threshold = _matrix[x % _patternsize + yt];
-					final int r = Math.min((int)((float)((pixel & 0x00ff0000) >> 16) * factor + threshold), 255);
-					final int g = Math.min((int)((float)((pixel & 0x0000ff00) >> 8) * factor + threshold), 255);
-					final int b = Math.min((int)((float)(pixel & 0x000000ff) * factor + threshold), 255);
-					image[i] = Palettes.getNearestColor(r, g, b, _palette);
+					final int r = Math.min((int)((float)(pixel & 0x000000ff) * factor) + threshold, 255);
+					final int g = Math.min((int)((float)((pixel & 0x0000ff00) >> 8) * factor) + threshold, 255);
+					final int b = Math.min((int)((float)((pixel & 0x00ff0000) >> 16) * factor) + threshold, 255);
+					image[i] = _palette.getNearestColor(r, g, b);
 				}
 			}
 		}
@@ -89,10 +89,9 @@ public class BayerFilter extends AbstractFilter {
     private class MonochromeBody implements ForBody<ImageBuffer> {
     	private final int[] _palette = new int[256];
 
-    	public MonochromeBody(int[] palette) {
-			int step = 256 / palette.length;
+    	public MonochromeBody(IPalette palette) {
 			for (int i = 0; i < 256; i++) {
-				_palette[i] = palette[i / step];
+				_palette[i] = palette.getNearestColor(i, i, i);
 			}
 		}
 
@@ -111,7 +110,8 @@ public class BayerFilter extends AbstractFilter {
 				for (int x = 0; x < width; x++) {
 					final int i = x + yi;
 					final float mono = image[i] & 0xff;
-					final int lum = Math.min((int)(mono * factor) + _matrix[x % _patternsize + yt], 255);
+					final int threshold = _matrix[x % _patternsize + yt];
+					final int lum = Math.min((int)(mono * factor) + threshold, 255);
 					image[i] = _palette[lum];
 				}
 			}
