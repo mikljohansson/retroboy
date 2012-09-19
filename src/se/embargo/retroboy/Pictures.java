@@ -11,7 +11,7 @@ import se.embargo.retroboy.filter.AtkinsonFilter;
 import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
-import se.embargo.retroboy.filter.YliluomaFilter;
+import se.embargo.retroboy.filter.YliluomaTriFilter;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -184,7 +184,7 @@ public class Pictures {
 		}
 
 		if (PREF_FILTER_COMMODORE_64.equals(filtertype)) {
-			return new YliluomaFilter(Palettes.COMMODORE_64_GAMMA_ADJUSTED);
+			return new YliluomaTriFilter(context, Palettes.COMMODORE_64_GAMMA_ADJUSTED);
 		}
 
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {

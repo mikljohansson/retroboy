@@ -14,14 +14,14 @@ import se.embargo.retroboy.R;
 import android.content.Context;
 import android.util.Log;
 
-public class YliluomaFilter extends AbstractFilter {
-	private static final String TAG = "YliluomaFilter";
-
+public class YliluomaTriFilter extends AbstractFilter {
+	private static final String TAG = "YliluomaTriFilter";
+	
 	/**
 	 * Version number for the cache files
 	 */
 	private static final int CACHE_VERSION_NUMBER = 0x01;
-	
+
 	private static final int[] _matrix = new int[] {
     	1, 49, 13, 61, 4, 52, 16, 63, 
     	33, 17, 45, 29, 36, 20, 48, 32, 
@@ -37,7 +37,7 @@ public class YliluomaFilter extends AbstractFilter {
 	private static final int _bits = 4;
 	private static final int _step = 8 - _bits;
 
-	private final int[] _buckets = new int[(1 << (_bits * 3)) * 3];
+	private final int[] _buckets = new int[(1 << (_bits * 3)) * 5];
 	private final CountDownLatch _init = new CountDownLatch(1);
 	
 	private final int _gsb = _bits, 
@@ -51,20 +51,19 @@ public class YliluomaFilter extends AbstractFilter {
 	private final int[] _palette;
 	private final ForBody<ImageBuffer> _body = new ColorBody();
 	
-	public YliluomaFilter(Context context, int[] palette) {
+	public YliluomaTriFilter(Context context, int[] palette) {
 		_context = context;
 		_palette = palette;
-
-    	long ts = System.nanoTime();
 		
 		// Check for cached mixing plans
+    	long ts = System.nanoTime();
 		int hash = 0;
 		for (int color : _palette) {
 			hash ^= color;
 		}
 		
 		// Read cached mixing plan
-		String filename = "yduotone-" + Integer.toHexString(hash) + ".bin";
+		String filename = "ytritone-" + Integer.toHexString(hash) + ".bin";
 		try {
 			DataInputStream is = new DataInputStream(new BufferedInputStream(_context.openFileInput(filename)));
 			int version = is.readInt();
@@ -81,7 +80,7 @@ public class YliluomaFilter extends AbstractFilter {
 			return;
 		}
 		catch (IOException e) {}
-		
+
 		// Show a progress dialog while building the mixing plans
 		new InitializeTask(_context, filename).execute();
 	}
@@ -92,7 +91,7 @@ public class YliluomaFilter extends AbstractFilter {
 			_init.await();
 		}
 		catch (InterruptedException e) {}
-    	
+		
     	Parallel.forRange(_body, buffer, 0, buffer.imageheight);
 	}
     
@@ -116,10 +115,16 @@ public class YliluomaFilter extends AbstractFilter {
 					final int g1 = Math.min((int)((float)((pixel & 0x0000ff00) >> 8) * factor), 255);
 					final int b1 = Math.min((int)((float)((pixel & 0x00ff0000) >> 16) * factor), 255);
 					
-					final int threshold = _matrix[x % _patternsize + yt];
-					final int bucket = ((r1 >> _step) | ((g1 >> _step) << _gsb) | ((b1 >> _step) << _bsb)) * 3;
-					final int ratio = _buckets[bucket + 2];
-					image[i] = threshold < ratio ? _buckets[bucket + 1] : _buckets[bucket];
+					final int bucket = ((r1 >> _step) | ((g1 >> _step) << _gsb) | ((b1 >> _step) << _bsb)) * 5;
+					final int ratio = _buckets[bucket + 4];
+					
+					if (ratio == 256) {
+						image[i] = _buckets[bucket + ((y & 0x01) * 2) + (x & 0x01)];
+					}
+					else {
+						final int threshold = _matrix[x % _patternsize + yt];
+						image[i] = threshold < ratio ? _buckets[bucket + 1] : _buckets[bucket];
+					}
 				}
 			}
 		}
@@ -141,8 +146,8 @@ public class YliluomaFilter extends AbstractFilter {
 		@Override
 		protected Void doInBackground(Void... params) {
 	    	long ts = System.nanoTime();
-		
-			// Calculate mixing plans
+
+	    	// Calculate mixing plans
 			Parallel.forRange(new ForBody<int[]>() {
 				@Override
 				public void run(int[] item, int it, int last) {
@@ -151,11 +156,11 @@ public class YliluomaFilter extends AbstractFilter {
 							  	  g = ((i & _gm) >> _gsb) << _step,
 							  	  b = ((i & _bm) >> _bsb) << _step;
 					
-						initBucket(i * 3, r, g, b);
+						initBucket(i * 5, r, g, b);
 					}
 				}
-			}, _buckets, 0, _buckets.length / 3);
-	
+			}, _buckets, 0, _buckets.length / 5);
+			
 			// Write mixing plans to cache
 			try {
 				DataOutputStream os = new DataOutputStream(new BufferedOutputStream(_context.openFileOutput(_filename, Context.MODE_PRIVATE)));
@@ -169,7 +174,7 @@ public class YliluomaFilter extends AbstractFilter {
 				os.close();
 			}
 			catch (IOException e) {}
-	
+
 			_init.countDown();
 			Log.i(TAG, "Full init: " + (((double)System.nanoTime() - (double)ts) / 1000000000d) + "s");
 			return null;
@@ -189,7 +194,7 @@ public class YliluomaFilter extends AbstractFilter {
 		
 		return (dr * dr * 299 + dg * dg * 587 + db * db * 114) / 4000 * 3 + dl * dl;
     }
-
+    
     private void initBucket(final int bucket, final int r, final int g, final int b) {
         int minpenalty = Integer.MAX_VALUE;
         for (int i = 0; i < _palette.length; ++i) {
@@ -233,7 +238,36 @@ public class YliluomaFilter extends AbstractFilter {
 	                minpenalty = penalty;
 	                _buckets[bucket] = color1;
 	                _buckets[bucket + 1] = color2;
-	                _buckets[bucket + 2] = ratio;
+	                _buckets[bucket + 4] = ratio;
+	            }
+	            
+	            if (i != j) {
+	            	for (int k = 0; k < _palette.length; k++) {
+	                    if (k == i || k == j) {
+	                    	continue;
+	                    }
+	                    
+	                    // 50% index3, 25% index2, 25% index1
+	                    final int color3 = _palette[k];
+	                    final int r3 = color3 & 0xff, 
+	    	            		  g3 = (color3 >> 8) & 0xff, 
+	    	            		  b3 = (color3 >> 16) & 0xff;
+	            	
+	    	            r0 = (r1 + r2 + r3*2) / 4;
+	    	            g0 = (g1 + g2 + g3*2) / 4;
+	    	            b0 = (b1 + b2 + b3*2) / 4;
+	    	            rdist = getDistance(r,g,b, r0,g0,b0);
+	    	            
+	    	            penalty = rdist + r12dist / 40 + getDistance((r1+g1)/2,(g1+g2)/2,(b1+b2)/2, r3,g3,b3) / 40;
+	    	            if (penalty < minpenalty) {
+	    	                minpenalty = penalty;
+	    	                _buckets[bucket] = color3;
+	    	                _buckets[bucket + 1] = color1;
+	    	                _buckets[bucket + 2] = color2;
+	    	                _buckets[bucket + 3] = color3;
+	    	                _buckets[bucket + 4] = 256;
+	    	            }
+	            	}
 	            }
 	        }
         }

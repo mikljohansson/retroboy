@@ -35,4 +35,7 @@
     <string name="help_processed_image">1-bit processed image</string>
     
     <string name="msg_saving_image">Saving image</string>
+    
+    <string name="title_init_filter">Starting Filter</string>
+    <string name="msg_init_filter">Please wait a few seconds for this one time event</string>
 </resources>
