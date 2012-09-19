@@ -1,5 +1,8 @@
 package se.embargo.retroboy.color;
 
+import se.embargo.core.concurrent.ForBody;
+import se.embargo.core.concurrent.Parallel;
+
 /**
  * Approximates an arbitrary palette by expanding it to a larger regular one
  */
@@ -19,10 +22,20 @@ public class BucketPalette implements IPalette {
 	
 	public BucketPalette(IPalette palette) {
 		_palette = palette;
-		
-		for (int i = 0; i < _buckets.length; i++) {
-			_buckets[i] = _palette.getNearestColor((i & _rm) << _bits, ((i & _gm) >> _gsb) << _bits, ((i & _bm) >> _bsb) << _bits);
-		}
+
+		// Initialize the cached buckets
+		Parallel.forRange(new ForBody<int[]>() {
+			@Override
+			public void run(int[] item, int it, int last) {
+				for (int i = it; i < last; i++) {
+					final int r = (i & _rm) << _step,
+							  g = ((i & _gm) >> _gsb) << _step,
+							  b = ((i & _bm) >> _bsb) << _step;
+					
+					item[i] = _palette.getNearestColor(r, g, b);
+				}
+			}
+		}, _buckets, 0, _buckets.length);
 	}
 	
 	@Override
@@ -36,6 +49,6 @@ public class BucketPalette implements IPalette {
 	}
 
 	public int getNearestColor(final int pixel) {
-		return getNearestColor((pixel & 0x000000ff), (pixel & 0x0000ff00) >> 8, (pixel & 0x00ff0000) >> 16);
+		return getNearestColor(pixel & 0xff, (pixel >> 8) & 0xff, (pixel >> 16) & 0xff);
 	}
 }

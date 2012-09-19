@@ -5,7 +5,7 @@ import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.IPalette;
 
 public class BayerFilter extends AbstractFilter {
-	private static final int[] _matrix64 = new int[] {
+	private static final int[] _matrix = new int[] {
     	1, 49, 13, 61, 4, 52, 16, 63, 
     	33, 17, 45, 29, 36, 20, 48, 32, 
     	9, 57, 5, 53, 12, 60, 8, 56, 
@@ -15,32 +15,19 @@ public class BayerFilter extends AbstractFilter {
     	11, 59, 7, 55, 10, 58, 6, 54, 
     	43, 27, 39, 23, 42, 26, 38, 22};
 
+	/*
 	private static final int[] _matrix16 = new int[] {
     	1, 9, 3, 11, 
     	13, 5, 15, 7, 
     	4, 12, 2, 10, 
     	15, 8, 14, 6};
+    */
 
-	private final int[] _matrix;
-	private final int _patternsize;
+	private static final int _patternsize = 8;
+	
 	private final ForBody<ImageBuffer> _body;
 	
 	public BayerFilter(IPalette palette, boolean color) {
-		switch (palette.getPaletteSize()) {
-			case 16:
-				_matrix = _matrix16;
-				_patternsize = 4;
-				break;
-
-			case 4:
-				_matrix = _matrix64;
-				_patternsize = 8;
-				break;
-				
-			default:
-				throw new IllegalArgumentException("Invalid palette size");
-		}
-		
 		if (color) {
 			_body = new ColorBody(palette);
 		}

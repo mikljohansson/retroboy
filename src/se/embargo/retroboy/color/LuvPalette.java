@@ -16,9 +16,9 @@ public class LuvPalette implements IPalette {
 		int mindistance = Integer.MAX_VALUE;
 		
 		for (int i = 0; i < _palette.length; i++) {
-			final int r2 = (_palette[i] & 0x000000ff),
-					  g2 = ((_palette[i] & 0x0000ff00) >> 8),
-					  b2 = ((_palette[i] & 0x00ff0000) >> 16);
+			final int r2 = _palette[i] & 0xff,
+				  	  g2 = (_palette[i] >> 8) & 0xff,
+				  	  b2 = (_palette[i] >> 16) & 0xff;
 
 			final float mr = (r1 + r2) / 2;
 			final float dr = r1 - r2, 
@@ -36,6 +36,6 @@ public class LuvPalette implements IPalette {
 	}
 	
 	public int getNearestColor(final int pixel) {
-		return getNearestColor((pixel & 0x000000ff), (pixel & 0x0000ff00) >> 8, (pixel & 0x00ff0000) >> 16);
+		return getNearestColor(pixel & 0xff, (pixel >> 8) & 0xff, (pixel >> 16) & 0xff);
 	}
 }

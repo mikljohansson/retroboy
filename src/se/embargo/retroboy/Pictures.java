@@ -5,14 +5,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import se.embargo.core.graphics.Bitmaps;
-import se.embargo.retroboy.color.BucketPalette;
-import se.embargo.retroboy.color.LuminancePalette;
 import se.embargo.retroboy.color.Palettes;
 import se.embargo.retroboy.color.YuvPalette;
 import se.embargo.retroboy.filter.AtkinsonFilter;
 import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
+import se.embargo.retroboy.filter.YliluomaFilter;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -185,7 +184,7 @@ public class Pictures {
 		}
 
 		if (PREF_FILTER_COMMODORE_64.equals(filtertype)) {
-			return new BayerFilter(new BucketPalette(new LuminancePalette(Palettes.COMMODORE_64)), true);
+			return new YliluomaFilter(Palettes.COMMODORE_64_GAMMA_ADJUSTED);
 		}
 
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
