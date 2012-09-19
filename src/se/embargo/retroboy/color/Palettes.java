@@ -17,6 +17,12 @@ public class Palettes {
 		0xff0fac8b, 
 		0xff0fbc9b};
 	
+	public static final int[] GAMEBOY_SCREEN_DESAT = new int[] {
+		0xff1f381f, 
+		0xff406240, 
+		0xff1fac9b, 
+		0xff1fbcab};
+
 	public static final int[] CHRONO_CROSS = new int[] {
 		0xff000008,
 		0xff0b1a20,

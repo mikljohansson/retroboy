@@ -180,7 +180,7 @@ public class Pictures {
 		String filtertype = prefs.getString(PREF_FILTER, PREF_FILTER_DEFAULT);
 		
 		if (PREF_FILTER_GAMEBOY_SCREEN.equals(filtertype)) {
-			return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_SCREEN), false);
+			return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_SCREEN_DESAT), false);
 		}
 
 		if (PREF_FILTER_COMMODORE_64.equals(filtertype)) {

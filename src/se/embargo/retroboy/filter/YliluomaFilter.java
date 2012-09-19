@@ -83,7 +83,12 @@ public class YliluomaFilter extends AbstractFilter {
 		catch (IOException e) {}
 		
 		// Show a progress dialog while building the mixing plans
-		new InitializeTask(_context, filename).execute();
+		if (Parallel.isGuiThread()) {
+			new InitializeTask(_context, filename).execute();
+		}
+		else {
+			init(filename);
+		}
 	}
     
     @Override
@@ -130,6 +135,41 @@ public class YliluomaFilter extends AbstractFilter {
     	return true;
     }
     
+    private void init(String filename) {
+    	long ts = System.nanoTime();
+		
+		// Calculate mixing plans
+		Parallel.forRange(new ForBody<int[]>() {
+			@Override
+			public void run(int[] item, int it, int last) {
+				for (int i = it; i < last; i++) {
+					final int r = (i & _rm) << _step,
+						  	  g = ((i & _gm) >> _gsb) << _step,
+						  	  b = ((i & _bm) >> _bsb) << _step;
+				
+					initBucket(i * 3, r, g, b);
+				}
+			}
+		}, _buckets, 0, _buckets.length / 3);
+
+		// Write mixing plans to cache
+		try {
+			DataOutputStream os = new DataOutputStream(new BufferedOutputStream(_context.openFileOutput(filename, Context.MODE_PRIVATE)));
+			os.writeInt(CACHE_VERSION_NUMBER);
+			
+			for (int bucket : _buckets) {
+				os.writeInt(bucket);
+			}
+			
+			os.flush();
+			os.close();
+		}
+		catch (IOException e) {}
+
+		_init.countDown();
+		Log.i(TAG, "Full init: " + (((double)System.nanoTime() - (double)ts) / 1000000000d) + "s");
+    }
+    
     private class InitializeTask extends ProgressTask<Void, Void, Void> {
 		private final String _filename;
     	
@@ -140,38 +180,7 @@ public class YliluomaFilter extends AbstractFilter {
 
 		@Override
 		protected Void doInBackground(Void... params) {
-	    	long ts = System.nanoTime();
-		
-			// Calculate mixing plans
-			Parallel.forRange(new ForBody<int[]>() {
-				@Override
-				public void run(int[] item, int it, int last) {
-					for (int i = it; i < last; i++) {
-						final int r = (i & _rm) << _step,
-							  	  g = ((i & _gm) >> _gsb) << _step,
-							  	  b = ((i & _bm) >> _bsb) << _step;
-					
-						initBucket(i * 3, r, g, b);
-					}
-				}
-			}, _buckets, 0, _buckets.length / 3);
-	
-			// Write mixing plans to cache
-			try {
-				DataOutputStream os = new DataOutputStream(new BufferedOutputStream(_context.openFileOutput(_filename, Context.MODE_PRIVATE)));
-				os.writeInt(CACHE_VERSION_NUMBER);
-				
-				for (int bucket : _buckets) {
-					os.writeInt(bucket);
-				}
-				
-				os.flush();
-				os.close();
-			}
-			catch (IOException e) {}
-	
-			_init.countDown();
-			Log.i(TAG, "Full init: " + (((double)System.nanoTime() - (double)ts) / 1000000000d) + "s");
+			init(_filename);
 			return null;
 		}
     }
