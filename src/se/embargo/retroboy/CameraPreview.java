@@ -15,13 +15,16 @@ import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
 import android.hardware.Camera;
+import android.hardware.Camera.ErrorCallback;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.WindowManager;
 
-class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camera.PreviewCallback {
+class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camera.PreviewCallback, ErrorCallback {
+	private static final String TAG = "CameraPreview";
+
 	private ExecutorService _threadpool = Executors.newCachedThreadPool();
 	private Queue<FilterTask> _bufferpool = new ConcurrentLinkedQueue<FilterTask>();
 	private long _frameseq = 0, _lastframeseq = -1;
@@ -90,6 +93,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			_camera.setPreviewCallbackWithBuffer(null);
 			
 			// Install this as the preview handle
+			_camera.setErrorCallback(this);
 			_camera.setPreviewCallbackWithBuffer(this);
 			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
 			
@@ -254,5 +258,10 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 			// Release the buffers
 			_bufferpool.offer(this);
 		}
+	}
+
+	@Override
+	public void onError(int error, Camera camera) {
+		Log.e(TAG, "Got camera error callback. error=" + error);
 	}
 }

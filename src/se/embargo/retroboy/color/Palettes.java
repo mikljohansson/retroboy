@@ -23,6 +23,19 @@ public class Palettes {
 		0xff1fac9b, 
 		0xff1fbcab};
 
+	public static final int[] POP_ART = new int[] {
+		0xff303030,		// black (outline)
+		0xfff5ffff,		// off-white (eyes, teeth, clothes)
+		0xff4433c3,		// deep-red (lips) 
+		//0xffbb6060,	// lilac-blue (clothes)
+		0xffa03000,		// deep-blue (clothes)
+		0xffd5e5f5,		// skin-tone
+		//0xff4dfcff,	// bright-yellow (hair)
+		//0xffedf9f9,	// off-white (eyes, teeth, clothes)
+		//0xff1a008a,	// deep-red (lips)
+		0xff6dedff,		// orange-yellow (hair, flames)
+	};
+	
 	public static final int[] CHRONO_CROSS = new int[] {
 		0xff000008,
 		0xff0b1a20,

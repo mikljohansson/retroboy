@@ -28,6 +28,10 @@ import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -50,6 +54,21 @@ public class MainActivity extends SherlockActivity {
 	
 	public static final String PREF_CAMERA = "camera";
 	
+	/**
+	 * Radians per second required to trigger movement detection
+	 */
+	private static final float GYROSCOPE_MOVEMENT_THRESHOLD = 0.25f;
+	
+	/**
+	 * Radians per second required to detect non-movement
+	 */
+	private static final float GYROSCOPE_FOCUSING_THRESHOLD = 0.1f;
+	
+	/**
+	 * Milliseconds of non-movement required to trigger auto focus 
+	 */
+	private static final long GYROSCOPE_FOCUSING_TIMEOUT = 300;
+
 	private SharedPreferences _prefs;
 	
 	/**
@@ -81,6 +100,13 @@ public class MainActivity extends SherlockActivity {
 	private boolean _hasAutoFocus;
 	
 	/**
+	 * Connect to the gyroscope to detect when auto focus need to trigger
+	 */
+	private SensorManager _sensorManager;
+	private Sensor _gyroscope;
+	private GyroscopeListener _gyroListener = new GyroscopeListener();
+	
+	/**
 	 * Zoom support
 	 */
 	private IObservableValue<Integer> _zoomLevel = new WritableValue<Integer>(0);
@@ -97,6 +123,9 @@ public class MainActivity extends SherlockActivity {
 		_cameraCount = Camera.getNumberOfCameras();
 		_hasCameraFlash = getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
 		_hasAutoFocus = getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_AUTOFOCUS);
+		
+		_sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+		_gyroscope = _sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 		
 		_prefs = getSharedPreferences(Pictures.PREFS_NAMESPACE, MODE_PRIVATE);
 		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
@@ -207,27 +236,35 @@ public class MainActivity extends SherlockActivity {
 		// Update the last photo thumbnail
 		new GetLastThumbnailTask().execute();
 		
+		// Start the preview
 		initCamera();
+		
+		// Connect to the sensors
+		_sensorManager.registerListener(_gyroListener, _gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+		_gyroListener.reset();
 	}
 
-	@Override
-	protected void onPause() {
+	private void stop() {
+		_sensorManager.unregisterListener(_gyroListener);
 		_rotationListener.disable();
 		stopPreview();
+	}
+	
+	@Override
+	protected void onPause() {
+		stop();
 		super.onPause();
 	}
 	
 	@Override
 	protected void onStop() {
-		_rotationListener.disable();
-		stopPreview();
+		stop();
 		super.onStop();
 	}
 	
 	@Override
 	protected void onDestroy() {
-		_rotationListener.disable();
-		stopPreview();
+		stop();
 		super.onDestroy();
 	}
 	
@@ -513,7 +550,12 @@ public class MainActivity extends SherlockActivity {
 
 			CameraHandle handle = _cameraHandle.getValue();
 			if (handle != null) {
-				handle.camera.autoFocus(this);
+				try {
+					handle.camera.autoFocus(this);
+				}
+				catch (Exception e) {
+					Log.e(TAG, "Failed to start auto-focus", e);
+				}
 			}
 		}
 		
@@ -522,7 +564,12 @@ public class MainActivity extends SherlockActivity {
 
 			CameraHandle handle = _cameraHandle.getValue();
 			if (handle != null) {
-				handle.camera.cancelAutoFocus();
+				try {
+					handle.camera.cancelAutoFocus();
+				}
+				catch (Exception e) {
+					Log.e(TAG, "Failed to reset auto-focus", e);
+				}
 			}
 		}
 
@@ -538,6 +585,45 @@ public class MainActivity extends SherlockActivity {
 			}
 			else {
 				_autoFocusMarker.setImageResource(R.drawable.ic_focus_fail);
+			}
+		}
+	}
+	
+	private class GyroscopeListener implements SensorEventListener {
+		private boolean _movement = true;
+		private long _timestamp = 0;
+		
+		public GyroscopeListener() {
+			reset();
+		}
+		
+		public void reset() {
+			_movement = true;
+			_timestamp = System.nanoTime();
+		}
+		
+		@Override
+		public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+
+		@Override
+		public void onSensorChanged(SensorEvent event) {
+			float rotation = (Math.abs(event.values[0]) + Math.abs(event.values[1]) + Math.abs(event.values[2]));
+			if (_movement) {
+				if (rotation >= GYROSCOPE_FOCUSING_THRESHOLD) {
+					// Still moving
+					_timestamp = event.timestamp;
+				}
+				else if (((event.timestamp - _timestamp) / 1000000) > GYROSCOPE_FOCUSING_TIMEOUT) {
+					// Movement stopped
+					_movement = false;
+					_autoFocusListener.autoFocus();
+				}
+			}
+			else if (rotation >= GYROSCOPE_MOVEMENT_THRESHOLD) {
+				// Movement detected
+				_movement = true;
+				_timestamp = event.timestamp;
+				_autoFocusListener.resetFocus();
 			}
 		}
 	}
