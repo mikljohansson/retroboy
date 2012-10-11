@@ -34,14 +34,9 @@ public class Pictures {
 	private static final String PREF_FILTER_COMMODORE_64 = "commodore_64";
 	private static final String PREF_FILTER_ATKINSON = "atkinson";
 	private static final String PREF_FILTER_HALFTONE = "halftone";
-	public static final String PREF_FILTER_DEFAULT = PREF_FILTER_GAMEBOY_CAMERA;
 
 	public static final String PREF_CONTRAST = "contrast";
-	public static final String PREF_CONTRAST_DEFAULT = "0";
-
 	public static final String PREF_RESOLUTION = "resolution";
-	public static final String PREF_RESOLUTION_DEFAULT = "480x360";
-	
 	private static final String PREF_IMAGECOUNT = "imagecount";
 	
 	private static final String DIRECTORY = "Retroboy";
@@ -74,8 +69,8 @@ public class Pictures {
 	 * @param prefs	Preferences to get the contrast from
 	 * @return		The selected contrast adjustment, [-100, 100]
 	 */
-	public static int getContrast(SharedPreferences prefs) {
-		String contrast = prefs.getString(Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT);
+	public static int getContrast(Context context, SharedPreferences prefs) {
+		String contrast = prefs.getString(Pictures.PREF_CONTRAST, context.getResources().getString(R.string.pref_contrast_default));
 		try {
 			return Integer.parseInt(contrast);
 		}
@@ -90,8 +85,8 @@ public class Pictures {
 	 * @param prefs	Preferences to get the resolution from
 	 * @return		The selected preview resultion
 	 */
-	public static Resolution getResolution(SharedPreferences prefs) {
-		String resolution = prefs.getString(Pictures.PREF_RESOLUTION, Pictures.PREF_RESOLUTION_DEFAULT);
+	public static Resolution getResolution(Context context, SharedPreferences prefs) {
+		String resolution = prefs.getString(Pictures.PREF_RESOLUTION, context.getResources().getString(R.string.pref_resolution_default));
 		String[] components = resolution.split("x");
 		
 		if (components.length == 2) {
@@ -177,7 +172,7 @@ public class Pictures {
 	
 	public static IImageFilter createEffectFilter(Context context) {
 		SharedPreferences prefs = context.getSharedPreferences(PREFS_NAMESPACE, Context.MODE_PRIVATE);
-		String filtertype = prefs.getString(PREF_FILTER, PREF_FILTER_DEFAULT);
+		String filtertype = prefs.getString(PREF_FILTER, context.getResources().getString(R.string.pref_filter_default));
 		
 		if (PREF_FILTER_GAMEBOY_SCREEN.equals(filtertype)) {
 			return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_SCREEN_DESAT), false);

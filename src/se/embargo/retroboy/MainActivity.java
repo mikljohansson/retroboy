@@ -162,7 +162,7 @@ public class MainActivity extends SherlockActivity {
 			final ImageButton button = (ImageButton)findViewById(R.id.editSettingsButton);
 			//button.setOnClickListener(new EditSettingsButtonListener());
 			button.setOnClickListener(new ListPreferenceDialogListener(
-				Pictures.PREF_RESOLUTION, Pictures.PREF_RESOLUTION_DEFAULT,
+				Pictures.PREF_RESOLUTION, getResources().getString(R.string.pref_resolution_default),
 				R.string.pref_title_resolution, R.array.pref_resolution_labels, R.array.pref_resolution_values));
 		}
 
@@ -170,7 +170,7 @@ public class MainActivity extends SherlockActivity {
 		{
 			final ImageButton button = (ImageButton)findViewById(R.id.adjustContrastButton);
 			button.setOnClickListener(new ListPreferenceDialogListener(
-				Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT,
+				Pictures.PREF_CONTRAST, getResources().getString(R.string.pref_contrast_default),
 				R.string.pref_title_contrast, R.array.pref_contrast_labels, R.array.pref_contrast_values));
 		}
 
@@ -178,7 +178,7 @@ public class MainActivity extends SherlockActivity {
 		{
 			final ImageButton button = (ImageButton)findViewById(R.id.switchFilterButton);
 			button.setOnClickListener(new ListPreferenceDialogListener(
-				Pictures.PREF_FILTER, Pictures.PREF_FILTER_DEFAULT,
+				Pictures.PREF_FILTER, getResources().getString(R.string.pref_filter_default),
 				R.string.pref_title_filter, R.array.pref_filter_labels, R.array.pref_filter_values));
 		}
 
@@ -370,7 +370,7 @@ public class MainActivity extends SherlockActivity {
 			params.setPreviewFormat(ImageFormat.NV21);
 			
 			// Select preview size that most closely matches the wanted size and dimensions
-			Pictures.Resolution target = Pictures.getResolution(_prefs);
+			Pictures.Resolution target = Pictures.getResolution(this, _prefs);
 			Camera.Size optimal = null;
 			Log.i(TAG, "Target output resolution: " + target);
 			
@@ -395,8 +395,8 @@ public class MainActivity extends SherlockActivity {
 	
 	private void initFilter() {
 		// Get the resolution and contrast from preferences
-		Pictures.Resolution resolution = Pictures.getResolution(_prefs);
-		int contrast = Pictures.getContrast(_prefs);
+		Pictures.Resolution resolution = Pictures.getResolution(this, _prefs);
+		int contrast = Pictures.getContrast(this, _prefs);
 		
 		// Create the image filter pipeline
 		CompositeFilter filters = new CompositeFilter();
@@ -643,8 +643,8 @@ public class MainActivity extends SherlockActivity {
 			_task = this;
 
 			// Get the resolution and contrast from preferences
-			Pictures.Resolution resolution = Pictures.getResolution(_prefs);
-			int contrast = Pictures.getContrast(_prefs);
+			Pictures.Resolution resolution = Pictures.getResolution(MainActivity.this, _prefs);
+			int contrast = Pictures.getContrast(MainActivity.this, _prefs);
 
 			// Create the image filter pipeline
 			IImageFilter effect = Pictures.createEffectFilter(MainActivity.this);

@@ -160,7 +160,7 @@ public class ImageActivity extends SherlockActivity {
 			case R.id.switchFilterButton: {
 				new ListPreferenceDialog(
 					this, _prefs, 
-					Pictures.PREF_FILTER, Pictures.PREF_FILTER_DEFAULT,
+					Pictures.PREF_FILTER, getResources().getString(R.string.pref_filter_default),
 					R.string.pref_title_filter, R.array.pref_filter_labels, R.array.pref_filter_values).show();
 				return true;
 			}
@@ -168,7 +168,7 @@ public class ImageActivity extends SherlockActivity {
 			case R.id.adjustContrastButton: {
 				new ListPreferenceDialog(
 					this, _prefs, 
-					Pictures.PREF_CONTRAST, Pictures.PREF_CONTRAST_DEFAULT,
+					Pictures.PREF_CONTRAST, getResources().getString(R.string.pref_contrast_default),
 					R.string.pref_title_contrast, R.array.pref_contrast_labels, R.array.pref_contrast_values).show();
 				return true;
 			}
@@ -197,7 +197,7 @@ public class ImageActivity extends SherlockActivity {
 				*/
     			new ListPreferenceDialog(
     				this, _prefs,
-    				Pictures.PREF_RESOLUTION, Pictures.PREF_RESOLUTION_DEFAULT,
+    				Pictures.PREF_RESOLUTION, getResources().getString(R.string.pref_resolution_default),
     				R.string.pref_title_resolution, R.array.pref_resolution_labels, R.array.pref_resolution_values).show();
 				return true;
 			}
@@ -295,8 +295,8 @@ public class ImageActivity extends SherlockActivity {
 		@Override
 		protected File doInBackground(Void... params) {
 			// Get the resolution and contrast from preferences
-			Pictures.Resolution resolution = Pictures.getResolution(_prefs);
-			int contrast = Pictures.getContrast(_prefs);
+			Pictures.Resolution resolution = Pictures.getResolution(ImageActivity.this, _prefs);
+			int contrast = Pictures.getContrast(ImageActivity.this, _prefs);
 
 			// Read the image from disk
 			Log.i(TAG, "Reading image: " + _inputinfo.uri);
