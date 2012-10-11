@@ -58,7 +58,6 @@ public class ImageActivity extends SherlockActivity {
 		}
 
 		_prefs = getSharedPreferences(Pictures.PREFS_NAMESPACE, MODE_PRIVATE);
-		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
 		
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		setContentView(R.layout.image_activity);
@@ -108,17 +107,39 @@ public class ImageActivity extends SherlockActivity {
     }
 
 	@Override
-	protected void onDestroy() {
-		dismiss();
-		super.onDestroy();
+	protected void onResume() {
+		super.onResume();
+
+		// Listen to preference changes
+		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
 	}
 	
-	private void dismiss() {
+	private void stop() {
+		_prefs.unregisterOnSharedPreferenceChangeListener(_prefsListener);
+
 		// Cancel any image processing tasks
 		if (_task != null) {
 			_task.cancel(false);
 			_task = null;
 		}
+	}
+	
+	@Override
+	protected void onPause() {
+		stop();
+		super.onPause();
+	}
+	
+	@Override
+	protected void onStop() {
+		stop();
+		super.onStop();
+	}
+	
+	@Override
+	protected void onDestroy() {
+		stop();
+		super.onDestroy();
 	}
 	
 	@Override

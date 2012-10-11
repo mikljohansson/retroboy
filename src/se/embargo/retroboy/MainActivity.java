@@ -126,9 +126,7 @@ public class MainActivity extends SherlockActivity {
 		
 		_sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
 		_gyroscope = _sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-		
 		_prefs = getSharedPreferences(Pictures.PREFS_NAMESPACE, MODE_PRIVATE);
-		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
 
 		// Keep screen on while this activity is focused 
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -229,7 +227,11 @@ public class MainActivity extends SherlockActivity {
 	@Override
 	protected void onResume() {
 		super.onResume();
+
+		// Listen to preference changes
+		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
 		
+		// Listen to device tilt sensor
 		_rotationListener = new OrientationListener();
 		_rotationListener.enable();
 		
@@ -245,6 +247,7 @@ public class MainActivity extends SherlockActivity {
 	}
 
 	private void stop() {
+		_prefs.unregisterOnSharedPreferenceChangeListener(_prefsListener);
 		_sensorManager.unregisterListener(_gyroListener);
 		_rotationListener.disable();
 		stopPreview();
