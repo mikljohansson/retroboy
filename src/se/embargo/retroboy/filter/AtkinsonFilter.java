@@ -24,19 +24,31 @@ public class AtkinsonFilter extends AbstractFilter {
 			// Propagate the error
 			final int err = (mono - lum) / 8;
 			if (err != 0) {
-				propagate(image, err, i + 1); 
-				propagate(image, err, i + 2);
-				propagate(image, err, i - 1 + width);
-				propagate(image, err, i + width);
-				propagate(image, err, i + 1 + width);
-				propagate(image, err, i + width + width);
+				// No need to check bound, buffer has 2+ extra lines
+				int oi = i + 1;
+				int opixel = image[oi];
+				image[oi] = (opixel & 0xff000000) | Math.min(Math.max(0, (opixel & 0xff) + err), 255);
+
+				oi = i + 2;
+				opixel = image[oi];
+				image[oi] = (opixel & 0xff000000) | Math.min(Math.max(0, (opixel & 0xff) + err), 255);
+
+				oi = i - 1 + width;
+				opixel = image[oi];
+				image[oi] = (opixel & 0xff000000) | Math.min(Math.max(0, (opixel & 0xff) + err), 255);
+
+				oi = i + width;
+				opixel = image[oi];
+				image[oi] = (opixel & 0xff000000) | Math.min(Math.max(0, (opixel & 0xff) + err), 255);
+
+				oi = i + 1 + width;
+				opixel = image[oi];
+				image[oi] = (opixel & 0xff000000) | Math.min(Math.max(0, (opixel & 0xff) + err), 255);
+
+				oi = i + width + width;
+				opixel = image[oi];
+				image[oi] = (opixel & 0xff000000) | Math.min(Math.max(0, (opixel & 0xff) + err), 255);
 			}
 		}
-	}
-
-	private static final void propagate(final int[] image, final int err, final int i) {
-		// No need to check bound, buffer has 2+ extra lines
-		final int pixel = image[i];
-		image[i] = (pixel & 0xff000000) | Math.min(Math.max(0, (pixel & 0xff) + err), 255);
 	}
 }
