@@ -2,8 +2,6 @@ package se.embargo.retroboy.filter;
 
 import java.util.Arrays;
 
-import android.graphics.Color;
-
 public class MonochromeFilter extends AbstractFilter {
 	private float _factor;
 	
@@ -20,10 +18,10 @@ public class MonochromeFilter extends AbstractFilter {
 		Arrays.fill(histogram, 0);
 		
 		for (int i = 0, last = buffer.imagewidth * buffer.imageheight; i != last; i++) {
-			final int pix = image[i];
+			final int pixel = image[i];
 			
 			// Convert to monochrome
-			final float lum = (int)(0.299 * Color.red(pix) + 0.587 * Color.green(pix) + 0.114 * Color.blue(pix));
+			final float lum = (int)(0.299 * (pixel & 0xff) + 0.587 * ((pixel & 0xff00) >> 8) + 0.114 * ((pixel & 0xff0000) >> 19));
 			
 			// Apply the contrast adjustment
 			final int color = Math.min(Math.max(0, (int)(factor * (lum - 128.0f) + 128.0f)), 255);
@@ -31,7 +29,8 @@ public class MonochromeFilter extends AbstractFilter {
 			// Build the histogram used to calculate the global threshold
 			histogram[color]++;
 			
-			image[i] = 0xff000000 | (color << 16) | (color << 8) | color;
+			// Output the monochrome color, but keep alpha channel intact
+			image[i] = (pixel & 0xff000000) | (color << 16) | (color << 8) | color;
 		}
 
 		// Calculate the global Otsu threshold

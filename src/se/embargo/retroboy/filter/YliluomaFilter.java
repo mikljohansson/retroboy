@@ -20,7 +20,7 @@ public class YliluomaFilter extends AbstractFilter {
 	/**
 	 * Version number for the cache files
 	 */
-	private static final int CACHE_VERSION_NUMBER = 0x01;
+	private static final int CACHE_VERSION_NUMBER = 0x02;
 	
 	private static final int[] _matrix = new int[] {
     	1, 49, 13, 61, 4, 52, 16, 63, 
@@ -73,12 +73,14 @@ public class YliluomaFilter extends AbstractFilter {
 				for (int i = 0; i < _buckets.length; i++) {
 					_buckets[i] = is.readInt();
 				}
+
+				is.close();
+				_init.countDown();
+				Log.i(TAG, "Cached init: " + (((double)System.nanoTime() - (double)ts) / 1000000000d) + "s");
+				return;
 			}
 
 			is.close();
-			_init.countDown();
-			Log.i(TAG, "Cached init: " + (((double)System.nanoTime() - (double)ts) / 1000000000d) + "s");
-			return;
 		}
 		catch (IOException e) {}
 		
@@ -124,7 +126,7 @@ public class YliluomaFilter extends AbstractFilter {
 					final int threshold = _matrix[x % _patternsize + yt];
 					final int bucket = ((r1 >> _step) | ((g1 >> _step) << _gsb) | ((b1 >> _step) << _bsb)) * 3;
 					final int ratio = _buckets[bucket + 2];
-					image[i] = threshold < ratio ? _buckets[bucket + 1] : _buckets[bucket];
+					image[i] = (pixel & 0xff000000) | (threshold < ratio ? _buckets[bucket + 1] : _buckets[bucket]);
 				}
 			}
 		}
@@ -240,8 +242,8 @@ public class YliluomaFilter extends AbstractFilter {
 	            int penalty = rdist + r12dist / 10 * (Math.abs(ratio - 32) + 32) / 64;
 	            if (penalty < minpenalty) {
 	                minpenalty = penalty;
-	                _buckets[bucket] = color1;
-	                _buckets[bucket + 1] = color2;
+	                _buckets[bucket] = (color1 & 0xffffff);
+	                _buckets[bucket + 1] = (color2 & 0xffffff);
 	                _buckets[bucket + 2] = ratio;
 	            }
 	        }

@@ -62,7 +62,7 @@ public class MainActivity extends SherlockActivity {
 	/**
 	 * Radians per second required to detect non-movement
 	 */
-	private static final float GYROSCOPE_FOCUSING_THRESHOLD = 0.1f;
+	private static final float GYROSCOPE_FOCUSING_THRESHOLD = 0.15f;
 	
 	/**
 	 * Milliseconds of non-movement required to trigger auto focus 

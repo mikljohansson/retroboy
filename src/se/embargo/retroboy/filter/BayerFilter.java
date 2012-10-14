@@ -6,11 +6,11 @@ import se.embargo.retroboy.color.IPalette;
 
 public class BayerFilter extends AbstractFilter {
 	private static final int[] _matrix = new int[] {
-    	1, 49, 13, 61, 4, 52, 16, 63, 
+    	1, 49, 13, 61, 4, 52, 16, 62, 
     	33, 17, 45, 29, 36, 20, 48, 32, 
     	9, 57, 5, 53, 12, 60, 8, 56, 
     	41, 25, 37, 21, 44, 28, 40, 24, 
-    	3, 51, 15, 63, 2, 50, 14, 62, 
+    	3, 51, 15, 62, 2, 50, 14, 62, 
     	35, 19, 47, 31, 34, 18, 46, 30, 
     	11, 59, 7, 55, 10, 58, 6, 54, 
     	43, 27, 39, 23, 42, 26, 38, 22};
@@ -67,7 +67,7 @@ public class BayerFilter extends AbstractFilter {
 					final int r = Math.min((int)((float)(pixel & 0x000000ff) * factor) + threshold, 255);
 					final int g = Math.min((int)((float)((pixel & 0x0000ff00) >> 8) * factor) + threshold, 255);
 					final int b = Math.min((int)((float)((pixel & 0x00ff0000) >> 16) * factor) + threshold, 255);
-					image[i] = _palette.getNearestColor(r, g, b);
+					image[i] = (pixel & 0xff000000) | (_palette.getNearestColor(r, g, b) & 0xffffff);
 				}
 			}
 		}
@@ -78,7 +78,7 @@ public class BayerFilter extends AbstractFilter {
 
     	public MonochromeBody(IPalette palette) {
 			for (int i = 0; i < 256; i++) {
-				_palette[i] = palette.getNearestColor(i, i, i);
+				_palette[i] = (palette.getNearestColor(i, i, i) & 0xffffff);
 			}
 		}
 
@@ -96,10 +96,11 @@ public class BayerFilter extends AbstractFilter {
 				
 				for (int x = 0; x < width; x++) {
 					final int i = x + yi;
-					final float mono = image[i] & 0xff;
+					final int pixel = image[i];
+					final float mono = pixel & 0xff;
 					final int threshold = _matrix[x % _patternsize + yt];
 					final int lum = Math.min((int)(mono * factor) + threshold, 255);
-					image[i] = _palette[lum];
+					image[i] = (pixel & 0xff000000) | _palette[lum];
 				}
 			}
 		}

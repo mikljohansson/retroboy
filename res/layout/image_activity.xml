@@ -10,6 +10,7 @@
 		android:layout_width="fill_parent"
 		android:layout_height="fill_parent"
 		android:scaleType="fitCenter"
+		android:background="#000000"
 		android:contentDescription="@string/help_processed_image"/>
 
 </LinearLayout>

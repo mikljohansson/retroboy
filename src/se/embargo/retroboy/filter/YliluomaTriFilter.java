@@ -20,7 +20,7 @@ public class YliluomaTriFilter extends AbstractFilter {
 	/**
 	 * Version number for the cache files
 	 */
-	private static final int CACHE_VERSION_NUMBER = 0x01;
+	private static final int CACHE_VERSION_NUMBER = 0x02;
 
 	private static final int[] _matrix = new int[] {
     	1, 49, 13, 61, 4, 52, 16, 63, 
@@ -72,12 +72,14 @@ public class YliluomaTriFilter extends AbstractFilter {
 				for (int i = 0; i < _buckets.length; i++) {
 					_buckets[i] = is.readInt();
 				}
+
+				is.close();
+				_init.countDown();
+				Log.i(TAG, "Cached init: " + (((double)System.nanoTime() - (double)ts) / 1000000000d) + "s");
+				return;
 			}
 
 			is.close();
-			_init.countDown();
-			Log.i(TAG, "Cached init: " + (((double)System.nanoTime() - (double)ts) / 1000000000d) + "s");
-			return;
 		}
 		catch (IOException e) {}
 
@@ -124,11 +126,11 @@ public class YliluomaTriFilter extends AbstractFilter {
 					final int ratio = _buckets[bucket + 4];
 					
 					if (ratio == 256) {
-						image[i] = _buckets[bucket + ((y & 0x01) * 2) + (x & 0x01)];
+						image[i] = (pixel & 0xff000000) | (_buckets[bucket + ((y & 0x01) * 2) + (x & 0x01)]);
 					}
 					else {
 						final int threshold = _matrix[x % _patternsize + yt];
-						image[i] = threshold < ratio ? _buckets[bucket + 1] : _buckets[bucket];
+						image[i] = (pixel & 0xff000000) | (threshold < ratio ? _buckets[bucket + 1] : _buckets[bucket]);
 					}
 				}
 			}
@@ -270,10 +272,10 @@ public class YliluomaTriFilter extends AbstractFilter {
 	    	            penalty = rdist + r12dist / 40 + getDistance((r1+g1)/2,(g1+g2)/2,(b1+b2)/2, r3,g3,b3) / 40;
 	    	            if (penalty < minpenalty) {
 	    	                minpenalty = penalty;
-	    	                _buckets[bucket] = color3;
-	    	                _buckets[bucket + 1] = color1;
-	    	                _buckets[bucket + 2] = color2;
-	    	                _buckets[bucket + 3] = color3;
+	    	                _buckets[bucket] = (color3 & 0xffffff);
+	    	                _buckets[bucket + 1] = (color1 & 0xffffff);
+	    	                _buckets[bucket + 2] = (color2 & 0xffffff);
+	    	                _buckets[bucket + 3] = (color3 & 0xffffff);
 	    	                _buckets[bucket + 4] = 256;
 	    	            }
 	            	}

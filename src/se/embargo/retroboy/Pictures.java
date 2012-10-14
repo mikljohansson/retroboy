@@ -147,6 +147,7 @@ public class Pictures {
 			context.getContentResolver().delete(
 				MediaStore.Images.Media.EXTERNAL_CONTENT_URI, 
 				MediaStore.Images.Media.DATA + "=?", new String[] {file.getAbsolutePath()});
+			file.delete();
 			
 			// Write the file to disk
 			FileOutputStream os = new FileOutputStream(file);
@@ -154,6 +155,7 @@ public class Pictures {
 			if (!written) {
 				Log.w(TAG, "Failed to write output image to " + file.toString());
 			}
+			os.flush();
 			os.close();
 			
 			// Tell the gallery about the image

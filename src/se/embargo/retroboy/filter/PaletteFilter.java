@@ -31,7 +31,8 @@ public class PaletteFilter extends AbstractFilter {
 				
 				for (int x = 0; x < width; x++) {
 					final int i = x + yi;
-					image[i] = _palette.getNearestColor(image[i]);
+					final int pixel = image[i];
+					image[i] = (pixel & 0xff000000) | (_palette.getNearestColor(image[i]) & 0xffffff);
 				}
 			}
 		}

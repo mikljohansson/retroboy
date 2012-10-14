@@ -85,7 +85,7 @@ public class HalftoneFilter extends AbstractFilter {
 					// Apply the threshold
 					final int threshold = (int)(_thresholds[x % _patternsize + yt] * factor);
 					final int lum = mono <= threshold ? 0 : 255;
-					image[oi] = 0xff000000 | (lum << 16) | (lum << 8) | lum;
+					image[oi] = (image[oi] & 0xff000000) | (lum << 16) | (lum << 8) | lum;
 				}
 			}
 		}

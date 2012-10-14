@@ -58,7 +58,7 @@ public class ImageActivity extends SherlockActivity {
 		}
 
 		_prefs = getSharedPreferences(Pictures.PREFS_NAMESPACE, MODE_PRIVATE);
-		
+
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		setContentView(R.layout.image_activity);
 		
@@ -71,6 +71,7 @@ public class ImageActivity extends SherlockActivity {
 				_imageview.setImageBitmap(bm);
 			}
 			else {
+				Log.w(TAG, "Failed to read previously created image " + _outputpath);
 				_outputpath = null;
 			}
 		}
@@ -293,13 +294,12 @@ public class ImageActivity extends SherlockActivity {
 	 */
 	private class ProcessImageTask extends AsyncTask<Void, Void, File> {
 		private final ImageInfo _inputinfo;
-		private final String _outputpath;
-		private Bitmap _output;
+		private final String _previouspath;
 		private ProgressDialog _progress;
 
 		public ProcessImageTask(ImageInfo inputinfo, String outputpath) {
 			_inputinfo = inputinfo;
-			_outputpath = outputpath;
+			_previouspath = outputpath;
 			_task = this;
 		}
 		
@@ -346,10 +346,9 @@ public class ImageActivity extends SherlockActivity {
 
 			// Apply the image filter to the current image			
 			filter.accept(buffer);
-			_output = buffer.bitmap;
 			
 			// Write the image to disk
-			File result = Pictures.compress(ImageActivity.this, _inputinfo.filename, _outputpath, _output);
+			File result = Pictures.compress(ImageActivity.this, _inputinfo.filename, _previouspath, buffer.bitmap);
 			Log.i(TAG, "Wrote image: " + result);
 			return result;
 		}
@@ -363,10 +362,16 @@ public class ImageActivity extends SherlockActivity {
 		@Override
 		protected void onPostExecute(File result) {
 			// Remember the written file in case the filter or contrast is changed
-			ImageActivity.this._outputpath = result.toString();
+			_outputpath = result.toString();
 			
 			// Show the processed image
-			_imageview.setImageBitmap(_output);
+			Bitmap bm = BitmapFactory.decodeFile(result.toString());
+			if (bm != null) {
+				_imageview.setImageBitmap(bm);
+			}
+			else {
+				Log.w(TAG, "Failed to read created image " + result.toString());
+			}
 			
 			// Close the progress dialog
 			dismiss();
