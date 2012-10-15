@@ -854,7 +854,12 @@ public class MainActivity extends SherlockActivity {
     			params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
     		}
     		
-    		handle.camera.setParameters(params);
+    		try {
+    			handle.camera.setParameters(params);
+    		}
+    		catch (Exception e) {
+    			Log.e(TAG, "Failed to toggle flash", e);
+    		}
 		}
 	}
 	
@@ -865,7 +870,13 @@ public class MainActivity extends SherlockActivity {
 			if (handle != null) {
 				Camera.Parameters params = handle.camera.getParameters();
 				params.setZoom(event.getValue());
-				handle.camera.setParameters(params);
+
+	    		try {
+	    			handle.camera.setParameters(params);
+	    		}
+	    		catch (Exception e) {
+	    			Log.e(TAG, "Failed to zoom", e);
+	    		}
 			}
 		}
 	}
