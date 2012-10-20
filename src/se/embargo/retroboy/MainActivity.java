@@ -37,10 +37,14 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.FloatMath;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -69,6 +73,21 @@ public class MainActivity extends SherlockActivity {
 	 */
 	private static final long GYROSCOPE_FOCUSING_TIMEOUT = 300;
 
+	/**
+	 * How many virtual zoom steps there are
+	 */
+	private static final float ZOOM_MAX = 300.0f;
+
+	/**
+	 * How much each volume up/down step should affect the zoom level
+	 */
+	private static final float ZOOM_VOLUME_STEP = 10.0f;
+	
+	/**
+	 * How much the scale touch event should affect the zoom level
+	 */
+	private static final float ZOOM_SCALE_FACTOR = 250.0f;
+	
 	private SharedPreferences _prefs;
 	
 	/**
@@ -107,9 +126,9 @@ public class MainActivity extends SherlockActivity {
 	private GyroscopeListener _gyroListener = new GyroscopeListener();
 	
 	/**
-	 * Zoom support
+	 * Current zoom level in range [0, ZOOM_MAX)
 	 */
-	private IObservableValue<Integer> _zoomLevel = new WritableValue<Integer>(0);
+	private IObservableValue<Float> _zoomLevel = new WritableValue<Float>(0.0f);
 	
 	/**
 	 * Currently running image processing task
@@ -219,6 +238,7 @@ public class MainActivity extends SherlockActivity {
 		
 		// Connect the zoom support
 		_cameraHandle.addChangeListener(new ZoomCameraHandler());
+		_preview.setOnTouchListener(new GestureDetector());
 		
 		// Initialize the image filter
 		initFilter();
@@ -309,28 +329,13 @@ public class MainActivity extends SherlockActivity {
 				
 			case KeyEvent.KEYCODE_VOLUME_UP: {
 				// Zoom in when volume up is pressed
-				CameraHandle handle = _cameraHandle.getValue();
-				if (handle != null) {
-					Camera.Parameters params = handle.camera.getParameters();
-					if (params.isZoomSupported() || params.isSmoothZoomSupported()) {
-						int max = params.getMaxZoom();
-						int val = _zoomLevel.getValue();
-						if (val < max) {
-							_zoomLevel.setValue(val + 1);
-						}
-					}
-				}
-					
+				_zoomLevel.setValue(Math.min(_zoomLevel.getValue() + ZOOM_VOLUME_STEP, ZOOM_MAX));
 				return true;
 			}
 
 			case KeyEvent.KEYCODE_VOLUME_DOWN: {
 				// Zoom out when volume down is pressed
-				int val = _zoomLevel.getValue();	
-				if (val > 0) {
-					_zoomLevel.setValue(val - 1);
-				}
-				
+				_zoomLevel.setValue(Math.max(0, _zoomLevel.getValue() - ZOOM_VOLUME_STEP));
 				return true;
 			}
 		}
@@ -863,52 +868,112 @@ public class MainActivity extends SherlockActivity {
 		}
 	}
 	
-	private class ZoomLevelHandler implements IChangeListener<Integer> {
+	private class GestureDetector extends ScaleGestureDetector implements OnTouchListener {
+		public GestureDetector() {
+			super(MainActivity.this, new ScaleListener());
+		}
+
 		@Override
-		public void handleChange(ChangeEvent<Integer> event) {
+		public boolean onTouch(View v, MotionEvent event) {
+			return super.onTouchEvent(event);
+		}
+	}
+	
+	private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+		@Override
+		public boolean onScale(ScaleGestureDetector detector) {
+			// Zoom in when volume up is pressed
 			CameraHandle handle = _cameraHandle.getValue();
 			if (handle != null) {
 				Camera.Parameters params = handle.camera.getParameters();
-				params.setZoom(event.getValue());
-
-	    		try {
-	    			handle.camera.setParameters(params);
-	    		}
-	    		catch (Exception e) {
-	    			Log.e(TAG, "Failed to zoom", e);
-	    		}
+				if (params.isZoomSupported() || params.isSmoothZoomSupported()) {
+					float value = _zoomLevel.getValue();
+					value += detector.getScaleFactor() * ZOOM_SCALE_FACTOR - ZOOM_SCALE_FACTOR;
+					_zoomLevel.setValue(Math.max(0, Math.min(value, ZOOM_MAX)));
+				}
+			}
+			
+			return true;
+		}
+	}
+	
+	private class ZoomLevelHandler implements IChangeListener<Float> {
+		private final int _max;
+		private int _prev = 0;
+		
+		public ZoomLevelHandler(int max) {
+			_max = max;
+		}
+		
+		@Override
+		public void handleChange(ChangeEvent<Float> event) {
+			int value = (int)FloatMath.floor(((float)_max) * (event.getValue() / ZOOM_MAX));
+			if (value != _prev) {
+				CameraHandle handle = _cameraHandle.getValue();
+				if (handle != null) {
+					Camera.Parameters params = handle.camera.getParameters();
+					params.setZoom(value);
+	
+		    		try {
+		    			Log.i(TAG, "Set zoom level: " + value);
+		    			handle.camera.setParameters(params);
+		    			_prev = value;
+		    		}
+		    		catch (Exception e) {
+		    			Log.e(TAG, "Failed to zoom", e);
+		    		}
+				}
 			}
 		}
 	}
 	
-	private class ZoomSmoothHandler implements IChangeListener<Integer> {
+	private class ZoomSmoothHandler implements IChangeListener<Float> {
+		private final int _max;
+		private int _prev = 0;
+
+		public ZoomSmoothHandler(int max) {
+			_max = max;
+		}
+		
 		@Override
-		public void handleChange(ChangeEvent<Integer> event) {
-			CameraHandle handle = _cameraHandle.getValue();
-			if (handle != null) {
-				handle.camera.startSmoothZoom(event.getValue());
+		public void handleChange(ChangeEvent<Float> event) {
+			int value = (int)FloatMath.floor(((float)_max) * (event.getValue() / ZOOM_MAX));
+			if (value != _prev) {
+				CameraHandle handle = _cameraHandle.getValue();
+				if (handle != null) {
+		    		try {
+		    			Log.i(TAG, "Smooth zoom to level: " + value);
+						handle.camera.startSmoothZoom(value);
+						_prev = value;
+		    		}
+		    		catch (Exception e) {
+		    			Log.e(TAG, "Failed to start smooth zoom", e);
+		    		}
+				}
 			}
 		}
 	}
 	
 	private class ZoomCameraHandler implements IChangeListener<CameraHandle> {
-		private ZoomSmoothHandler _zoomSmoothHandler = new ZoomSmoothHandler();
-		private ZoomLevelHandler _zoomLevelHandler = new ZoomLevelHandler();
+		private ZoomSmoothHandler _zoomSmoothHandler = null;
+		private ZoomLevelHandler _zoomLevelHandler = null;
 		
 		@Override
 		public void handleChange(ChangeEvent<CameraHandle> event) {
 			_zoomLevel.removeChangeListener(_zoomSmoothHandler);
 			_zoomLevel.removeChangeListener(_zoomLevelHandler);
-			_zoomLevel.setValue(0);
+			_zoomLevel.setValue(0.0f);
 			
 			CameraHandle handle = event.getValue();
 			if (handle != null) {
 				Camera.Parameters params = handle.camera.getParameters();
 				
 				if (params.isSmoothZoomSupported()) {
+					_zoomSmoothHandler = new ZoomSmoothHandler(params.getMaxZoom());
 					_zoomLevel.addChangeListener(_zoomSmoothHandler);
 				}
 				else if (params.isZoomSupported()) {
+					_zoomLevelHandler = new ZoomLevelHandler(params.getMaxZoom());
 					_zoomLevel.addChangeListener(_zoomLevelHandler);
 				}
 			}
