@@ -348,6 +348,7 @@ public class MainActivity extends SherlockActivity {
 		
 		// Check which camera to use
 		if (_cameraCount > 0) {
+			Log.i(TAG, "Acquiring camera");
 			int cameraid = _prefs.getInt(PREF_CAMERA, 0);
 			if (cameraid >= _cameraCount) {
 				cameraid = 0;
@@ -363,12 +364,10 @@ public class MainActivity extends SherlockActivity {
 			if (_hasAutoFocus) {
 				if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
 					_autoFocusMarker.setVisibility(View.INVISIBLE);
-					_preview.setOnClickListener(null);
 					Log.i(TAG, "Auto-focus disabled");
 				}
 				else {
 					_autoFocusMarker.setVisibility(View.VISIBLE);
-					_preview.setOnClickListener(_autoFocusListener);
 					Log.i(TAG, "Auto-focus enabled");
 				}
 			}
@@ -397,6 +396,7 @@ public class MainActivity extends SherlockActivity {
 			camera.setParameters(params);
 			
 			// Start the preview
+			Log.i(TAG, "Starting preview");
 			_preview.setCamera(camera, cameraInfo);
 		}
 	}
@@ -425,7 +425,7 @@ public class MainActivity extends SherlockActivity {
 		// Stop the preview and release the camera
 		CameraHandle handle = _cameraHandle.getValue();
 		if (handle != null) {
-			handle.camera.stopPreview();
+			Log.i(TAG, "Releasing camera");
 			_preview.setCamera(null, null);
 			handle.camera.release();
 			_cameraHandle.setValue(null);
@@ -552,7 +552,7 @@ public class MainActivity extends SherlockActivity {
 		}
 	}
 	
-	private class AutoFocusListener implements View.OnClickListener, Camera.AutoFocusCallback {
+	private class AutoFocusListener implements Camera.AutoFocusCallback {
 		public void autoFocus() {
 			_autoFocusMarker.setImageResource(R.drawable.ic_focus);
 
@@ -579,11 +579,6 @@ public class MainActivity extends SherlockActivity {
 					Log.e(TAG, "Failed to reset auto-focus", e);
 				}
 			}
-		}
-
-		@Override
-		public void onClick(View v) {
-			autoFocus();
 		}
 
 		@Override
@@ -727,7 +722,7 @@ public class MainActivity extends SherlockActivity {
 			
 			// Continue preview
 			if (!isCancelled()) {
-				_preview.initPreview();
+				_preview.initPreviewCallback();
 			}
 		}
 	}
@@ -741,6 +736,8 @@ public class MainActivity extends SherlockActivity {
 			CameraHandle handle = _cameraHandle.getValue();
 			if (handle != null) {
 				if (PREF_CAMERA.equals(key)) {
+					Log.i(TAG, "Camera changed through preferences");
+					
 					// Reinitialize the camera
 					initCamera();
 				}
@@ -749,6 +746,8 @@ public class MainActivity extends SherlockActivity {
 					initFilter();
 				}
 				else if (Pictures.PREF_RESOLUTION.equals(key)) {
+					Log.i(TAG, "Resolution changed through preferences");
+
 					// Reinitialize the camera
 					initCamera();
 					
@@ -867,6 +866,8 @@ public class MainActivity extends SherlockActivity {
     		}
 		}
 	}
+
+	private boolean _singleTouch = false;
 	
 	private class GestureDetector extends ScaleGestureDetector implements OnTouchListener {
 		public GestureDetector() {
@@ -875,13 +876,35 @@ public class MainActivity extends SherlockActivity {
 
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
-			return super.onTouchEvent(event);
+			boolean result = super.onTouchEvent(event);
+			switch (event.getAction()) {
+				case MotionEvent.ACTION_CANCEL:
+					_singleTouch = false;
+					break;
+
+				case MotionEvent.ACTION_UP:
+					if (_singleTouch) {
+						Log.i(TAG, "Detected single touch, triggering auto-focus");
+						_autoFocusListener.autoFocus();
+					}
+					
+					_singleTouch = false;
+					break;
+
+				case MotionEvent.ACTION_DOWN:
+					_singleTouch = true;
+					break;
+			}
+			
+			return result;
 		}
 	}
-	
+
 	private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
 		@Override
 		public boolean onScale(ScaleGestureDetector detector) {
+			_singleTouch = false;
+
 			// Zoom in when volume up is pressed
 			CameraHandle handle = _cameraHandle.getValue();
 			if (handle != null) {

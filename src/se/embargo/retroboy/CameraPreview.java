@@ -1,5 +1,6 @@
 package se.embargo.retroboy;
 
+import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -21,15 +22,19 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 
-class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camera.PreviewCallback, ErrorCallback {
+class CameraPreview extends FrameLayout implements SurfaceHolder.Callback, Camera.PreviewCallback, ErrorCallback {
 	private static final String TAG = "CameraPreview";
 
 	private ExecutorService _threadpool = Executors.newCachedThreadPool();
 	private Queue<FilterTask> _bufferpool = new ConcurrentLinkedQueue<FilterTask>();
 	private long _frameseq = 0, _lastframeseq = -1;
 	
+	private SurfaceView _surface;
 	private SurfaceHolder _holder;
+	
+	private SurfaceView _dummy;
 	
 	private Camera _camera;
 	private Camera.Size _previewSize;
@@ -57,50 +62,85 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		
 		// Default filter
 		_filter = new YuvFilter(480, 360, 0, true);
+		
+		// Dummy view to make sure that Camera actually delivers preview frames
+		_dummy = new SurfaceView(context);
+		_dummy.setVisibility(INVISIBLE);
+		_dummy.getHolder().addCallback(this);
+		_dummy.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+		addView(_dummy, 1, 1);
 
 		// Install a SurfaceHolder.Callback so we get notified when the surface is created and destroyed.
-		_holder = getHolder();
+		_surface = new SurfaceView(context);
+		_holder = _surface.getHolder();
 		_holder.addCallback(this);
 		_holder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
+		addView(_surface);
 	}
 
-	public void setCamera(Camera camera, Camera.CameraInfo cameraInfo) {
+	public synchronized void setCamera(Camera camera, Camera.CameraInfo cameraInfo) {
 		if (_camera != null) {
-			_camera.setPreviewCallbackWithBuffer(null);
+			// Calling these before release() crashes the GT-P7310 with Android 4.0.4
+			//_camera.setPreviewCallbackWithBuffer(null);
+			//_camera.stopPreview();
+			
+			// Hide the dummy preview or it will be temporarily visible while closing the app
+			_dummy.setVisibility(INVISIBLE);
 		}
 		
 		_camera = camera;
 		_cameraInfo = cameraInfo;
 		
 		if (_camera != null) {
+			_camera.setErrorCallback(this);
 			_previewSize = _camera.getParameters().getPreviewSize();
-		}
-
-		initPreview();
-
-		if (_camera != null) {
+			
+			// Visible dummy view to make sure that Camera actually delivers preview frames
+			try {
+				_dummy.setVisibility(VISIBLE);
+				_camera.setPreviewDisplay(_dummy.getHolder());
+			}
+			catch (IOException e) {
+				Log.e(TAG, "Error setting dummy preview display", e);
+			}
+			
+			initPreviewCallback();
 			initTransform();
-			startPreview();
+
+			// Clear all the canvas buffers
+			for (int i = 0; i < 3; i++) {
+				Canvas canvas = _holder.lockCanvas();
+				if (canvas != null) {
+					canvas.drawColor(Color.BLACK);
+					_holder.unlockCanvasAndPost(canvas);
+				}
+			}
+
+			// Begin the preview
+			_framestat = 0;
+			_laststat = System.nanoTime();
+			_camera.startPreview();
+			Log.i(TAG, "Started preview");
 		}
 	}
 	
 	/**
 	 * Restarts a paused preview
 	 */
-	public void initPreview() {
+	public synchronized void initPreviewCallback() {
 		if (_camera != null) {
 			// Clear the buffer queue
 			_camera.setPreviewCallbackWithBuffer(null);
 			
 			// Install this as the preview handle
-			_camera.setErrorCallback(this);
-			_camera.setPreviewCallbackWithBuffer(this);
 			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
 			
 			// Add more buffers to increase parallelism on multicore devices
 			if (Parallel.getNumberOfCores() > 1) {
 				_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);	
 			}
+
+			_camera.setPreviewCallbackWithBuffer(this);
 		}
 	}
 	
@@ -137,25 +177,18 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 	public void surfaceDestroyed(SurfaceHolder holder) {}
 
 	@Override
-	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+	public synchronized void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
 		initTransform();
-	}
-	
-	private void startPreview() {
-		if (_camera != null) {
-			// Clear both the canvas buffers
-			for (int i = 0; i < 2; i++) {
-				Canvas canvas = _holder.lockCanvas();
-				if (canvas != null) {
-					canvas.drawColor(Color.BLACK);
-					_holder.unlockCanvasAndPost(canvas);
-				}
+
+		// Visible dummy view to make sure that Camera actually delivers preview frames
+		if (_camera != null && holder == _dummy.getHolder()) {
+			try {
+				_dummy.setVisibility(VISIBLE);
+				_camera.setPreviewDisplay(_dummy.getHolder());
 			}
-			
-			// Begin the preview
-			_framestat = 0;
-			_laststat = System.nanoTime();
-			_camera.startPreview();
+			catch (IOException e) {
+				Log.e(TAG, "Error setting dummy preview display", e);
+			}
 		}
 	}
 	
@@ -210,53 +243,59 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Camer
 		
 		@Override
 		public void run() {
-			// Filter the preview image
-			_filter.accept(_buffer);
-			
-			// Check frame sequence number and drop out-of-sequence frames
-			Canvas canvas = null;
-			synchronized (this) {
-				if (_lastframeseq > _buffer.frameseq) {
-					// Release the buffers
-					_bufferpool.offer(this);
-
-					// Must hold canvas before releasing camera buffer or out-of-memory will result..
-					synchronized (_camera) {
-						_camera.addCallbackBuffer(_buffer.frame);
+			try {
+				// Filter the preview image
+				_filter.accept(_buffer);
+				
+				// Check frame sequence number and drop out-of-sequence frames
+				Canvas canvas = null;
+				synchronized (this) {
+					if (CameraPreview.this._camera != _camera) {
+						Log.i(TAG, "Dropping frame because camera was switched");
+						return;
 					}
 					
-					Log.w(TAG, "Dropped frame " + _buffer.frameseq + ", last frame was " + _lastframeseq);
-					return;
-				}
-				
-				_lastframeseq = _buffer.frameseq;
-				canvas = _holder.lockCanvas();
-			}
-			
-			// Must hold canvas before releasing camera buffer or out-of-memory will result..
-			synchronized (_camera) {
-				_camera.addCallbackBuffer(_buffer.frame);
-			}
-			
-			// Draw and transform camera frame
-			if (canvas != null) {
-				canvas.drawBitmap(_buffer.bitmap, _transform.matrix, _paint);
-				
-				// Calculate the framerate
-				if (++_framestat >= 25) {
-					long ts = System.nanoTime();
-					Log.i(TAG, "Framerate: " + ((double)_framestat / (((double)ts - (double)_laststat) / 1000000000d)));
+					if (_lastframeseq > _buffer.frameseq) {
+						// Release the buffers
+						_bufferpool.offer(this);
+	
+						// Must hold canvas before releasing camera buffer or out-of-memory will result..
+						_camera.addCallbackBuffer(_buffer.frame);
+						
+						Log.w(TAG, "Dropped frame " + _buffer.frameseq + ", last frame was " + _lastframeseq);
+						return;
+					}
 					
-					_framestat = 0;
-					_laststat = System.nanoTime();
+					_lastframeseq = _buffer.frameseq;
+					canvas = _holder.lockCanvas();
+					
+					// Must hold canvas before releasing camera buffer or out-of-memory will result..
+					_camera.addCallbackBuffer(_buffer.frame);
 				}
-
-				// Switch to next buffer
-				_holder.unlockCanvasAndPost(canvas);
+				
+				// Draw and transform camera frame
+				if (canvas != null) {
+					canvas.drawBitmap(_buffer.bitmap, _transform.matrix, _paint);
+					
+					// Calculate the framerate
+					if (++_framestat >= 25) {
+						long ts = System.nanoTime();
+						Log.i(TAG, "Framerate: " + ((double)_framestat / (((double)ts - (double)_laststat) / 1000000000d)));
+						
+						_framestat = 0;
+						_laststat = System.nanoTime();
+					}
+	
+					// Switch to next buffer
+					_holder.unlockCanvasAndPost(canvas);
+				}
+				
+				// Release the buffers
+				_bufferpool.offer(this);
 			}
-			
-			// Release the buffers
-			_bufferpool.offer(this);
+			catch (Exception e) {
+				Log.e(TAG, "Unexpected error processing frame", e);
+			}
 		}
 	}
 
