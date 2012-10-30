@@ -24,7 +24,7 @@ import android.view.SurfaceView;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 
-class CameraPreview extends FrameLayout implements SurfaceHolder.Callback, Camera.PreviewCallback, ErrorCallback {
+class CameraPreview extends FrameLayout implements Camera.PreviewCallback, ErrorCallback {
 	private static final String TAG = "CameraPreview";
 
 	private ExecutorService _threadpool = Executors.newCachedThreadPool();
@@ -66,14 +66,14 @@ class CameraPreview extends FrameLayout implements SurfaceHolder.Callback, Camer
 		// Dummy view to make sure that Camera actually delivers preview frames
 		_dummy = new SurfaceView(context);
 		_dummy.setVisibility(INVISIBLE);
-		_dummy.getHolder().addCallback(this);
+		_dummy.getHolder().addCallback(new PreviewSurfaceCallback());
 		_dummy.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 		addView(_dummy, 1, 1);
 
 		// Install a SurfaceHolder.Callback so we get notified when the surface is created and destroyed.
 		_surface = new SurfaceView(context);
 		_holder = _surface.getHolder();
-		_holder.addCallback(this);
+		_holder.addCallback(new DummySurfaceCallback());
 		_holder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
 		addView(_surface);
 	}
@@ -170,28 +170,6 @@ class CameraPreview extends FrameLayout implements SurfaceHolder.Callback, Camer
 		}
 	}
 
-	@Override
-	public void surfaceCreated(SurfaceHolder holder) {}
-
-	@Override
-	public void surfaceDestroyed(SurfaceHolder holder) {}
-
-	@Override
-	public synchronized void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-		initTransform();
-
-		// Visible dummy view to make sure that Camera actually delivers preview frames
-		if (_camera != null && holder == _dummy.getHolder()) {
-			try {
-				_dummy.setVisibility(VISIBLE);
-				_camera.setPreviewDisplay(_dummy.getHolder());
-			}
-			catch (IOException e) {
-				Log.e(TAG, "Error setting dummy preview display", e);
-			}
-		}
-	}
-	
 	private void initTransform() {
 		if (_cameraInfo != null && _previewSize != null) {
 			int width = getWidth(), height = getHeight();
@@ -216,6 +194,41 @@ class CameraPreview extends FrameLayout implements SurfaceHolder.Callback, Camer
 		int format = camera.getParameters().getPreviewFormat();
 		int bits = ImageFormat.getBitsPerPixel(format);
 		return size.width * size.height * bits / 8;
+	}
+	
+	private class PreviewSurfaceCallback implements SurfaceHolder.Callback {
+		@Override
+		public void surfaceCreated(SurfaceHolder holder) {}
+
+		@Override
+		public void surfaceDestroyed(SurfaceHolder holder) {}
+
+		@Override
+		public synchronized void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+			initTransform();
+		}
+	}
+	
+	private class DummySurfaceCallback implements SurfaceHolder.Callback {
+		@Override
+		public void surfaceCreated(SurfaceHolder holder) {}
+
+		@Override
+		public void surfaceDestroyed(SurfaceHolder holder) {}
+
+		@Override
+		public synchronized void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+			// Visible dummy view to make sure that Camera actually delivers preview frames
+			if (_camera != null) {
+				try {
+					_dummy.setVisibility(VISIBLE);
+					_camera.setPreviewDisplay(_dummy.getHolder());
+				}
+				catch (IOException e) {
+					Log.e(TAG, "Error setting dummy preview display", e);
+				}
+			}
+		}
 	}
 	
 	private class FilterTask implements Runnable {
