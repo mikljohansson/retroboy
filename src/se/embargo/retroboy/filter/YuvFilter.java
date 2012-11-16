@@ -42,7 +42,7 @@ public class YuvFilter implements IImageFilter {
 		
 		// Change the buffer dimensions
 		if (buffer.image == null || buffer.image.array().length < imagesize) {
-			Log.i(TAG, "Allocating image buffer for " + imagesize + " pixels (" + buffer.image + ")");
+			Log.d(TAG, "Allocating image buffer for " + imagesize + " pixels (" + buffer.image + ")");
 			buffer.image = IntBuffer.wrap(new int[imagesize]);
 		}
 		

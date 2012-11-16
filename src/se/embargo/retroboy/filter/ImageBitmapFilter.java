@@ -12,7 +12,7 @@ public class ImageBitmapFilter extends AbstractFilter {
 	public void accept(ImageBuffer buffer) {
 		// Change the bitmap dimensions
 		if (buffer.bitmap == null || buffer.bitmap.getWidth() != buffer.imagewidth || buffer.bitmap.getHeight() != buffer.imageheight) {
-			Log.i(TAG, "Allocating Bitmap for " + buffer.imagewidth + "x" + buffer.imageheight + " pixels (" + buffer.bitmap + ")");
+			Log.d(TAG, "Allocating Bitmap for " + buffer.imagewidth + "x" + buffer.imageheight + " pixels (" + buffer.bitmap + ")");
 			buffer.bitmap = Bitmap.createBitmap(buffer.imagewidth, buffer.imageheight, Bitmap.Config.ARGB_8888);
 		}
 		

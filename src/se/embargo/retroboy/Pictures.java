@@ -195,8 +195,20 @@ public class Pictures {
 		return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_CAMERA), false);
 	}
 	
+	/**
+	 * Creates a matrix that rotates and scales an input frame to fit the preview surface.
+	 * @param	inputwidth		Input frame width 
+	 * @param	inputheight		Input frame height
+	 * @param	facing			CameraInfo.facing 
+	 * @param	orientation		CameraInfo.orientation
+	 * @param	rotation		Display.getRotation()
+	 * @param	outputwidth		Width of target surface
+	 * @param	outputheight	Height of target surface
+	 * @param	flags			Combination of Bitmaps.FLAG_*'s
+	 * @return					A matrix to use with a surface
+	 */
 	public static Bitmaps.Transform createTransformMatrix(
-			Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation, 
+			int inputwidth, int inputheight, int facing, int orientation, int rotation, 
 			int outputwidth, int outputheight, int flags) {
 		// Check the current window rotation
 		int degrees = 0;
@@ -221,8 +233,18 @@ public class Pictures {
 		return Bitmaps.createTransform(inputwidth, inputheight, outputwidth, outputheight, flags, rotate, mirror);
 	}
 
+	/**
+	 * Creates a matrix that rotates and scales an input frame to fit the preview surface.
+	 * @param	inputwidth		Input frame width 
+	 * @param	inputheight		Input frame height
+	 * @param	facing			CameraInfo.facing 
+	 * @param	orientation		CameraInfo.orientation
+	 * @param	rotation		Display.getRotation()
+	 * @param	resolution		Output resolution
+	 * @return					A matrix to use with a surface
+	 */
 	public static Bitmaps.Transform createTransformMatrix(
-			Context context, int inputwidth, int inputheight, int facing, int orientation, int rotation,
+			int inputwidth, int inputheight, int facing, int orientation, int rotation,
 			Resolution resolution) {
 		int maxwidth, maxheight;
 		if (inputwidth >= inputheight) {
@@ -234,6 +256,6 @@ public class Pictures {
 			maxheight = resolution.width;
 		}
 		
-		return createTransformMatrix(context, inputwidth, inputheight, facing, orientation, rotation, maxwidth, maxheight, 0);
+		return createTransformMatrix(inputwidth, inputheight, facing, orientation, rotation, maxwidth, maxheight, 0);
 	}
 }

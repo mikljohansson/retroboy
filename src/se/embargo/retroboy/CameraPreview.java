@@ -177,10 +177,10 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			// Get the current device orientation
 			WindowManager windowManager = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
 			int rotation = windowManager.getDefaultDisplay().getRotation();
-	
+			Log.i(TAG, "Display rotation " + rotation + ", camera orientation " + _cameraInfo.orientation);
+			
 			// Rotate and flip the image when drawing it onto the surface
 			_transform = Pictures.createTransformMatrix(
-				getContext(), 
 				_filter.getEffectiveWidth(_previewSize.width, _previewSize.height), 
 				_filter.getEffectiveHeight(_previewSize.width, _previewSize.height), 
 				_cameraInfo.facing, _cameraInfo.orientation, rotation, 
@@ -244,7 +244,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		public void init(byte[] data, Camera camera) {
 			// Check if buffer is still valid for this frame
 			if (_buffer == null || _buffer.framewidth != _previewSize.width || _buffer.frameheight != _previewSize.height) {
-				Log.i(TAG, "Allocating ImageBuffer for " + _previewSize.width + "x" + _previewSize.height + " pixels (" + _buffer + ")");
+				Log.d(TAG, "Allocating ImageBuffer for " + _previewSize.width + "x" + _previewSize.height + " pixels (" + _buffer + ")");
 				_buffer = new IImageFilter.ImageBuffer(_previewSize.width, _previewSize.height);
 			}
 			
@@ -293,7 +293,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 					// Calculate the framerate
 					if (++_framestat >= 25) {
 						long ts = System.nanoTime();
-						Log.i(TAG, "Framerate: " + ((double)_framestat / (((double)ts - (double)_laststat) / 1000000000d)));
+						Log.d(TAG, "Framerate: " + ((double)_framestat / (((double)ts - (double)_laststat) / 1000000000d)));
 						
 						_framestat = 0;
 						_laststat = System.nanoTime();

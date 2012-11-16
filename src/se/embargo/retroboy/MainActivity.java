@@ -42,6 +42,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
+import android.view.Surface;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
@@ -653,7 +654,6 @@ public class MainActivity extends SherlockActivity {
 			IImageFilter effect = Pictures.createEffectFilter(MainActivity.this);
 			YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter());
 			_transform = Pictures.createTransformMatrix(
-				MainActivity.this, 
 				yuvFilter.getEffectiveWidth(size.width, size.height), 
 				yuvFilter.getEffectiveHeight(size.width, size.height), 
 				handle.info.facing, handle.info.orientation, rotation,
