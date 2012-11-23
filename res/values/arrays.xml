@@ -2,7 +2,8 @@
 <resources>
 	<string name="pref_resolution_default">320x240</string>
     <string-array name="pref_resolution_labels">
-	    <item>Game Boy® Camera</item>
+	    <item>Game Boy Camera</item>
+	    <item>Amstrad CPC464</item>
 	    <item>320x240</item>
 		<item>480x320</item>
 	    <item>640x480</item>
@@ -10,6 +11,7 @@
 	</string-array>
     <string-array name="pref_resolution_values">
 		<item>256x224</item>
+        <item>384x272</item>
 		<item>320x240</item>
         <item>480x360</item>
         <item>640x480</item>
@@ -18,16 +20,18 @@
     
     <string name="pref_filter_default">nintendo_gameboy_camera</string>
     <string-array name="pref_filter_labels">
-        <item>Game Boy® Camera</item>
-        <item>Nintendo® Game Boy®</item>
-        <item>Apple® Macintosh® OS</item>
-        <item>Commodore® 64</item>
+        <item>Game Boy Camera</item>
+        <item>Nintendo Game Boy</item>
+        <item>Apple Macintosh OS</item>
+        <item>Amstrad CPC464</item>
+        <item>Commodore 64</item>
         <item>Roy Lichtenstein</item>
     </string-array>
     <string-array name="pref_filter_values">
         <item>nintendo_gameboy_camera</item>
         <item>nintendo_gameboy_screen</item>
         <item>atkinson</item>
+        <item>amstrad_cpc464</item>
         <item>commodore_64</item>
         <item>halftone</item>
     </string-array>

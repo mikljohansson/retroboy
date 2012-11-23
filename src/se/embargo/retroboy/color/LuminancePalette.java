@@ -1,5 +1,9 @@
 package se.embargo.retroboy.color;
 
+/**
+ * Returns the nearest color in the psychovisual model weighted on luminance.
+ * @link	http://bisqwit.iki.fi/story/howto/dither/jy/
+ */
 public class LuminancePalette implements IPalette {
 	private final int[] _palette;
 	

@@ -1,4 +1,4 @@
-package se.embargo.retroboy.filter;
+package se.embargo.retroboy.graphic;
 
 import java.io.IOException;
 import java.io.OutputStream;

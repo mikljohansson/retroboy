@@ -7,20 +7,19 @@ import se.embargo.retroboy.graphic.DitherMatrixes;
 import android.content.Context;
 
 /**
- * 2-tone Yliluoma dithering.
- * @link	http://bisqwit.iki.fi/story/howto/dither/jy/
+ * Simple 2-tone raster dithering as used on most Amstrad CPC games.
  */
-public class YliluomaFilter extends AbstractColorFilter {
+public class RasterFilter extends AbstractColorFilter {
 	/**
 	 * Number of integers per bucket.
 	 */
-	private static final int COLOR_BUCKET_SIZE = 3;
-
+	private static final int COLOR_BUCKET_SIZE = 2;
+	
 	/**
 	 * Version number for the cache files
 	 */
-	private static final int CACHE_VERSION_NUMBER = 0x04;
-	
+	private static final int CACHE_VERSION_NUMBER = 0x03;
+
 	/**
 	 * Dither matrix.
 	 */
@@ -32,12 +31,17 @@ public class YliluomaFilter extends AbstractColorFilter {
 	private static final int _patternsize = 8;
 
 	/**
+	 * Ratio of color mixing.
+	 */
+	private static final int _mixingRatio = 32;
+	
+	/**
 	 * Parallel functor used to process frames.
 	 */
 	private final ForBody<ImageBuffer> _body = new ColorBody();
 	
-	public YliluomaFilter(Context context, IColorDistance distance, int[] palette) {
-		super("yduotone", context, distance, palette, COLOR_BUCKET_SIZE, CACHE_VERSION_NUMBER);
+	public RasterFilter(Context context, IColorDistance distance, int[] palette) {
+		super("raster", context, distance, palette, COLOR_BUCKET_SIZE, CACHE_VERSION_NUMBER);
 	}
     
     @Override
@@ -63,18 +67,17 @@ public class YliluomaFilter extends AbstractColorFilter {
 					final int pixel = image[i];
 					final int threshold = _matrix[x % _patternsize + yt];
 					
-					final int r1 = Math.min((int)((float)(pixel & 0x000000ff) * factor), 255);
-					final int g1 = Math.min((int)((float)((pixel & 0x0000ff00) >> 8) * factor), 255);
-					final int b1 = Math.min((int)((float)((pixel & 0x00ff0000) >> 16) * factor), 255);
-					
+					final int r1 = Math.max(0, Math.min((int)((float)(pixel & 0x000000ff) * factor) + threshold - 32, 255));
+					final int g1 = Math.max(0, Math.min((int)((float)((pixel & 0x0000ff00) >> 8) * factor) + threshold - 32, 255));
+					final int b1 = Math.max(0, Math.min((int)((float)((pixel & 0x00ff0000) >> 16) * factor) + threshold - 32, 255));
+
 					final int bucket = ((r1 >> _step) | ((g1 >> _step) << _gsb) | ((b1 >> _step) << _bsb)) * COLOR_BUCKET_SIZE;
-					final int ratio = _buckets[bucket + 2];
-					image[i] = (pixel & 0xff000000) | (threshold < ratio ? _buckets[bucket + 1] : _buckets[bucket]);
+					image[i] = (pixel & 0xff000000) | _buckets[bucket + ((x & 0x01) ^ (y & 0x01))];
 				}
 			}
 		}
     }
-    
+
     protected void initBucket(final int bucket, final int r, final int g, final int b) {
         int minpenalty = Integer.MAX_VALUE;
         for (int i = 0; i < _palette.length; ++i) {
@@ -89,36 +92,19 @@ public class YliluomaFilter extends AbstractColorFilter {
 	            		  g2 = (color2 >> 8) & 0xff, 
 	            		  b2 = (color2 >> 16) & 0xff;
 
-	            int ratio = 32;
-	            if (color1 != color2) {
-	                // Determine the ratio of mixing for each channel.
-	                //   solve(r1 + ratio*(r2-r1)/64 = r, ratio)
-	                // Take a weighed average of these three ratios according to the
-	                // perceived luminosity of each channel (according to CCIR 601).
-	                ratio = ((r2 != r1 ? 299*64 * (r - r1) / (r2-r1) : 0)
-	                      +  (g2 != g1 ? 587*64 * (g - g1) / (g2-g1) : 0)
-	                      +  (b2 != b1 ? 114*64 * (b - b1) / (b2-b1) : 0))
-	                      / ((r2 != r1 ? 299 : 0)
-	                       + (g2 != g1 ? 587 : 0)
-	                       + (b2 != b1 ? 114 : 0));
-	                
-	                ratio = Math.max(0, Math.min(ratio, 63));
-	            }
-
 	            // Determine what mixing them in this proportion will produce
-	            int r0 = r1 + ratio * (r2-r1) / 64;
-	            int g0 = g1 + ratio * (g2-g1) / 64;
-	            int b0 = b1 + ratio * (b2-b1) / 64;
+	            int r0 = r1 + _mixingRatio * (r2-r1) / 64;
+	            int g0 = g1 + _mixingRatio * (g2-g1) / 64;
+	            int b0 = b1 + _mixingRatio * (b2-b1) / 64;
 	            
 	        	int rdist = _distance.get(r,g,b, r0,g0,b0),
 	        	    r12dist = _distance.get(r1,g1,b1, r2,g2,b2);
 	            
-	            int penalty = rdist + r12dist / 10 * (Math.abs(ratio - 32) + 32) / 64;
+	            int penalty = rdist + r12dist / 20;
 	            if (penalty < minpenalty) {
 	                minpenalty = penalty;
 	                _buckets[bucket] = (color1 & 0xffffff);
 	                _buckets[bucket + 1] = (color2 & 0xffffff);
-	                _buckets[bucket + 2] = ratio;
 	            }
 	        }
         }

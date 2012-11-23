@@ -7,7 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import se.embargo.core.concurrent.Parallel;
-import se.embargo.core.graphics.Bitmaps;
+import se.embargo.core.graphic.Bitmaps;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.YuvFilter;
 import android.content.Context;
@@ -40,8 +40,8 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 	private Camera.Size _previewSize;
 	private Camera.CameraInfo _cameraInfo;
 	
-	private IImageFilter _filter;
-	private Bitmaps.Transform _transform;
+	private volatile IImageFilter _filter;
+	private volatile Bitmaps.Transform _transform;
 	
 	/**
 	 * Statistics for framerate calculation

@@ -1,5 +1,8 @@
 package se.embargo.retroboy.color;
 
+/**
+ * Returns the input color in RGB space.
+ */
 public class RgbPalette implements IPalette {
 	public int getPaletteSize() {
 		return Integer.MAX_VALUE;

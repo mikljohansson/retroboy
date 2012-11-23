@@ -4,18 +4,38 @@ import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
 
 /**
- * Approximates an arbitrary palette by expanding it to a larger regular one
+ * Approximates an arbitrary palette by expanding it to a larger regular one.
  */
 public class BucketPalette implements IPalette {
+	/**
+	 * Number of most significant bits to store per color channel.
+	 */
 	private static final int _bits = 4;
+	
+	/**
+	 * Number of bits to shift a color.
+	 */
 	private static final int _step = 8 - _bits;
 	
+	/**
+	 * Palette to sample colors from.
+	 */
 	private final IPalette _palette;
+	
+	/**
+	 * Each bucket corresponds to an RGB color and stores the color the inner palette returned.
+	 */
 	private final int[] _buckets = new int[1 << (_bits * 3)];
 	
+	/**
+	 * Number of bits to shift green and blue colors. 
+	 */
 	private final int _gsb = _bits, 
 					  _bsb = _bits * 2;
 	
+	/**
+	 * Red, green and blue bit masks.
+	 */
 	private final int _rm = (1 << _bits) - 1, 
 					  _gm = _rm << _gsb, 
 					  _bm = _rm << _bsb;

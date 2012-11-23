@@ -4,14 +4,16 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import se.embargo.core.graphics.Bitmaps;
+import se.embargo.core.graphic.Bitmaps;
+import se.embargo.retroboy.color.BucketPalette;
+import se.embargo.retroboy.color.Distances;
 import se.embargo.retroboy.color.Palettes;
 import se.embargo.retroboy.color.YuvPalette;
+import se.embargo.retroboy.filter.AmstradFilter;
 import se.embargo.retroboy.filter.AtkinsonFilter;
 import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
-import se.embargo.retroboy.filter.YliluomaTriFilter;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -31,6 +33,7 @@ public class Pictures {
 	
 	private static final String PREF_FILTER_GAMEBOY_CAMERA = "nintendo_gameboy_camera";
 	private static final String PREF_FILTER_GAMEBOY_SCREEN = "nintendo_gameboy_screen";
+	private static final String PREF_FILTER_AMSTRAD_CPC464 = "amstrad_cpc464";
 	private static final String PREF_FILTER_COMMODORE_64 = "commodore_64";
 	private static final String PREF_FILTER_ATKINSON = "atkinson";
 	private static final String PREF_FILTER_HALFTONE = "halftone";
@@ -180,8 +183,14 @@ public class Pictures {
 			return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_SCREEN_DESAT), false);
 		}
 
+		if (PREF_FILTER_AMSTRAD_CPC464.equals(filtertype)) {
+			return new AmstradFilter(context, Distances.YUV, Palettes.AMSTRAD_CPC464);
+		}
+
 		if (PREF_FILTER_COMMODORE_64.equals(filtertype)) {
-			return new YliluomaTriFilter(context, Palettes.COMMODORE_64_GAMMA_ADJUSTED);
+			return new BayerFilter(new BucketPalette(new YuvPalette(Palettes.COMMODORE_64_GAMMA_ADJUSTED)), true);
+			//return new YliluomaTriFilter(context, Distances.YUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED);
+			//return new RasterFilter(context, Distances.YUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED);
 		}
 
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {

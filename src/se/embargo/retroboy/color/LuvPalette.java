@@ -1,5 +1,9 @@
 package se.embargo.retroboy.color;
 
+/**
+ * Returns the nearest color in the YUV space.
+ * @link	http://www.compuphase.com/cmetric.htm
+ */
 public class LuvPalette implements IPalette {
 	private final int[] _palette;
 	

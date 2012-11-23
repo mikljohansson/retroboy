@@ -1,6 +1,6 @@
 package se.embargo.retroboy.filter;
 
-import se.embargo.core.graphics.Bitmaps;
+import se.embargo.core.graphic.Bitmaps;
 
 public class TransformFilter extends AbstractFilter {
 	private Bitmaps.Transform _transform;

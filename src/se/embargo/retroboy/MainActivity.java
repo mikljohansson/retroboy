@@ -6,7 +6,7 @@ import se.embargo.core.databinding.observable.ChangeEvent;
 import se.embargo.core.databinding.observable.IChangeListener;
 import se.embargo.core.databinding.observable.IObservableValue;
 import se.embargo.core.databinding.observable.WritableValue;
-import se.embargo.core.graphics.Bitmaps;
+import se.embargo.core.graphic.Bitmaps;
 import se.embargo.retroboy.filter.BitmapImageFilter;
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.IImageFilter;
@@ -42,7 +42,6 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
-import android.view.Surface;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
@@ -408,12 +407,12 @@ public class MainActivity extends SherlockActivity {
 		int contrast = Pictures.getContrast(this, _prefs);
 		
 		// Create the image filter pipeline
-		CompositeFilter filters = new CompositeFilter();
+		CompositeFilter filter = new CompositeFilter();
 		IImageFilter effect = Pictures.createEffectFilter(this);
-		filters.add(new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter()));
-		filters.add(effect);
-		filters.add(new ImageBitmapFilter());
-		_preview.setFilter(filters);
+		filter.add(new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter()));
+		filter.add(effect);
+		filter.add(new ImageBitmapFilter());
+		_preview.setFilter(filter);
 	}
 	
 	private void stopPreview() {
@@ -638,7 +637,6 @@ public class MainActivity extends SherlockActivity {
 	private class ProcessFrameTask extends AsyncTask<Void, Void, Bitmap> {
 		private IImageFilter _filter;
 		private IImageFilter.ImageBuffer _buffer;
-		private Bitmaps.Transform _transform;
 		private ProgressDialog _progress;
 
 		public ProcessFrameTask(CameraHandle handle, byte[] data, int rotation) {
@@ -653,7 +651,7 @@ public class MainActivity extends SherlockActivity {
 			// Create the image filter pipeline
 			IImageFilter effect = Pictures.createEffectFilter(MainActivity.this);
 			YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter());
-			_transform = Pictures.createTransformMatrix(
+			Bitmaps.Transform transform = Pictures.createTransformMatrix(
 				yuvFilter.getEffectiveWidth(size.width, size.height), 
 				yuvFilter.getEffectiveHeight(size.width, size.height), 
 				handle.info.facing, handle.info.orientation, rotation,
@@ -661,11 +659,9 @@ public class MainActivity extends SherlockActivity {
 			
 			CompositeFilter filter = new CompositeFilter();
 			filter.add(yuvFilter);
-			filter.add(new ImageBitmapFilter());
-			filter.add(new TransformFilter(_transform));
-			filter.add(new BitmapImageFilter());
 			filter.add(effect);
 			filter.add(new ImageBitmapFilter());
+			filter.add(new TransformFilter(transform));
 			_filter = filter;
 		}
 		
