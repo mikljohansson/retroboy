@@ -404,8 +404,7 @@ public class MainActivity extends SherlockActivity {
 			for (Camera.Size candidate : camera.getParameters().getSupportedPreviewSizes()) {
 				if (optimal == null || ratioError(candidate, target) < ratioError(optimal, target) ||
 					((optimal.width < target.width && optimal.width < candidate.width ||
-					  optimal.width > candidate.width && candidate.width >= target.width) &&
-					 ratioError(candidate, target) == ratioError(optimal, target))) {
+					  optimal.width > candidate.width && candidate.width >= target.width))) {
 					optimal = candidate;
 				}
 			}
@@ -1215,15 +1214,18 @@ public class MainActivity extends SherlockActivity {
 
 		@Override
 		public View getView(int position, View convertView, ViewGroup parent) {
-		    LayoutInflater inflater = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-		    View rowView = inflater.inflate(R.layout.camera_preference_item, parent, false);
-		    TextView titleView = (TextView)rowView.findViewById(R.id.prefItemTitle);
-		    TextView valueView = (TextView)rowView.findViewById(R.id.prefItemValue);
+			if (convertView == null) {
+			    LayoutInflater inflater = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+			    convertView = inflater.inflate(R.layout.camera_preference_item, parent, false);
+			}
+			
+		    TextView titleView = (TextView)convertView.findViewById(R.id.prefItemTitle);
+		    TextView valueView = (TextView)convertView.findViewById(R.id.prefItemValue);
 
 		    PreferenceItem item = _items.get(position);
 		    titleView.setText(item._title);
 		    valueView.setText(item.getValueLabel());
-		    return rowView;
+		    return convertView;
 		}
 		
 		@Override

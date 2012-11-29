@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="pref_resolution_default">320x240</string>
+	<string name="pref_resolution_default">320x200</string>
     <string-array name="pref_resolution_labels">
 	    <item>Game Boy Camera</item>
 	    <item>320x200</item>

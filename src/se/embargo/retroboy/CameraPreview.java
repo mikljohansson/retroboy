@@ -29,21 +29,22 @@ import android.widget.FrameLayout;
 class CameraPreview extends FrameLayout implements Camera.PreviewCallback, ErrorCallback {
 	private static final String TAG = "CameraPreview";
 
-	private ExecutorService _threadpool = Executors.newCachedThreadPool();
-	private Queue<FilterTask> _bufferpool = new ConcurrentLinkedQueue<FilterTask>();
+	private final ExecutorService _threadpool = Executors.newCachedThreadPool();
+	private final Queue<FilterTask> _bufferpool = new ConcurrentLinkedQueue<FilterTask>();
 	private long _frameseq = 0, _lastframeseq = -1;
 	
-	private SurfaceView _surface;
-	private SurfaceHolder _holder;
+	private final SurfaceView _surface;
+	private final SurfaceHolder _holder;
 	
-	private SurfaceView _dummy;
+	private final SurfaceView _dummy;
 	
 	private Camera _camera;
 	private Camera.Size _previewSize;
 	private Camera.CameraInfo _cameraInfo;
+	private int _bufferSize;
 	
-	private volatile IImageFilter _filter;
-	private volatile Bitmaps.Transform _transform, _prevTransform;
+	private IImageFilter _filter;
+	private Bitmaps.Transform _transform, _prevTransform;
 	
 	/**
 	 * Statistics for framerate calculation
@@ -68,14 +69,14 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		// Dummy view to make sure that Camera actually delivers preview frames
 		_dummy = new SurfaceView(context);
 		_dummy.setVisibility(INVISIBLE);
-		_dummy.getHolder().addCallback(new PreviewSurfaceCallback());
+		_dummy.getHolder().addCallback(new DummySurfaceCallback());
 		_dummy.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 		addView(_dummy, 1, 1);
 
 		// Install a SurfaceHolder.Callback so we get notified when the surface is created and destroyed.
 		_surface = new SurfaceView(context);
 		_holder = _surface.getHolder();
-		_holder.addCallback(new DummySurfaceCallback());
+		_holder.addCallback(new PreviewSurfaceCallback());
 		_holder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);
 		addView(_surface);
 	}
@@ -96,6 +97,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		if (_camera != null) {
 			_camera.setErrorCallback(this);
 			_previewSize = _camera.getParameters().getPreviewSize();
+			_bufferSize = getBufferSize(_camera);
 			
 			// Visible dummy view to make sure that Camera actually delivers preview frames
 			try {
@@ -126,11 +128,11 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			_camera.setPreviewCallbackWithBuffer(null);
 			
 			// Install this as the preview handle
-			_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);
+			_camera.addCallbackBuffer(new byte[_bufferSize]);
 			
 			// Add more buffers to increase parallelism on multicore devices
 			if (Parallel.getNumberOfCores() > 1) {
-				_camera.addCallbackBuffer(new byte[getBufferSize(_camera)]);	
+				_camera.addCallbackBuffer(new byte[_bufferSize]);	
 			}
 
 			_camera.setPreviewCallbackWithBuffer(this);
@@ -149,14 +151,14 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 	@Override
 	public void onPreviewFrame(byte[] data, Camera camera) {
 		// data may be null if buffer was too small
-		if (data != null) {
+		if (data != null && data.length == _bufferSize) {
 			// Submit a task to process the image
 			FilterTask task = _bufferpool.poll();
 			if (task != null) {
-				task.init(data, camera);
+				task.init(camera, _filter, _transform, data);
 			}
 			else {
-				task = new FilterTask(data, camera);
+				task = new FilterTask(camera, _filter, _transform, data);
 			}
 			
 			_threadpool.submit(task);
@@ -164,6 +166,8 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 	}
 
 	private void initTransform() {
+		Log.i(TAG, "Initializing the transform matrix");
+		
 		if (_cameraInfo != null && _previewSize != null) {
 			int width = getWidth(), height = getHeight();
 			
@@ -220,8 +224,10 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		public void surfaceDestroyed(SurfaceHolder holder) {}
 
 		@Override
-		public synchronized void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-			initTransform();
+		public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+			synchronized (CameraPreview.this) {
+				initTransform();
+			}
 		}
 	}
 	
@@ -233,15 +239,17 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		public void surfaceDestroyed(SurfaceHolder holder) {}
 
 		@Override
-		public synchronized void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-			// Visible dummy view to make sure that Camera actually delivers preview frames
-			if (_camera != null) {
-				try {
-					_dummy.setVisibility(VISIBLE);
-					_camera.setPreviewDisplay(_dummy.getHolder());
-				}
-				catch (IOException e) {
-					Log.e(TAG, "Error setting dummy preview display", e);
+		public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+			synchronized (CameraPreview.this) {
+				// Visible dummy view to make sure that Camera actually delivers preview frames
+				if (_camera != null) {
+					try {
+						_dummy.setVisibility(VISIBLE);
+						_camera.setPreviewDisplay(_dummy.getHolder());
+					}
+					catch (IOException e) {
+						Log.e(TAG, "Error setting dummy preview display", e);
+					}
 				}
 			}
 		}
@@ -250,14 +258,17 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 	private class FilterTask implements Runnable {
 		private static final String TAG = "FilterTask";
 		private Camera _camera;
+		private IImageFilter _filter;
+		private Bitmaps.Transform _transform;
 		private IImageFilter.ImageBuffer _buffer;
-		private Paint _paint = new Paint(Paint.FILTER_BITMAP_FLAG);
+		private final Paint _paint = new Paint(Paint.FILTER_BITMAP_FLAG);
+		private long _frameseq = 0;
 		
-		public FilterTask(byte[] data, Camera camera) {
-			init(data, camera);
+		public FilterTask(Camera camera, IImageFilter filter, Bitmaps.Transform transform, byte[] data) {
+			init(camera, filter, transform, data);
 		}
 		
-		public void init(byte[] data, Camera camera) {
+		public void init(Camera camera, IImageFilter filter, Bitmaps.Transform transform, byte[] data) {
 			// Check if buffer is still valid for this frame
 			if (_buffer == null || _buffer.framewidth != _previewSize.width || _buffer.frameheight != _previewSize.height) {
 				Log.d(TAG, "Allocating ImageBuffer for " + _previewSize.width + "x" + _previewSize.height + " pixels (" + _buffer + ")");
@@ -265,9 +276,11 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			}
 			
 			// Reinitialize the buffer with the new data
-			_buffer.frame = data;
-			_buffer.frameseq = _frameseq++;
 			_camera = camera;
+			_filter = filter;
+			_transform = transform;
+			_buffer.frame = data;
+			_frameseq = CameraPreview.this._frameseq++;
 		}
 		
 		@Override
@@ -278,52 +291,48 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 				
 				// Check frame sequence number and drop out-of-sequence frames
 				Canvas canvas = null;
-				synchronized (this) {
+				synchronized (CameraPreview.this) {
 					if (CameraPreview.this._camera != _camera) {
 						Log.i(TAG, "Dropping frame because camera was switched");
 						return;
 					}
 					
-					if (_lastframeseq > _buffer.frameseq) {
-						// Release the buffers
-						_bufferpool.offer(this);
-	
-						// Must hold canvas before releasing camera buffer or out-of-memory will result..
-						_camera.addCallbackBuffer(_buffer.frame);
-						
-						Log.w(TAG, "Dropped frame " + _buffer.frameseq + ", last frame was " + _lastframeseq);
+					// Release buffer back to camera while holding lock
+					_camera.addCallbackBuffer(_buffer.frame);
+
+					// Check for out-of-sync frames
+					if (_lastframeseq > _frameseq) {
+						Log.i(TAG, "Dropped frame " + _frameseq + ", last frame was " + _lastframeseq);
 						return;
 					}
-					
-					_lastframeseq = _buffer.frameseq;
-					canvas = _holder.lockCanvas();
-					
-					// Must hold canvas before releasing camera buffer or out-of-memory will result..
-					_camera.addCallbackBuffer(_buffer.frame);
-				}
-				
-				// Draw and transform camera frame
-				if (canvas != null) {
-					canvas.drawBitmap(_buffer.bitmap, _transform.matrix, _paint);
-					
+
 					// Calculate the framerate
 					if (++_framestat >= 25) {
 						long ts = System.nanoTime();
 						Log.d(TAG, "Framerate: " + ((double)_framestat / (((double)ts - (double)_laststat) / 1000000000d)));
 						
 						_framestat = 0;
-						_laststat = System.nanoTime();
+						_laststat = ts;
 					}
-	
+
+					// Lock canvas for updating
+					_lastframeseq = _frameseq;
+					canvas = _holder.lockCanvas();
+				}
+
+				// Draw and transform camera frame (must not touch mutable CameraPreview state when not holding lock)
+				if (canvas != null) {
+					canvas.drawBitmap(_buffer.bitmap, _transform.matrix, _paint);
+					
 					// Switch to next buffer
 					_holder.unlockCanvasAndPost(canvas);
 				}
-				
-				// Release the buffers
-				_bufferpool.offer(this);
 			}
 			catch (Exception e) {
 				Log.e(TAG, "Unexpected error processing frame", e);
+			}
+			finally {
+				_bufferpool.add(this);
 			}
 		}
 	}

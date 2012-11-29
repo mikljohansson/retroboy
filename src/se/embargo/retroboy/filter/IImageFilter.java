@@ -46,11 +46,6 @@ public interface IImageFilter {
 		 */
 		public final int framewidth, frameheight;
 		
-		/**
-		 * Sequence number of this frame 
-		 */
-		public long frameseq;
-		
 		public IntBuffer image;
 		public int imagewidth, imageheight;
 
