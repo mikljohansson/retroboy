@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/detailedPreferences"
+    android:layout_width="250dp"
+	android:layout_height="300dp"
+    android:layout_centerInParent="true"
+    android:visibility="gone"
+    android:background="@drawable/bg_detailed_preferences">
+	<ListView
+	    android:id="@+id/detailedPreferencesList"
+	    android:layout_width="match_parent"
+		android:layout_height="wrap_content"/>
+	<Button
+	    android:id="@+id/cancelDetailedPreferences"
+	    android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_centerHorizontal="true"
+		android:layout_alignParentBottom="true"
+		android:text="@string/btn_cancel"/>
+</RelativeLayout>

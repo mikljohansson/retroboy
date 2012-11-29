@@ -20,14 +20,17 @@
 				android:id="@+id/cameraPreview"
 				android:layout_width="match_parent"
 				android:layout_height="match_parent"/>
+		    
 		    <ImageView 
 				android:id="@+id/autoFocusMarker"
 				android:layout_width="64dp"
 				android:layout_height="64dp"
 				android:layout_centerInParent="true"
-				android:visibility="invisible"
+				android:visibility="gone"
 				android:src="@drawable/ic_focus"
 				android:contentDescription="@string/btn_auto_focus"/>
+
+		    <include layout="@layout/camera_detailed_preferences"/>
 		</se.embargo.retroboy.widget.PreviewFrameLayout>
 	</RelativeLayout>
     

@@ -13,9 +13,10 @@ public class ListPreferenceDialog implements DialogInterface.OnClickListener {
 	private Context _context;
 	private SharedPreferences _prefs;
 	private final String _key, _defvalue;
-	private final int _title, _labels, _values;
+	private final int _title;
+	private final String[] _labels, _values;
 	
-	public ListPreferenceDialog(Context context, SharedPreferences prefs, String prefname, String prefdefault, int title, int labels, int values) {
+	public ListPreferenceDialog(Context context, SharedPreferences prefs, String prefname, String prefdefault, int title, String[] labels, String[] values) {
 		_context = context;
 		_prefs = prefs;
 		_key = prefname;
@@ -25,13 +26,18 @@ public class ListPreferenceDialog implements DialogInterface.OnClickListener {
 		_values = values;
 	}
 	
+	public ListPreferenceDialog(Context context, SharedPreferences prefs, String prefname, String prefdefault, int title, int labels, int values) {
+		this(context, prefs, prefname, prefdefault, title, 
+			context.getResources().getStringArray(labels), 
+			context.getResources().getStringArray(values));
+	}
+	
 	public void show() {
 		String contrast = _prefs.getString(_key, _defvalue);
-		String[] values = _context.getResources().getStringArray(_values);
 		int checkedItem = 0;
 		
-		for (int i = 0; i < values.length; i++) {
-			if (contrast.equals(values[i])) {
+		for (int i = 0; i < _values.length; i++) {
+			if (contrast.equals(_values[i])) {
 				checkedItem = i;
 				break;
 			}
@@ -46,10 +52,9 @@ public class ListPreferenceDialog implements DialogInterface.OnClickListener {
 
 	@Override
 	public void onClick(DialogInterface dialog, int which) {
-		String[] values = _context.getResources().getStringArray(_values);
-		if (which >= 0 && which < values.length) {
+		if (which >= 0 && which < _values.length) {
 			SharedPreferences.Editor editor = _prefs.edit();
-			editor.putString(_key, values[which]);
+			editor.putString(_key, _values[which]);
 			editor.commit();
 		}
 		

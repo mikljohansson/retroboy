@@ -1,19 +1,23 @@
 package se.embargo.retroboy;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
+import se.embargo.core.Strings;
 import se.embargo.core.databinding.observable.ChangeEvent;
 import se.embargo.core.databinding.observable.IChangeListener;
 import se.embargo.core.databinding.observable.IObservableValue;
 import se.embargo.core.databinding.observable.WritableValue;
 import se.embargo.core.graphic.Bitmaps;
-import se.embargo.retroboy.filter.BitmapImageFilter;
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.TransformFilter;
 import se.embargo.retroboy.filter.YuvFilter;
 import se.embargo.retroboy.widget.ListPreferenceDialog;
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
@@ -23,6 +27,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
@@ -40,14 +45,21 @@ import android.provider.MediaStore;
 import android.util.FloatMath;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
+import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.TextView;
 
 import com.actionbarsherlock.app.SherlockActivity;
 import com.actionbarsherlock.view.Menu;
@@ -118,6 +130,10 @@ public class MainActivity extends SherlockActivity {
 	private ImageView _autoFocusMarker;
 	private boolean _hasAutoFocus;
 	
+	private View _detailedPreferences;
+	private ListView _detailedPreferencesList;
+	private PreferenceAdapter _detailedPreferenceAdapter = new PreferenceAdapter();
+	
 	/**
 	 * Connect to the gyroscope to detect when auto focus need to trigger
 	 */
@@ -134,6 +150,11 @@ public class MainActivity extends SherlockActivity {
 	 * Currently running image processing task
 	 */
 	private ProcessFrameTask _task = null;
+
+	/**
+	 * Tracks if a single finger is touching the screen.
+	 */
+	private boolean _singleTouch = false;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -161,6 +182,10 @@ public class MainActivity extends SherlockActivity {
 		setContentView(R.layout.main_activity);
 		_preview = (CameraPreview)findViewById(R.id.cameraPreview);
 		_autoFocusMarker = (ImageView)findViewById(R.id.autoFocusMarker);
+		_detailedPreferences = findViewById(R.id.detailedPreferences);
+		_detailedPreferencesList = (ListView)findViewById(R.id.detailedPreferencesList);
+		_detailedPreferencesList.setAdapter(_detailedPreferenceAdapter);
+		_detailedPreferencesList.setOnItemClickListener(_detailedPreferenceAdapter);
 
 		// Connect the take photo button
 		{
@@ -176,11 +201,12 @@ public class MainActivity extends SherlockActivity {
 
 		// Connect the settings button
 		{
-			final ImageButton button = (ImageButton)findViewById(R.id.editSettingsButton);
-			//button.setOnClickListener(new EditSettingsButtonListener());
-			button.setOnClickListener(new ListPreferenceDialogListener(
-				Pictures.PREF_RESOLUTION, getResources().getString(R.string.pref_resolution_default),
-				R.string.pref_title_resolution, R.array.pref_resolution_labels, R.array.pref_resolution_values));
+			EditSettingsButtonListener listener = new EditSettingsButtonListener();
+			ImageButton button = (ImageButton)findViewById(R.id.editSettingsButton);
+			button.setOnClickListener(listener);
+			
+			Button cancelButton = (Button)findViewById(R.id.cancelDetailedPreferences);
+			cancelButton.setOnClickListener(listener);
 		}
 
 		// Connect the contrast button
@@ -247,7 +273,7 @@ public class MainActivity extends SherlockActivity {
 	@Override
 	protected void onResume() {
 		super.onResume();
-
+		
 		// Listen to preference changes
 		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
 		
@@ -270,6 +296,7 @@ public class MainActivity extends SherlockActivity {
 		_prefs.unregisterOnSharedPreferenceChangeListener(_prefsListener);
 		_sensorManager.unregisterListener(_gyroListener);
 		_rotationListener.disable();
+		resetFocus();
 		stopPreview();
 	}
 	
@@ -310,6 +337,8 @@ public class MainActivity extends SherlockActivity {
 	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		resetFocus();
+
 		switch (keyCode) {
 			case KeyEvent.KEYCODE_FOCUS:
 				// Trigger auto focus when dedicated photo button is pressed half way
@@ -361,16 +390,7 @@ public class MainActivity extends SherlockActivity {
 			_cameraHandle.setValue(new CameraHandle(camera, cameraInfo));
 
 			// Check if camera supports auto-focus
-			if (_hasAutoFocus) {
-				if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-					_autoFocusMarker.setVisibility(View.INVISIBLE);
-					Log.i(TAG, "Auto-focus disabled");
-				}
-				else {
-					_autoFocusMarker.setVisibility(View.VISIBLE);
-					Log.i(TAG, "Auto-focus enabled");
-				}
-			}
+			initAutoFocusMarker();
 			
 			// Configure the camera
 			Camera.Parameters params = camera.getParameters();
@@ -413,6 +433,23 @@ public class MainActivity extends SherlockActivity {
 		filter.add(effect);
 		filter.add(new ImageBitmapFilter());
 		_preview.setFilter(filter);
+	}
+	
+	private void initSceneMode() {
+		CameraHandle handle = _cameraHandle.getValue();
+		if (handle != null) {
+			String defvalue = getResources().getString(R.string.pref_scenemode_default);
+			String value = _prefs.getString(Pictures.PREF_SCENEMODE, defvalue);
+			
+			try {
+				Camera.Parameters params = handle.camera.getParameters();
+				params.setSceneMode(value);
+				handle.camera.setParameters(params);
+			}
+			catch (Exception e) {
+				Log.e(TAG, "Failed to apply scenemode", e);
+			}
+		}
 	}
 	
 	private void stopPreview() {
@@ -468,6 +505,7 @@ public class MainActivity extends SherlockActivity {
         return -1;
 	}
 	
+	@SuppressLint("DefaultLocale")
 	private static String getBucketId() {
 		// Matches code in MediaProvider.computeBucketValues()
 		return String.valueOf(Pictures.getStorageDirectory().toString().toLowerCase().hashCode());
@@ -487,8 +525,30 @@ public class MainActivity extends SherlockActivity {
 		View layout = (View)button.getParent();
 		
 		button.setImageBitmap(result);
-		layout.setVisibility(result != null ? View.VISIBLE : View.INVISIBLE);
+		layout.setVisibility(result != null ? View.VISIBLE : View.GONE);
 		button.setEnabled(result != null);
+	}
+	
+	private void initAutoFocusMarker() {
+		if (_hasAutoFocus) {
+			CameraHandle handle = _cameraHandle.getValue();
+			
+			if (handle != null && handle.info.facing == Camera.CameraInfo.CAMERA_FACING_BACK && _detailedPreferences.getVisibility() != View.VISIBLE) {
+				_autoFocusMarker.setVisibility(View.VISIBLE);
+				Log.i(TAG, "Auto-focus enabled");
+			}
+			else {
+				_autoFocusMarker.setVisibility(View.GONE);
+				Log.i(TAG, "Auto-focus disabled");
+			}
+		}
+	}
+	
+	private void resetFocus() {
+		if (_detailedPreferences.getVisibility() == View.VISIBLE) {
+			_detailedPreferences.setVisibility(View.GONE);
+			initAutoFocusMarker();
+		}
 	}
 	
 	private class GetLastThumbnailTask extends AsyncTask<Void, Void, Bitmap> {
@@ -528,6 +588,7 @@ public class MainActivity extends SherlockActivity {
 		
 		@Override
 		public void onClick(View v) {
+			resetFocus();
 			takePhoto();
 		}
 
@@ -737,7 +798,7 @@ public class MainActivity extends SherlockActivity {
 					// Reinitialize the camera
 					initCamera();
 				}
-				else if (Pictures.PREF_FILTER.equals(key) || Pictures.PREF_CONTRAST.equals(key)) {
+				else if (Pictures.PREF_FILTER.equals(key) || Pictures.PREF_CONTRAST.equals(key) || Pictures.PREF_ORIENTATION.equals(key)) {
 					// Change the active image filter
 					initFilter();
 				}
@@ -750,7 +811,12 @@ public class MainActivity extends SherlockActivity {
 					// Change the active image filter
 					initFilter();
 				}
+				else if (Pictures.PREF_SCENEMODE.equals(key)) {
+					initSceneMode();
+				}
 			}
+			
+			_detailedPreferenceAdapter.notifyDataSetChanged();
 		}
 	}
 
@@ -794,21 +860,21 @@ public class MainActivity extends SherlockActivity {
 		}
 	}
 
-	/**
-	 * Starts the preferences activity
-	 */
-	/*
 	private class EditSettingsButtonListener implements OnClickListener {
 		@Override
 		public void onClick(View v) {
-			Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
-			startActivity(intent);
+			if (_detailedPreferences.getVisibility() == View.VISIBLE) {
+				resetFocus();
+			}
+			else {
+				_autoFocusMarker.setVisibility(View.GONE);
+				_detailedPreferences.setVisibility(View.VISIBLE);
+			}
 		}
 	}
-	*/
 
 	/**
-	 * Shows the contrast preference dialog
+	 * Shows the preference dialog for a specific preference.
 	 */
 	private class ListPreferenceDialogListener extends ListPreferenceDialog implements OnClickListener {
 		public ListPreferenceDialogListener(String prefname, String prefdefault, int title, int labels, int values) {
@@ -817,6 +883,7 @@ public class MainActivity extends SherlockActivity {
 		
 		@Override
 		public void onClick(View v) {
+			resetFocus();
 			show();
 		}
 	}
@@ -827,7 +894,9 @@ public class MainActivity extends SherlockActivity {
 	private class SwitchCameraButtonListener implements OnClickListener {
 		@Override
 		public void onClick(View v) {
-        	int cameraid = _prefs.getInt(PREF_CAMERA, 0) + 1;
+			resetFocus();
+
+			int cameraid = _prefs.getInt(PREF_CAMERA, 0) + 1;
         	if (cameraid >= _cameraCount) {
         		cameraid = 0;
         	}
@@ -844,7 +913,9 @@ public class MainActivity extends SherlockActivity {
 	private class FlashButtonListener implements OnClickListener {
 		@Override
 		public void onClick(View v) {
-    		CameraHandle handle = _cameraHandle.getValue();
+			resetFocus();
+
+			CameraHandle handle = _cameraHandle.getValue();
 			Camera.Parameters params = handle.camera.getParameters();
 			
     		if (!Camera.Parameters.FLASH_MODE_TORCH.equals(params.getFlashMode())) {
@@ -862,8 +933,6 @@ public class MainActivity extends SherlockActivity {
     		}
 		}
 	}
-
-	private boolean _singleTouch = false;
 	
 	private class GestureDetector extends ScaleGestureDetector implements OnTouchListener {
 		public GestureDetector() {
@@ -872,6 +941,8 @@ public class MainActivity extends SherlockActivity {
 
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
+			resetFocus();
+
 			boolean result = super.onTouchEvent(event);
 			switch (event.getAction()) {
 				case MotionEvent.ACTION_CANCEL:
@@ -996,6 +1067,169 @@ public class MainActivity extends SherlockActivity {
 					_zoomLevel.addChangeListener(_zoomLevelHandler);
 				}
 			}
+		}
+	}
+	
+	private abstract class PreferenceItem {
+		public final String _key;
+		public final int _defvalue, _title;
+		
+		public PreferenceItem(String key, int defvalue, int title) {
+			this._key = key;
+			this._defvalue = defvalue;
+			this._title = title;
+		}
+
+		public abstract String getValueLabel();
+		public abstract void onClick();
+	}
+	
+	private class ArrayPreferenceItem extends PreferenceItem {
+		public final int _labels, _values;
+		
+		public ArrayPreferenceItem(String key, int defvalue, int title, int labels, int values) {
+			super(key, defvalue, title);
+			_labels = labels;
+			_values = values;
+		}
+
+		@Override
+		public String getValueLabel() {
+			String[] labels = getResources().getStringArray(_labels);
+			String[] values = getResources().getStringArray(_values);
+			String defvalue = getResources().getString(_defvalue);
+			String value = _prefs.getString(_key, defvalue);
+
+			for (int i = 0; i < labels.length && i < values.length; i++) {
+				if (value.equals(values[i])) {
+					return labels[i];
+				}
+			}
+			
+			return "";
+		}
+		
+		@Override
+		public void onClick() {
+			String defvalue = getResources().getString(_defvalue);
+			ListPreferenceDialog dialog = new ListPreferenceDialog(
+				MainActivity.this, _prefs, _key, defvalue,
+				_title, _labels, _values);
+			dialog.show();
+		}
+	}
+
+	private class SceneModePreferenceItem extends PreferenceItem {
+		public SceneModePreferenceItem() {
+			super(Pictures.PREF_SCENEMODE, R.string.pref_scenemode_default, R.string.menu_option_scenemode);
+		}
+
+		@Override
+		public String getValueLabel() {
+			String defvalue = getResources().getString(_defvalue);
+			String value = _prefs.getString(_key, defvalue);
+			return getValueLabel(value);
+		}
+		
+		@Override
+		public void onClick() {
+			CameraHandle handle = _cameraHandle.getValue();
+			if (handle != null) {
+				List<String> modes = handle.camera.getParameters().getSupportedSceneModes();
+				if (modes != null) {
+					// Sort scene mode ids and keep "auto" first
+					modes.remove(Camera.Parameters.SCENE_MODE_AUTO);
+					
+					String[] values = new String[modes.size() + 1];
+					for (int i = 1; i < values.length; i++) {
+						values[i] = modes.get(i - 1);
+					}
+					
+					Arrays.sort(values, 1, values.length);
+					values[0] = Camera.Parameters.SCENE_MODE_AUTO;
+					
+					// Create uppercased labels
+					String[] labels = new String[values.length];
+					for (int i = 0; i < values.length; i++) {
+						labels[i] = getValueLabel(values[i]);
+					}
+					
+					// Show preference dialog
+					String defvalue = getResources().getString(_defvalue);
+					ListPreferenceDialog dialog = new ListPreferenceDialog(
+						MainActivity.this, _prefs, _key, defvalue,
+						_title, labels, values);
+					dialog.show();
+				}
+			}
+		}
+		
+		private String getValueLabel(String value) {
+			Resources resources = getResources();
+			int id = resources.getIdentifier("label_scenemode_" + value.toLowerCase().replaceAll("[^a-z]", "_"), "string", getPackageName());
+			if (id != 0) {
+				return resources.getString(id);
+			}
+			
+			return Strings.upperCaseWords(value);
+		}
+	}
+	
+	private class PreferenceAdapter extends BaseAdapter implements AdapterView.OnItemClickListener {
+		private List<PreferenceItem> _items = new ArrayList<PreferenceItem>();
+		
+		public PreferenceAdapter() {
+			_items.add(new SceneModePreferenceItem());
+			
+			_items.add(new ArrayPreferenceItem(
+				Pictures.PREF_RESOLUTION, R.string.pref_resolution_default, R.string.menu_option_resolution, 
+				R.array.pref_resolution_labels, R.array.pref_resolution_values));
+			
+			_items.add(new ArrayPreferenceItem(
+				Pictures.PREF_CONTRAST, R.string.pref_contrast_default, R.string.menu_option_contrast, 
+				R.array.pref_contrast_labels, R.array.pref_contrast_values));
+			
+			_items.add(new ArrayPreferenceItem(
+				Pictures.PREF_FILTER, R.string.pref_filter_default, R.string.menu_option_filter, 
+				R.array.pref_filter_labels, R.array.pref_filter_values));
+
+			_items.add(new ArrayPreferenceItem(
+				Pictures.PREF_ORIENTATION, R.string.pref_orientation_default, R.string.menu_option_orientation, 
+				R.array.pref_orientation_labels, R.array.pref_orientation_values));
+		}
+		
+		@Override
+		public int getCount() {
+			return _items.size();
+		}
+
+		@Override
+		public Object getItem(int position) {
+			return _items.get(position);
+		}
+
+		@Override
+		public long getItemId(int position) {
+			return position;
+		}
+
+		@Override
+		public View getView(int position, View convertView, ViewGroup parent) {
+		    LayoutInflater inflater = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+		    View rowView = inflater.inflate(R.layout.camera_preference_item, parent, false);
+		    TextView titleView = (TextView)rowView.findViewById(R.id.prefItemTitle);
+		    TextView valueView = (TextView)rowView.findViewById(R.id.prefItemValue);
+
+		    PreferenceItem item = _items.get(position);
+		    titleView.setText(item._title);
+		    valueView.setText(item.getValueLabel());
+		    return rowView;
+		}
+		
+		@Override
+		public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+			PreferenceItem item = _items.get(position);
+			item.onClick();
 		}
 	}
 }

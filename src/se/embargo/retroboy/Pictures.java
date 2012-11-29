@@ -40,6 +40,8 @@ public class Pictures {
 
 	public static final String PREF_CONTRAST = "contrast";
 	public static final String PREF_RESOLUTION = "resolution";
+	public static final String PREF_ORIENTATION = "orientation";
+	public static final String PREF_SCENEMODE = "scenemode";
 	private static final String PREF_IMAGECOUNT = "imagecount";
 	
 	private static final String DIRECTORY = "Retroboy";

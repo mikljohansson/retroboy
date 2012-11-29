@@ -34,7 +34,7 @@
 				style="@style/PreviewButton"
 				android:id="@+id/switchFilterButton" 
 				android:src="@drawable/ic_button_filter"
-				android:contentDescription="@string/menu_option_switch_filter"/>
+				android:contentDescription="@string/menu_option_filter"/>
 		</LinearLayout>
 				
 		<LinearLayout 

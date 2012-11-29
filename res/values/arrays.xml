@@ -3,16 +3,14 @@
 	<string name="pref_resolution_default">320x240</string>
     <string-array name="pref_resolution_labels">
 	    <item>Game Boy Camera</item>
-	    <item>Amstrad CPC464</item>
-	    <item>320x240</item>
+	    <item>320x200</item>
 		<item>480x320</item>
 	    <item>640x480</item>
         <item>960x720</item>
 	</string-array>
     <string-array name="pref_resolution_values">
 		<item>256x224</item>
-        <item>384x272</item>
-		<item>320x240</item>
+        <item>320x200</item>
         <item>480x360</item>
         <item>640x480</item>
 		<item>960x720</item>
@@ -47,4 +45,22 @@
 		<item>0</item>
 		<item>-50</item>
 	</string-array>
+	
+	<string name="pref_orientation_default">-1</string>
+    <string-array name="pref_orientation_labels">
+        <item>Auto</item>
+        <item>0\u00B0</item>
+        <item>90\u00B0</item>
+		<item>180\u00B0</item>
+		<item>270\u00B0</item>
+	</string-array>
+    <string-array name="pref_orientation_values">
+		<item>-1</item>
+		<item>0</item>
+		<item>90</item>
+		<item>180</item>
+		<item>270</item>
+	</string-array>
+
+	<string name="pref_scenemode_default">auto</string>
 </resources>

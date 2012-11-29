@@ -6,11 +6,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import se.embargo.core.Strings;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.core.graphic.Bitmaps;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.YuvFilter;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
@@ -41,7 +43,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 	private Camera.CameraInfo _cameraInfo;
 	
 	private volatile IImageFilter _filter;
-	private volatile Bitmaps.Transform _transform;
+	private volatile Bitmaps.Transform _transform, _prevTransform;
 	
 	/**
 	 * Statistics for framerate calculation
@@ -107,15 +109,6 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			initPreviewCallback();
 			initTransform();
 
-			// Clear all the canvas buffers
-			for (int i = 0; i < 3; i++) {
-				Canvas canvas = _holder.lockCanvas();
-				if (canvas != null) {
-					canvas.drawColor(Color.BLACK);
-					_holder.unlockCanvasAndPost(canvas);
-				}
-			}
-
 			// Begin the preview
 			_framestat = 0;
 			_laststat = System.nanoTime();
@@ -177,15 +170,38 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			// Get the current device orientation
 			WindowManager windowManager = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
 			int rotation = windowManager.getDefaultDisplay().getRotation();
-			Log.i(TAG, "Display rotation " + rotation + ", camera orientation " + _cameraInfo.orientation);
+			
+			// Check for orientation override
+			SharedPreferences prefs = getContext().getSharedPreferences(Pictures.PREFS_NAMESPACE, Context.MODE_PRIVATE);
+			int orientation = Strings.parseInt(prefs.getString(Pictures.PREF_ORIENTATION, "-1"), -1);
+			if (orientation < 0) {
+				orientation = _cameraInfo.orientation;
+			}
+
+			Log.i(TAG, "Display rotation " + rotation + ", camera orientation " + orientation);
 			
 			// Rotate and flip the image when drawing it onto the surface
+			int ewidth = _filter.getEffectiveWidth(_previewSize.width, _previewSize.height),
+				eheight = _filter.getEffectiveHeight(_previewSize.width, _previewSize.height);
+			
 			_transform = Pictures.createTransformMatrix(
-				_filter.getEffectiveWidth(_previewSize.width, _previewSize.height), 
-				_filter.getEffectiveHeight(_previewSize.width, _previewSize.height), 
-				_cameraInfo.facing, _cameraInfo.orientation, rotation, 
+				ewidth, eheight,
+				_cameraInfo.facing, orientation, rotation, 
 				Math.max(width, height), Math.min(width, height),
 				Bitmaps.FLAG_ENLARGE);
+		
+			// Clear all the canvas buffers
+			if (!_transform.equals(_prevTransform)) {
+				for (int i = 0; i < 3; i++) {
+					Canvas canvas = _holder.lockCanvas();
+					if (canvas != null) {
+						canvas.drawColor(Color.BLACK);
+						_holder.unlockCanvasAndPost(canvas);
+					}
+				}
+			}
+
+			_prevTransform = _transform;
 		}
 	}
 	
