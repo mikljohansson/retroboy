@@ -6,6 +6,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import se.embargo.core.Strings;
+import se.embargo.core.databinding.DataBindingContext;
+import se.embargo.core.databinding.IPropertyDescriptor;
+import se.embargo.core.databinding.PojoProperties;
 import se.embargo.core.databinding.observable.ChangeEvent;
 import se.embargo.core.databinding.observable.IChangeListener;
 import se.embargo.core.databinding.observable.IObservableValue;
@@ -109,6 +112,7 @@ public class MainActivity extends SherlockActivity {
 	
 	private CameraPreview _preview;
 	private IObservableValue<CameraHandle> _cameraHandle = new WritableValue<CameraHandle>();
+	private IObservableValue<String> _sceneMode = new WritableValue<String>(Camera.Parameters.SCENE_MODE_AUTO);
 	
 	private int _cameraCount;
 	private boolean _hasCameraFlash;
@@ -155,6 +159,11 @@ public class MainActivity extends SherlockActivity {
 	 * Tracks if a single finger is touching the screen.
 	 */
 	private boolean _singleTouch = false;
+	
+	/**
+	 * Context for all data bindings. 
+	 */
+	private DataBindingContext _binding = new DataBindingContext();
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -265,6 +274,11 @@ public class MainActivity extends SherlockActivity {
 		// Connect the zoom support
 		_cameraHandle.addChangeListener(new ZoomCameraHandler());
 		_preview.setOnTouchListener(new GestureDetector());
+		
+		// Connect the scene mode parameter
+		_binding.bindValue(
+			PojoProperties.value(new SceneModeDescriptor()).observe(_cameraHandle), 
+			_sceneMode);
 		
 		// Initialize the image filter
 		initFilter();
@@ -387,7 +401,7 @@ public class MainActivity extends SherlockActivity {
 			Camera camera = Camera.open(cameraid);
 			Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
 			Camera.getCameraInfo(cameraid, cameraInfo);
-			_cameraHandle.setValue(new CameraHandle(camera, cameraInfo));
+			_cameraHandle.setValue(new CameraHandle(camera, cameraInfo, cameraid));
 
 			// Check if camera supports auto-focus
 			initAutoFocusMarker();
@@ -432,23 +446,6 @@ public class MainActivity extends SherlockActivity {
 		filter.add(effect);
 		filter.add(new ImageBitmapFilter());
 		_preview.setFilter(filter);
-	}
-	
-	private void initSceneMode() {
-		CameraHandle handle = _cameraHandle.getValue();
-		if (handle != null) {
-			String defvalue = getResources().getString(R.string.pref_scenemode_default);
-			String value = _prefs.getString(Pictures.PREF_SCENEMODE, defvalue);
-			
-			try {
-				Camera.Parameters params = handle.camera.getParameters();
-				params.setSceneMode(value);
-				handle.camera.setParameters(params);
-			}
-			catch (Exception e) {
-				Log.e(TAG, "Failed to apply scenemode", e);
-			}
-		}
 	}
 	
 	private void stopPreview() {
@@ -570,10 +567,12 @@ public class MainActivity extends SherlockActivity {
 	private static class CameraHandle {
 		public final Camera camera;
 		public final Camera.CameraInfo info;
+		public final int id;
 		
-		public CameraHandle(Camera camera, Camera.CameraInfo info) {
+		public CameraHandle(Camera camera, Camera.CameraInfo info, int id) {
 			this.camera = camera;
 			this.info = info;
+			this.id = id;
 		}
 	}
 	
@@ -809,9 +808,6 @@ public class MainActivity extends SherlockActivity {
 					
 					// Change the active image filter
 					initFilter();
-				}
-				else if (Pictures.PREF_SCENEMODE.equals(key)) {
-					initSceneMode();
 				}
 			}
 			
@@ -1070,12 +1066,9 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	private abstract class PreferenceItem {
-		public final String _key;
-		public final int _defvalue, _title;
+		public final int _title;
 		
-		public PreferenceItem(String key, int defvalue, int title) {
-			this._key = key;
-			this._defvalue = defvalue;
+		public PreferenceItem(int title) {
 			this._title = title;
 		}
 
@@ -1084,10 +1077,13 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	private class ArrayPreferenceItem extends PreferenceItem {
-		public final int _labels, _values;
+		public final String _key;
+		public final int _defvalue, _labels, _values;
 		
 		public ArrayPreferenceItem(String key, int defvalue, int title, int labels, int values) {
-			super(key, defvalue, title);
+			super(title);
+			_defvalue = defvalue;
+			_key = key;
 			_labels = labels;
 			_values = values;
 		}
@@ -1120,14 +1116,12 @@ public class MainActivity extends SherlockActivity {
 
 	private class SceneModePreferenceItem extends PreferenceItem {
 		public SceneModePreferenceItem() {
-			super(Pictures.PREF_SCENEMODE, R.string.pref_scenemode_default, R.string.menu_option_scenemode);
+			super(R.string.menu_option_scenemode);
 		}
 
 		@Override
 		public String getValueLabel() {
-			String defvalue = getResources().getString(_defvalue);
-			String value = _prefs.getString(_key, defvalue);
-			return getValueLabel(value);
+			return getValueLabel(_sceneMode.getValue());
 		}
 		
 		@Override
@@ -1154,16 +1148,19 @@ public class MainActivity extends SherlockActivity {
 					}
 					
 					// Show preference dialog
-					String defvalue = getResources().getString(_defvalue);
 					ListPreferenceDialog dialog = new ListPreferenceDialog(
-						MainActivity.this, _prefs, _key, defvalue,
-						_title, labels, values);
+						MainActivity.this, _sceneMode, _title, labels, values);
 					dialog.show();
 				}
 			}
 		}
 		
+		@SuppressLint("DefaultLocale")
 		private String getValueLabel(String value) {
+			if (value == null) {
+				value = Camera.Parameters.SCENE_MODE_AUTO;
+			}
+			
 			Resources resources = getResources();
 			int id = resources.getIdentifier("label_scenemode_" + value.toLowerCase().replaceAll("[^a-z]", "_"), "string", getPackageName());
 			if (id != 0) {
@@ -1174,15 +1171,46 @@ public class MainActivity extends SherlockActivity {
 		}
 	}
 	
-	private class PreferenceAdapter extends BaseAdapter implements AdapterView.OnItemClickListener {
+	private class SceneModeDescriptor implements IPropertyDescriptor<CameraHandle, String> {
+		@Override
+		public String getValue(CameraHandle object) {
+			if (object != null) {
+				Camera.Parameters params = object.camera.getParameters();
+				if (params.getSupportedSceneModes() != null) {
+					return params.getSceneMode();
+				}
+			}
+			
+			return Camera.Parameters.SCENE_MODE_AUTO;
+		}
+
+		@Override
+		public void setValue(CameraHandle object, String value) {
+			if (object != null) {
+				try {
+					Camera.Parameters params = object.camera.getParameters();
+					if (params.getSupportedSceneModes() != null) {
+						params.setSceneMode(value);
+						object.camera.setParameters(params);
+						Log.i(TAG, "Applied scene mode: " + value);
+					}
+				}
+	    		catch (Exception e) {
+	    			Log.e(TAG, "Failed to set scene mode", e);
+	    		}
+			}
+		}
+	}
+	
+	private class PreferenceAdapter extends BaseAdapter implements AdapterView.OnItemClickListener, IChangeListener<String> {
 		private List<PreferenceItem> _items = new ArrayList<PreferenceItem>();
 		
 		public PreferenceAdapter() {
-			_items.add(new SceneModePreferenceItem());
-			
 			_items.add(new ArrayPreferenceItem(
 				Pictures.PREF_RESOLUTION, R.string.pref_resolution_default, R.string.menu_option_resolution, 
 				R.array.pref_resolution_labels, R.array.pref_resolution_values));
+			
+			_items.add(new SceneModePreferenceItem());
 			
 			_items.add(new ArrayPreferenceItem(
 				Pictures.PREF_CONTRAST, R.string.pref_contrast_default, R.string.menu_option_contrast, 
@@ -1195,6 +1223,8 @@ public class MainActivity extends SherlockActivity {
 			_items.add(new ArrayPreferenceItem(
 				Pictures.PREF_ORIENTATION, R.string.pref_orientation_default, R.string.menu_option_orientation, 
 				R.array.pref_orientation_labels, R.array.pref_orientation_values));
+			
+			_sceneMode.addChangeListener(this);
 		}
 		
 		@Override
@@ -1232,6 +1262,11 @@ public class MainActivity extends SherlockActivity {
 		public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 			PreferenceItem item = _items.get(position);
 			item.onClick();
+		}
+
+		@Override
+		public void handleChange(ChangeEvent<String> event) {
+			notifyDataSetChanged();
 		}
 	}
 }

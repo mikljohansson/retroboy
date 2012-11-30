@@ -41,7 +41,6 @@ public class Pictures {
 	public static final String PREF_CONTRAST = "contrast";
 	public static final String PREF_RESOLUTION = "resolution";
 	public static final String PREF_ORIENTATION = "orientation";
-	public static final String PREF_SCENEMODE = "scenemode";
 	private static final String PREF_IMAGECOUNT = "imagecount";
 	
 	private static final String DIRECTORY = "Retroboy";
@@ -190,7 +189,8 @@ public class Pictures {
 		}
 
 		if (PREF_FILTER_COMMODORE_64.equals(filtertype)) {
-			return new BayerFilter(new BucketPalette(new YuvPalette(Palettes.COMMODORE_64_GAMMA_ADJUSTED)), true);
+			return new AmstradFilter(context, Distances.YUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED);
+			//return new BayerFilter(new BucketPalette(new YuvPalette(Palettes.COMMODORE_64_GAMMA_ADJUSTED)), true);
 			//return new YliluomaTriFilter(context, Distances.YUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED);
 			//return new RasterFilter(context, Distances.YUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED);
 		}
