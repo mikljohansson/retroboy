@@ -45,7 +45,6 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.util.FloatMath;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -430,7 +429,7 @@ public class MainActivity extends SherlockActivity {
 			
 			// Start the preview
 			Log.i(TAG, "Starting preview");
-			_preview.setCamera(camera, cameraInfo);
+			_preview.setCamera(camera, cameraInfo, cameraid);
 		}
 	}
 	
@@ -459,7 +458,7 @@ public class MainActivity extends SherlockActivity {
 		CameraHandle handle = _cameraHandle.getValue();
 		if (handle != null) {
 			Log.i(TAG, "Releasing camera");
-			_preview.setCamera(null, null);
+			_preview.setCamera(null, null, -1);
 			handle.camera.release();
 			_cameraHandle.setValue(null);
 		}
@@ -544,6 +543,16 @@ public class MainActivity extends SherlockActivity {
 		if (_detailedPreferences.getVisibility() == View.VISIBLE) {
 			_detailedPreferences.setVisibility(View.GONE);
 			initAutoFocusMarker();
+		}
+	}
+	
+	private void toggleDetailedPreferences() {
+		if (_detailedPreferences.getVisibility() != View.VISIBLE) {
+			_autoFocusMarker.setVisibility(View.GONE);
+			_detailedPreferences.setVisibility(View.VISIBLE);
+		}
+		else {
+			resetFocus();
 		}
 	}
 	
@@ -707,13 +716,16 @@ public class MainActivity extends SherlockActivity {
 			Pictures.Resolution resolution = Pictures.getResolution(MainActivity.this, _prefs);
 			int contrast = Pictures.getContrast(MainActivity.this, _prefs);
 
+			// Check for orientation override
+			int orientation = Pictures.getCameraOrientation(_prefs, handle.info, handle.id);
+			
 			// Create the image filter pipeline
 			IImageFilter effect = Pictures.createEffectFilter(MainActivity.this);
 			YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter());
 			Bitmaps.Transform transform = Pictures.createTransformMatrix(
 				yuvFilter.getEffectiveWidth(size.width, size.height), 
 				yuvFilter.getEffectiveHeight(size.width, size.height), 
-				handle.info.facing, handle.info.orientation, rotation,
+				handle.info.facing, orientation, rotation,
 				resolution);
 			
 			CompositeFilter filter = new CompositeFilter();
@@ -796,7 +808,7 @@ public class MainActivity extends SherlockActivity {
 					// Reinitialize the camera
 					initCamera();
 				}
-				else if (Pictures.PREF_FILTER.equals(key) || Pictures.PREF_CONTRAST.equals(key) || Pictures.PREF_ORIENTATION.equals(key)) {
+				else if (Pictures.PREF_FILTER.equals(key) || Pictures.PREF_CONTRAST.equals(key) || key.startsWith(Pictures.PREF_ORIENTATION)) {
 					// Change the active image filter
 					initFilter();
 				}
@@ -858,13 +870,7 @@ public class MainActivity extends SherlockActivity {
 	private class EditSettingsButtonListener implements OnClickListener {
 		@Override
 		public void onClick(View v) {
-			if (_detailedPreferences.getVisibility() == View.VISIBLE) {
-				resetFocus();
-			}
-			else {
-				_autoFocusMarker.setVisibility(View.GONE);
-				_detailedPreferences.setVisibility(View.VISIBLE);
-			}
+			toggleDetailedPreferences();
 		}
 	}
 
@@ -992,7 +998,7 @@ public class MainActivity extends SherlockActivity {
 		
 		@Override
 		public void handleChange(ChangeEvent<Float> event) {
-			int value = (int)FloatMath.floor(((float)_max) * (event.getValue() / ZOOM_MAX));
+			int value = (int)Math.floor(((float)_max) * (event.getValue() / ZOOM_MAX));
 			if (value != _prev) {
 				CameraHandle handle = _cameraHandle.getValue();
 				if (handle != null) {
@@ -1022,7 +1028,7 @@ public class MainActivity extends SherlockActivity {
 		
 		@Override
 		public void handleChange(ChangeEvent<Float> event) {
-			int value = (int)FloatMath.floor(((float)_max) * (event.getValue() / ZOOM_MAX));
+			int value = (int)Math.floor(((float)_max) * (event.getValue() / ZOOM_MAX));
 			if (value != _prev) {
 				CameraHandle handle = _cameraHandle.getValue();
 				if (handle != null) {
@@ -1077,7 +1083,7 @@ public class MainActivity extends SherlockActivity {
 	}
 	
 	private class ArrayPreferenceItem extends PreferenceItem {
-		public final String _key;
+		private final String _key;
 		public final int _defvalue, _labels, _values;
 		
 		public ArrayPreferenceItem(String key, int defvalue, int title, int labels, int values) {
@@ -1093,7 +1099,7 @@ public class MainActivity extends SherlockActivity {
 			String[] labels = getResources().getStringArray(_labels);
 			String[] values = getResources().getStringArray(_values);
 			String defvalue = getResources().getString(_defvalue);
-			String value = _prefs.getString(_key, defvalue);
+			String value = _prefs.getString(getPreferenceKey(), defvalue);
 
 			for (int i = 0; i < labels.length && i < values.length; i++) {
 				if (value.equals(values[i])) {
@@ -1108,9 +1114,31 @@ public class MainActivity extends SherlockActivity {
 		public void onClick() {
 			String defvalue = getResources().getString(_defvalue);
 			ListPreferenceDialog dialog = new ListPreferenceDialog(
-				MainActivity.this, _prefs, _key, defvalue,
+				MainActivity.this, _prefs, getPreferenceKey(), defvalue,
 				_title, _labels, _values);
 			dialog.show();
+		}
+		
+		protected String getPreferenceKey() {
+			return _key;
+		}
+	}
+	
+	private class OrientationPreferenceItem extends ArrayPreferenceItem {
+		public OrientationPreferenceItem(String key, int defvalue, int title, int labels, int values) {
+			super(key, defvalue, title, labels, values);
+		}
+		
+		@Override
+		protected String getPreferenceKey() {
+			String key = super.getPreferenceKey();
+			CameraHandle handle = _cameraHandle.getValue();
+			
+			if (handle != null) {
+				return key + "_" + handle.id;
+			}
+			
+			return key;
 		}
 	}
 
@@ -1220,7 +1248,7 @@ public class MainActivity extends SherlockActivity {
 				Pictures.PREF_FILTER, R.string.pref_filter_default, R.string.menu_option_filter, 
 				R.array.pref_filter_labels, R.array.pref_filter_values));
 
-			_items.add(new ArrayPreferenceItem(
+			_items.add(new OrientationPreferenceItem(
 				Pictures.PREF_ORIENTATION, R.string.pref_orientation_default, R.string.menu_option_orientation, 
 				R.array.pref_orientation_labels, R.array.pref_orientation_values));
 			

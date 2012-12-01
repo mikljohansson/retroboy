@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import se.embargo.core.Strings;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.core.graphic.Bitmaps;
 import se.embargo.retroboy.filter.IImageFilter;
@@ -41,6 +40,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 	private Camera _camera;
 	private Camera.Size _previewSize;
 	private Camera.CameraInfo _cameraInfo;
+	private int _cameraId;
 	private int _bufferSize;
 	
 	private IImageFilter _filter;
@@ -81,7 +81,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		addView(_surface);
 	}
 
-	public synchronized void setCamera(Camera camera, Camera.CameraInfo cameraInfo) {
+	public synchronized void setCamera(Camera camera, Camera.CameraInfo cameraInfo, int cameraId) {
 		if (_camera != null) {
 			// Calling these before release() crashes the GT-P7310 with Android 4.0.4
 			//_camera.setPreviewCallbackWithBuffer(null);
@@ -93,6 +93,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		
 		_camera = camera;
 		_cameraInfo = cameraInfo;
+		_cameraId = cameraId;
 		
 		if (_camera != null) {
 			_camera.setErrorCallback(this);
@@ -177,11 +178,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			
 			// Check for orientation override
 			SharedPreferences prefs = getContext().getSharedPreferences(Pictures.PREFS_NAMESPACE, Context.MODE_PRIVATE);
-			int orientation = Strings.parseInt(prefs.getString(Pictures.PREF_ORIENTATION, "-1"), -1);
-			if (orientation < 0) {
-				orientation = _cameraInfo.orientation;
-			}
-
+			int orientation = Pictures.getCameraOrientation(prefs, _cameraInfo, _cameraId);
 			Log.i(TAG, "Display rotation " + rotation + ", camera orientation " + orientation);
 			
 			// Rotate and flip the image when drawing it onto the surface
@@ -300,8 +297,8 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 					// Release buffer back to camera while holding lock
 					_camera.addCallbackBuffer(_buffer.frame);
 
-					// Check for out-of-sync frames
-					if (_lastframeseq > _frameseq) {
+					// Check for out-of-sync frames or frames from old transform
+					if (_lastframeseq > _frameseq || CameraPreview.this._transform != _transform) {
 						Log.i(TAG, "Dropped frame " + _frameseq + ", last frame was " + _lastframeseq);
 						return;
 					}

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import se.embargo.core.Strings;
 import se.embargo.core.graphic.Bitmaps;
 import se.embargo.retroboy.color.BucketPalette;
 import se.embargo.retroboy.color.Distances;
@@ -19,6 +20,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.hardware.Camera;
+import android.hardware.Camera.CameraInfo;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -268,5 +270,14 @@ public class Pictures {
 		}
 		
 		return createTransformMatrix(inputwidth, inputheight, facing, orientation, rotation, maxwidth, maxheight, 0);
+	}
+
+	public static int getCameraOrientation(SharedPreferences prefs, Camera.CameraInfo info, int cameraId) {
+		int orientation = Strings.parseInt(prefs.getString(PREF_ORIENTATION + "_" + cameraId, "-1"), -1);
+		if (orientation < 0) {
+			orientation = info.orientation;
+		}
+		
+		return orientation;
 	}
 }

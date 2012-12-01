@@ -3,6 +3,7 @@ package se.embargo.retroboy;
 import java.io.File;
 
 import se.embargo.core.graphic.Bitmaps;
+import se.embargo.retroboy.filter.ColorFilter;
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
@@ -337,7 +338,10 @@ public class ImageActivity extends SherlockActivity {
 			CompositeFilter filter = new CompositeFilter();
 			
 			IImageFilter effect = Pictures.createEffectFilter(ImageActivity.this);
-			if (!effect.isColorFilter()) {
+			if (effect.isColorFilter()) {
+				filter.add(new ColorFilter(contrast));
+			}
+			else {
 				filter.add(new MonochromeFilter(contrast));
 			}
 			

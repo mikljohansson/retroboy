@@ -2,10 +2,10 @@ package se.embargo.retroboy.filter;
 
 import java.util.Arrays;
 
-public class MonochromeFilter extends AbstractFilter {
+public class ColorFilter extends AbstractFilter {
 	private float _factor;
 	
-	public MonochromeFilter(int contrast) {
+	public ColorFilter(int contrast) {
 		_factor = (259.0f * ((float)contrast + 255.0f)) / (255.0f * (259.0f - (float)contrast));
 	}
 
@@ -20,17 +20,18 @@ public class MonochromeFilter extends AbstractFilter {
 		for (int i = 0, last = buffer.imagewidth * buffer.imageheight; i != last; i++) {
 			final int pixel = image[i];
 			
-			// Convert to monochrome
-			final float lum = (int)(0.299 * (pixel & 0xff) + 0.587 * ((pixel & 0xff00) >> 8) + 0.114 * ((pixel & 0xff0000) >> 16));
-			
-			// Apply the contrast adjustment
-			final int adjusted = Math.min(Math.max(0, (int)(factor * (lum - 128.0f) + 128.0f)), 255);
+			// Extract color components and apply the contrast adjustment
+			final int r = Math.min(Math.max(0, (int)(factor * ((pixel & 0xff) - 128.0f) + 128.0f)), 255),
+					  g = Math.min(Math.max(0, (int)(factor * (((pixel & 0xff00) >> 8) - 128.0f) + 128.0f)), 255),
+					  b = Math.min(Math.max(0, (int)(factor * (((pixel & 0xff0000) >> 16) - 128.0f) + 128.0f)), 255);
 
 			// Build the histogram used to calculate the global threshold
+			final float lum = (int)(0.299 * (pixel & 0xff) + 0.587 * ((pixel & 0xff00) >> 8) + 0.114 * ((pixel & 0xff0000) >> 16));
+			final int adjusted = Math.min(Math.max(0, (int)(factor * (lum - 128.0f) + 128.0f)), 255);
 			histogram[adjusted]++;
 			
 			// Output the pixel, but keep alpha channel intact
-			image[i] = (pixel & 0xff000000) | (adjusted << 16) | (adjusted << 8) | adjusted;
+			image[i] = (pixel & 0xff000000) | (b << 16) | (g << 8) | r;
 		}
 
 		// Calculate the global Otsu threshold
