@@ -6,9 +6,21 @@ import se.embargo.retroboy.color.IPalette;
 import se.embargo.retroboy.graphic.DitherMatrixes;
 
 public class BayerFilter extends AbstractFilter {
-	public static final int[] _matrix = DitherMatrixes.MATRIX_8x8;
-	private static final int _patternsize = 8;
+	/**
+	 * Dither matrix.
+	 */
+	private static final int[] _matrix = DitherMatrixes.MATRIX_8x8;
+	
+	/**
+	 * Length of matrix side.
+	 */
+	private static final int _patternsize = (int)Math.sqrt(_matrix.length);
 
+	/**
+	 * Ratio of color mixing.
+	 */
+	private static final int _mixingRatio = _matrix.length / 2;
+	
 	private final ForBody<ImageBuffer> _body;
 	
 	public BayerFilter(IPalette palette, boolean color) {
@@ -37,9 +49,6 @@ public class BayerFilter extends AbstractFilter {
 	    	final int[] image = buffer.image.array();
 			final int width = buffer.imagewidth;
 			
-			// Factor used to compensate for too dark or bright images
-			final float factor = 128f / buffer.threshold;
-
 			for (int y = it; y < last; y++) {
 				final int yi = y * width,
 						  yt = (y % _patternsize) * _patternsize;
@@ -48,9 +57,11 @@ public class BayerFilter extends AbstractFilter {
 					final int i = x + yi;
 					final int pixel = image[i];
 					final int threshold = _matrix[x % _patternsize + yt];
-					final int r1 = Math.max(0, Math.min((int)((float)(pixel & 0x000000ff) * factor) + threshold - 32, 255));
-					final int g1 = Math.max(0, Math.min((int)((float)((pixel & 0x0000ff00) >> 8) * factor) + threshold - 32, 255));
-					final int b1 = Math.max(0, Math.min((int)((float)((pixel & 0x00ff0000) >> 16) * factor) + threshold - 32, 255));
+
+					final int r1 = Math.max(0, Math.min((pixel & 0x000000ff) + threshold - _mixingRatio, 255));
+					final int g1 = Math.max(0, Math.min(((pixel & 0x0000ff00) >> 8) + threshold - _mixingRatio, 255));
+					final int b1 = Math.max(0, Math.min(((pixel & 0x00ff0000) >> 16) + threshold - _mixingRatio, 255));
+					
 					image[i] = (pixel & 0xff000000) | (_palette.getNearestColor(r1, g1, b1) & 0xffffff);
 				}
 			}
@@ -71,9 +82,6 @@ public class BayerFilter extends AbstractFilter {
 	    	final int[] image = buffer.image.array();
 			final int width = buffer.imagewidth;
 			
-			// Factor used to compensate for too dark or bright images
-			final float factor = 128f / buffer.threshold;
-
 			for (int y = it; y < last; y++) {
 				final int yi = y * width,
 						  yt = (y % _patternsize) * _patternsize;
@@ -81,9 +89,10 @@ public class BayerFilter extends AbstractFilter {
 				for (int x = 0; x < width; x++) {
 					final int i = x + yi;
 					final int pixel = image[i];
-					final float mono = pixel & 0xff;
 					final int threshold = _matrix[x % _patternsize + yt];
-					final int lum = Math.max(0,  Math.min((int)(mono * factor) + threshold - 32, 255));
+
+					final int lum = Math.max(0,  Math.min((pixel & 0xff) + threshold - _mixingRatio, 255));
+					
 					image[i] = (pixel & 0xff000000) | _palette[lum];
 				}
 			}

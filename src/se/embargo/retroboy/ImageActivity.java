@@ -2,6 +2,7 @@ package se.embargo.retroboy;
 
 import java.io.File;
 
+import se.embargo.core.concurrent.ProgressTask;
 import se.embargo.core.graphic.Bitmaps;
 import se.embargo.retroboy.filter.ColorFilter;
 import se.embargo.retroboy.filter.CompositeFilter;
@@ -9,7 +10,6 @@ import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.MonochromeFilter;
 import se.embargo.retroboy.widget.ListPreferenceDialog;
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
@@ -17,7 +17,6 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -293,25 +292,15 @@ public class ImageActivity extends SherlockActivity {
 	/**
 	 * Process an image read from disk
 	 */
-	private class ProcessImageTask extends AsyncTask<Void, Void, File> {
+	private class ProcessImageTask extends ProgressTask<Void, Void, File> {
 		private final ImageInfo _inputinfo;
 		private final String _previouspath;
-		private ProgressDialog _progress;
 
 		public ProcessImageTask(ImageInfo inputinfo, String outputpath) {
+			super(ImageActivity.this, R.string.title_saving_image, R.string.msg_saving_image);
 			_inputinfo = inputinfo;
 			_previouspath = outputpath;
 			_task = this;
-		}
-		
-		@Override
-		protected void onPreExecute() {
-			// Show a progress dialog
-			_progress = new ProgressDialog(ImageActivity.this);
-			_progress.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-			_progress.setIndeterminate(true);
-			_progress.setMessage(getResources().getString(R.string.msg_saving_image));
-			_progress.show();
 		}
 
 		@Override
@@ -358,9 +347,12 @@ public class ImageActivity extends SherlockActivity {
 		}
 		
 		@Override
-		protected void onCancelled() {
-			// Close the progress dialog
-			dismiss();
+		protected void onCancelled(File result) {
+			if (_task == this) {
+				_task = null;
+			}
+
+			super.onCancelled(result);
 		}
 		
 		@Override
@@ -377,16 +369,11 @@ public class ImageActivity extends SherlockActivity {
 				Log.w(TAG, "Failed to read created image " + result.toString());
 			}
 			
-			// Close the progress dialog
-			dismiss();
-		}
-		
-		private void dismiss() {
 			if (_task == this) {
 				_task = null;
 			}
-			
-			_progress.dismiss();
+
+			super.onPostExecute(result);
 		}
 	}
 }

@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import se.embargo.core.Strings;
+import se.embargo.core.concurrent.ProgressTask;
 import se.embargo.core.databinding.DataBindingContext;
 import se.embargo.core.databinding.IPropertyDescriptor;
 import se.embargo.core.databinding.PojoProperties;
@@ -21,7 +22,6 @@ import se.embargo.retroboy.filter.TransformFilter;
 import se.embargo.retroboy.filter.YuvFilter;
 import se.embargo.retroboy.widget.ListPreferenceDialog;
 import android.annotation.SuppressLint;
-import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -702,12 +702,12 @@ public class MainActivity extends SherlockActivity {
 	/**
 	 * Process an camera preview frame
 	 */
-	private class ProcessFrameTask extends AsyncTask<Void, Void, Bitmap> {
+	private class ProcessFrameTask extends ProgressTask<Void, Void, Bitmap> {
 		private IImageFilter _filter;
 		private IImageFilter.ImageBuffer _buffer;
-		private ProgressDialog _progress;
 
 		public ProcessFrameTask(CameraHandle handle, byte[] data, int rotation) {
+			super(MainActivity.this, R.string.title_saving_image, R.string.msg_saving_image);
 			Camera.Size size = handle.camera.getParameters().getPreviewSize();
 			_buffer = new IImageFilter.ImageBuffer(data, size.width, size.height);
 			_task = this;
@@ -737,16 +737,6 @@ public class MainActivity extends SherlockActivity {
 		}
 		
 		@Override
-		protected void onPreExecute() {
-			// Show a progress dialog
-			_progress = new ProgressDialog(MainActivity.this);
-			_progress.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-			_progress.setIndeterminate(true);
-			_progress.setMessage(getResources().getString(R.string.msg_saving_image));
-			_progress.show();
-		}
-
-		@Override
 		protected Bitmap doInBackground(Void... params) {
 			Log.d(TAG, "Processing captured image");
 			
@@ -765,32 +755,28 @@ public class MainActivity extends SherlockActivity {
 		protected void onCancelled() {
 			Log.w(TAG, "Image processing was cancelled");
 			
-			// Close the progress dialog and restart preview
-			dismiss();
+			if (_task == this) {
+				_task = null;
+			}
+			
+			super.onCancelled();
 		}
 		
 		@Override
 		protected void onPostExecute(Bitmap result) {
+			Log.i(TAG, "Successfully captured image");
+
 			// Update the last image thumbnail
 			setPreviousThumbnail(result);
 			
-			// Close the progress dialog and restart preview
-			dismiss();
+			// Restart preview
+			_preview.initPreviewCallback();
 
-			Log.i(TAG, "Successfully captured image");
-		}
-			
-		private void dismiss() {
 			if (_task == this) {
 				_task = null;
 			}
-
-			_progress.dismiss();
 			
-			// Continue preview
-			if (!isCancelled()) {
-				_preview.initPreviewCallback();
-			}
+			super.onPostExecute(result);
 		}
 	}
 	

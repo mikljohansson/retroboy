@@ -16,4 +16,8 @@ public class DitherMatrixes {
     	13, 5, 15, 7, 
     	4, 12, 2, 10, 
     	15, 8, 14, 6};
+
+	public static final int[] MATRIX_2x2 = new int[] {
+    	0, 2,
+		3, 1};
 }

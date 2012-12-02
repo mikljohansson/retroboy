@@ -104,8 +104,8 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 				}
 
 				is.close();
-				_init.countDown();
 				Log.i(TAG, "Cached init: " + (((double)System.nanoTime() - (double)ts) / 1000000000d) + "s");
+				_init.countDown();
 				return;
 			}
 
@@ -115,7 +115,7 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 		
 		// Show a progress dialog while building the mixing plans
 		if (Parallel.isGuiThread()) {
-			new InitializeTask(_context, filename).execute();
+			new InitializeTask(filename).execute();
 		}
 		else {
 			init(filename);
@@ -168,15 +168,15 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 		}
 		catch (IOException e) {}
 
-		_init.countDown();
 		Log.i(TAG, "Full init: " + (((double)System.nanoTime() - (double)ts) / 1000000000d) + "s");
+		_init.countDown();
     }
     
     private class InitializeTask extends ProgressTask<Void, Void, Void> {
 		private final String _filename;
     	
-    	public InitializeTask(Context context, String filename) {
-			super(context, R.string.title_init_filter, R.string.msg_init_filter);
+    	public InitializeTask(String filename) {
+			super(_context, R.string.title_init_filter, R.string.msg_init_filter);
 			_filename = filename;
 		}
 

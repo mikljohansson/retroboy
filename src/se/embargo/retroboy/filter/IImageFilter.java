@@ -50,9 +50,6 @@ public interface IImageFilter {
 		public int imagewidth, imageheight;
 
 		public Bitmap bitmap;
-
-		public int[] histogram = new int[256];
-		public int threshold = 128;
 		
 		public ImageBuffer(byte[] frame, int framewidth, int frameheight) {
 			this.frame = frame;

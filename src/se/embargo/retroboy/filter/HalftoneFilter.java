@@ -9,7 +9,7 @@ import se.embargo.core.concurrent.Parallel;
 
 public class HalftoneFilter extends AbstractFilter {
     private static final int _patternsize = 6;
-	private static final float[] _thresholds = new float[_patternsize * _patternsize];
+	private static final int[] _thresholds = new int[_patternsize * _patternsize];
 	
 	private static class FilterItem {
 		public ImageBuffer buffer;
@@ -68,9 +68,6 @@ public class HalftoneFilter extends AbstractFilter {
 				}
 			}
 			
-			// Factor used to offset the threshold to compensate for too dark or bright images
-			final float factor = (float)item.buffer.threshold / 128;
-			
 			// Apply the threshold for each dithering cell
 			for (int y = it; y < last; y++) {
 				final int yo = y * width, 
@@ -83,7 +80,7 @@ public class HalftoneFilter extends AbstractFilter {
 					final int mono = (cells[ii] / _thresholds.length) & 0xff;
 					
 					// Apply the threshold
-					final int threshold = (int)(_thresholds[x % _patternsize + yt] * factor);
+					final int threshold = _thresholds[x % _patternsize + yt];
 					final int lum = mono <= threshold ? 0 : 255;
 					image[oi] = (image[oi] & 0xff000000) | (lum << 16) | (lum << 8) | lum;
 				}

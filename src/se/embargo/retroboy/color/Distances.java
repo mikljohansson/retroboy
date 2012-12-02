@@ -11,16 +11,16 @@ public class Distances {
     		return "luminance";
     	}
     	
-    	public int get(int r1,int g1,int b1, int r2,int g2,int b2) {
-			final int l1 = r1 * 299 + g1 * 587 + b1 * 114;
-			final int l2 = r2 * 299 + g2 * 587 + b2 * 114;
-			final int dl = (l1 - l2) / 1000;
+    	public double get(int r1,int g1,int b1, int r2,int g2,int b2) {
+    		final double l1 = ((double)(r1 * 299 + g1 * 587 + b1 * 114)) / 255000d;
+			final double l2 = ((double)(r2 * 299 + g2 * 587 + b2 * 114)) / 255000d;
+			final double dl = l1 - l2;
 			
-			final int dr = r1 - r2,
-					  dg = g1 - g2,
-					  db = b1 - b2;
+			final double dr = r1 - r2,
+					  	 dg = g1 - g2,
+					  	 db = b1 - b2;
 			
-			return (dr * dr * 299 + dg * dg * 587 + db * db * 114) / 4000 * 3 + dl * dl;
+			return (dr * dr * 0.299d + dg * dg * 0.587d + db * db * 0.114d) * 0.75d + dl * dl;
     	}
     };
     
@@ -34,12 +34,12 @@ public class Distances {
     		return "yuv";
     	}
 
-    	public int get(int r1,int g1,int b1, int r2,int g2,int b2) {
-			final int dr = r1 - r2,
-			  	  dg = g1 - g2,
-			  	  db = b1 - b2;
+    	public double get(int r1,int g1,int b1, int r2,int g2,int b2) {
+			final double dr = r1 - r2,
+	  			  	 	 dg = g1 - g2,
+	  			  	 	 db = b1 - b2;
 		
-			return 3 * dr * dr + 4 * dg * dg + 2 * db * db;
+			return Math.sqrt(3d * dr * dr + 4d * dg * dg + 2d * db * db);
 	    }
     };
 
@@ -53,13 +53,13 @@ public class Distances {
     		return "luv";
     	}
 
-    	public int get(int r1,int g1,int b1, int r2,int g2,int b2) {
-			final float mr = (r1 + r2) / 2;
-			final float dr = r1 - r2, 
-						dg = g1 - g2,
-						db = b1 - b2;
+    	public double get(int r1,int g1,int b1, int r2,int g2,int b2) {
+			final double mr = ((double)(r1 + r2)) / 2;
+			final double dr = r1 - r2,
+	  	  			  	 dg = g1 - g2,
+	  	  			  	 db = b1 - b2;
 			
-			return (int)((2f + mr / 256f) * dr * dr + 4f * dg * dg + (2f + (255f - mr) / 256f) * db * db);
+			return Math.sqrt((2d + mr / 256d) * dr * dr + 4d * dg * dg + (2d + (255d - mr) / 256d) * db * db);
     	}
     };
 }
