@@ -3,27 +3,30 @@ package se.embargo.retroboy.filter;
 import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.IPalette;
-import se.embargo.retroboy.graphic.DitherMatrixes;
 
 public class BayerFilter extends AbstractFilter {
 	/**
 	 * Dither matrix.
 	 */
-	private static final int[] _matrix = DitherMatrixes.MATRIX_8x8;
+	private final int[] _matrix;
 	
 	/**
 	 * Length of matrix side.
 	 */
-	private static final int _patternsize = (int)Math.sqrt(_matrix.length);
+	private final int _patternsize;
 
 	/**
 	 * Ratio of color mixing.
 	 */
-	private static final int _mixingRatio = _matrix.length / 2;
+	private final int _mixingratio;
 	
 	private final ForBody<ImageBuffer> _body;
 	
-	public BayerFilter(IPalette palette, boolean color) {
+	public BayerFilter(IPalette palette, int[] matrix, boolean color) {
+		_matrix = matrix;
+		_patternsize = (int)Math.sqrt(_matrix.length);
+		_mixingratio = _matrix.length / 2;
+		
 		if (color) {
 			_body = new ColorBody(palette);
 		}
@@ -58,9 +61,9 @@ public class BayerFilter extends AbstractFilter {
 					final int pixel = image[i];
 					final int threshold = _matrix[x % _patternsize + yt];
 
-					final int r1 = Math.max(0, Math.min((pixel & 0x000000ff) + threshold - _mixingRatio, 255));
-					final int g1 = Math.max(0, Math.min(((pixel & 0x0000ff00) >> 8) + threshold - _mixingRatio, 255));
-					final int b1 = Math.max(0, Math.min(((pixel & 0x00ff0000) >> 16) + threshold - _mixingRatio, 255));
+					final int r1 = Math.max(0, Math.min((pixel & 0x000000ff) + threshold - _mixingratio, 255));
+					final int g1 = Math.max(0, Math.min(((pixel & 0x0000ff00) >> 8) + threshold - _mixingratio, 255));
+					final int b1 = Math.max(0, Math.min(((pixel & 0x00ff0000) >> 16) + threshold - _mixingratio, 255));
 					
 					image[i] = (pixel & 0xff000000) | (_palette.getNearestColor(r1, g1, b1) & 0xffffff);
 				}
@@ -91,7 +94,7 @@ public class BayerFilter extends AbstractFilter {
 					final int pixel = image[i];
 					final int threshold = _matrix[x % _patternsize + yt];
 
-					final int lum = Math.max(0,  Math.min((pixel & 0xff) + threshold - _mixingRatio, 255));
+					final int lum = Math.max(0,  Math.min((pixel & 0xff) + threshold - _mixingratio, 255));
 					
 					image[i] = (pixel & 0xff000000) | _palette[lum];
 				}

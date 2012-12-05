@@ -3,13 +3,17 @@ package se.embargo.retroboy.filter;
 import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.IColorDistance;
-import se.embargo.retroboy.graphic.DitherMatrixes;
 import android.content.Context;
 
 /**
- * Simple 2-tone raster dithering as used on most Amstrad CPC games.
+ * 2-tone raster dithering as used on most Amstrad CPC games.
  */
 public class RasterFilter extends AbstractColorFilter {
+	/**
+	 * Version number for the cache files
+	 */
+	private static final int CACHE_VERSION_NUMBER = 0x06;
+
 	/**
 	 * Number of integers per bucket.
 	 */
@@ -18,30 +22,28 @@ public class RasterFilter extends AbstractColorFilter {
 	/**
 	 * Dither matrix.
 	 */
-	private static final int[] _matrix = DitherMatrixes.MATRIX_4x4;
+	private final int[] _matrix;
 	
 	/**
 	 * Length of matrix side.
 	 */
-	private static final int _patternsize = (int)Math.sqrt(_matrix.length);
+	private final int _patternsize;
 
 	/**
 	 * Ratio of color mixing.
 	 */
-	private static final int _mixingRatio = _matrix.length / 2;
-	
-	/**
-	 * Version number for the cache files
-	 */
-	private static final int CACHE_VERSION_NUMBER = 0x06 | (_matrix.length << 16);
+	private final int _mixingratio;
 
 	/**
 	 * Parallel functor used to process frames.
 	 */
 	private final ForBody<ImageBuffer> _body = new ColorBody();
 	
-	public RasterFilter(Context context, IColorDistance distance, int[] palette) {
-		super("raster", context, distance, palette, COLOR_BUCKET_SIZE, CACHE_VERSION_NUMBER);
+	public RasterFilter(Context context, IColorDistance distance, int[] palette, int[] matrix) {
+		super("raster-" + matrix.length, context, distance, palette, COLOR_BUCKET_SIZE, CACHE_VERSION_NUMBER);
+		_matrix = matrix;
+		_patternsize = (int)Math.sqrt(_matrix.length);
+		_mixingratio = _matrix.length / 2;
 	}
     
     @Override
@@ -64,9 +66,9 @@ public class RasterFilter extends AbstractColorFilter {
 					final int pixel = image[i];
 					final int threshold = _matrix[(x >> 1) % _patternsize + yt];
 					
-					final int r1 = Math.max(0, Math.min((pixel & 0x000000ff) + threshold - _mixingRatio, 255));
-					final int g1 = Math.max(0, Math.min(((pixel & 0x0000ff00) >> 8) + threshold - _mixingRatio, 255));
-					final int b1 = Math.max(0, Math.min(((pixel & 0x00ff0000) >> 16) + threshold - _mixingRatio, 255));
+					final int r1 = Math.max(0, Math.min((pixel & 0x000000ff) + threshold - _mixingratio, 255));
+					final int g1 = Math.max(0, Math.min(((pixel & 0x0000ff00) >> 8) + threshold - _mixingratio, 255));
+					final int b1 = Math.max(0, Math.min(((pixel & 0x00ff0000) >> 16) + threshold - _mixingratio, 255));
 
 					final int bucket = ((r1 >> _step) | ((g1 >> _step) << _gsb) | ((b1 >> _step) << _bsb)) * COLOR_BUCKET_SIZE;
 					image[i + 1] = image[i] = (pixel & 0xff000000) | _buckets[bucket + (((x >> 1) & 0x01) ^ (y & 0x01))];

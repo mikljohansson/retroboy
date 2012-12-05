@@ -14,7 +14,7 @@
         android:id="@+id/switchFilterButton" 
         android:icon="@drawable/ic_action_filter" 
         android:title="@string/menu_option_filter"
-        android:showAsAction="always"/>
+        android:showAsAction="never"/>
     <item 
         android:id="@+id/discardImageButton" 
         android:icon="@drawable/ic_action_trash" 
@@ -23,6 +23,6 @@
     <item 
         android:id="@+id/editSettingsButton" 
         android:icon="@drawable/ic_action_settings"
-        android:title="@string/menu_option_resolution" 
-        android:showAsAction="never"/>
+        android:title="@string/menu_option_settings" 
+        android:showAsAction="always"/>
 </menu>

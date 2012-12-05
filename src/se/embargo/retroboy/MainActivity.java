@@ -1,11 +1,9 @@
 package se.embargo.retroboy;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import se.embargo.core.Strings;
 import se.embargo.core.concurrent.ProgressTask;
 import se.embargo.core.databinding.DataBindingContext;
 import se.embargo.core.databinding.IPropertyDescriptor;
@@ -21,13 +19,15 @@ import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.TransformFilter;
 import se.embargo.retroboy.filter.YuvFilter;
 import se.embargo.retroboy.widget.ListPreferenceDialog;
+import se.embargo.retroboy.widget.PreferenceListAdapter;
+import se.embargo.retroboy.widget.PreferenceListAdapter.ArrayPreferenceItem;
+import se.embargo.retroboy.widget.PreferenceListAdapter.PreferenceItem;
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
@@ -47,21 +47,16 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
-import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.TextView;
 
 import com.actionbarsherlock.app.SherlockActivity;
 import com.actionbarsherlock.view.Menu;
@@ -135,7 +130,7 @@ public class MainActivity extends SherlockActivity {
 	
 	private View _detailedPreferences;
 	private ListView _detailedPreferencesList;
-	private PreferenceAdapter _detailedPreferenceAdapter = new PreferenceAdapter();
+	private PreferenceListAdapter _detailedPreferenceAdapter = new PreferenceListAdapter(this);
 	
 	/**
 	 * Connect to the gyroscope to detect when auto focus need to trigger
@@ -195,6 +190,35 @@ public class MainActivity extends SherlockActivity {
 		_detailedPreferencesList.setAdapter(_detailedPreferenceAdapter);
 		_detailedPreferencesList.setOnItemClickListener(_detailedPreferenceAdapter);
 
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+			Pictures.PREF_FILTER, R.string.pref_filter_default, R.string.menu_option_filter, 
+			R.array.pref_filter_labels, R.array.pref_filter_values));
+
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+			Pictures.PREF_RESOLUTION, R.string.pref_resolution_default, R.string.menu_option_resolution, 
+			R.array.pref_resolution_labels, R.array.pref_resolution_values));
+		
+		_detailedPreferenceAdapter.add(new SceneModePreferenceItem());
+		
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+			Pictures.PREF_CONTRAST, R.string.pref_contrast_default, R.string.menu_option_contrast, 
+			R.array.pref_contrast_labels, R.array.pref_contrast_values));
+		
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+			Pictures.PREF_MATRIXSIZE, R.string.pref_matrixsize_default, R.string.menu_option_matrixsize, 
+			R.array.pref_matrixsize_labels, R.array.pref_matrixsize_values));
+
+		_detailedPreferenceAdapter.add(new OrientationPreferenceItem(
+			Pictures.PREF_ORIENTATION, R.string.pref_orientation_default, R.string.menu_option_orientation, 
+			R.array.pref_orientation_labels, R.array.pref_orientation_values));
+		
+		_sceneMode.addChangeListener(new IChangeListener<String>() {
+			@Override
+			public void handleChange(ChangeEvent<String> event) {
+				_detailedPreferenceAdapter.notifyDataSetChanged();
+			}
+		});
+		
 		// Connect the take photo button
 		{
 			ImageButton button = (ImageButton)findViewById(R.id.takePhotoButton);
@@ -783,7 +807,7 @@ public class MainActivity extends SherlockActivity {
 	/**
 	 * Listens for preference changes and applies updates
 	 */
-	private class PreferencesListener implements OnSharedPreferenceChangeListener {
+	private class PreferencesListener implements SharedPreferences.OnSharedPreferenceChangeListener {
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
 			CameraHandle handle = _cameraHandle.getValue();
@@ -794,7 +818,10 @@ public class MainActivity extends SherlockActivity {
 					// Reinitialize the camera
 					initCamera();
 				}
-				else if (Pictures.PREF_FILTER.equals(key) || Pictures.PREF_CONTRAST.equals(key) || key.startsWith(Pictures.PREF_ORIENTATION)) {
+				else if (Pictures.PREF_FILTER.equals(key) || 
+						 Pictures.PREF_CONTRAST.equals(key) || 
+						 Pictures.PREF_MATRIXSIZE.equals(key) ||
+						 key.startsWith(Pictures.PREF_ORIENTATION)) {
 					// Change the active image filter
 					initFilter();
 				}
@@ -1056,63 +1083,10 @@ public class MainActivity extends SherlockActivity {
 			}
 		}
 	}
-	
-	private abstract class PreferenceItem {
-		public final int _title;
-		
-		public PreferenceItem(int title) {
-			this._title = title;
-		}
 
-		public abstract String getValueLabel();
-		public abstract void onClick();
-	}
-	
-	private class ArrayPreferenceItem extends PreferenceItem {
-		private final String _key;
-		public final int _defvalue, _labels, _values;
-		
-		public ArrayPreferenceItem(String key, int defvalue, int title, int labels, int values) {
-			super(title);
-			_defvalue = defvalue;
-			_key = key;
-			_labels = labels;
-			_values = values;
-		}
-
-		@Override
-		public String getValueLabel() {
-			String[] labels = getResources().getStringArray(_labels);
-			String[] values = getResources().getStringArray(_values);
-			String defvalue = getResources().getString(_defvalue);
-			String value = _prefs.getString(getPreferenceKey(), defvalue);
-
-			for (int i = 0; i < labels.length && i < values.length; i++) {
-				if (value.equals(values[i])) {
-					return labels[i];
-				}
-			}
-			
-			return "";
-		}
-		
-		@Override
-		public void onClick() {
-			String defvalue = getResources().getString(_defvalue);
-			ListPreferenceDialog dialog = new ListPreferenceDialog(
-				MainActivity.this, _prefs, getPreferenceKey(), defvalue,
-				_title, _labels, _values);
-			dialog.show();
-		}
-		
-		protected String getPreferenceKey() {
-			return _key;
-		}
-	}
-	
-	private class OrientationPreferenceItem extends ArrayPreferenceItem {
+	public class OrientationPreferenceItem extends ArrayPreferenceItem {
 		public OrientationPreferenceItem(String key, int defvalue, int title, int labels, int values) {
-			super(key, defvalue, title, labels, values);
+			super(MainActivity.this, _prefs, key, defvalue, title, labels, values);
 		}
 		
 		@Override
@@ -1127,7 +1101,7 @@ public class MainActivity extends SherlockActivity {
 			return key;
 		}
 	}
-
+	
 	private class SceneModePreferenceItem extends PreferenceItem {
 		public SceneModePreferenceItem() {
 			super(R.string.menu_option_scenemode);
@@ -1161,6 +1135,19 @@ public class MainActivity extends SherlockActivity {
 						labels[i] = getValueLabel(values[i]);
 					}
 					
+					// Remove modes without a label
+					int count = 0;
+					for (int i = 0; i < values.length; i++) {
+						if (labels[i] != null) {
+							labels[count] = labels[i];
+							values[count] = values[i];
+							count++;
+						}
+					}
+					
+					values = Arrays.copyOf(values, count);
+					labels = Arrays.copyOf(labels, count);
+					
 					// Show preference dialog
 					ListPreferenceDialog dialog = new ListPreferenceDialog(
 						MainActivity.this, _sceneMode, _title, labels, values);
@@ -1181,7 +1168,7 @@ public class MainActivity extends SherlockActivity {
 				return resources.getString(id);
 			}
 			
-			return Strings.upperCaseWords(value);
+			return null;
 		}
 	}
 	
@@ -1213,74 +1200,6 @@ public class MainActivity extends SherlockActivity {
 	    			Log.e(TAG, "Failed to set scene mode", e);
 	    		}
 			}
-		}
-	}
-	
-	private class PreferenceAdapter extends BaseAdapter implements AdapterView.OnItemClickListener, IChangeListener<String> {
-		private List<PreferenceItem> _items = new ArrayList<PreferenceItem>();
-		
-		public PreferenceAdapter() {
-			_items.add(new ArrayPreferenceItem(
-				Pictures.PREF_RESOLUTION, R.string.pref_resolution_default, R.string.menu_option_resolution, 
-				R.array.pref_resolution_labels, R.array.pref_resolution_values));
-			
-			_items.add(new SceneModePreferenceItem());
-			
-			_items.add(new ArrayPreferenceItem(
-				Pictures.PREF_CONTRAST, R.string.pref_contrast_default, R.string.menu_option_contrast, 
-				R.array.pref_contrast_labels, R.array.pref_contrast_values));
-			
-			_items.add(new ArrayPreferenceItem(
-				Pictures.PREF_FILTER, R.string.pref_filter_default, R.string.menu_option_filter, 
-				R.array.pref_filter_labels, R.array.pref_filter_values));
-
-			_items.add(new OrientationPreferenceItem(
-				Pictures.PREF_ORIENTATION, R.string.pref_orientation_default, R.string.menu_option_orientation, 
-				R.array.pref_orientation_labels, R.array.pref_orientation_values));
-			
-			_sceneMode.addChangeListener(this);
-		}
-		
-		@Override
-		public int getCount() {
-			return _items.size();
-		}
-
-		@Override
-		public Object getItem(int position) {
-			return _items.get(position);
-		}
-
-		@Override
-		public long getItemId(int position) {
-			return position;
-		}
-
-		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-			if (convertView == null) {
-			    LayoutInflater inflater = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			    convertView = inflater.inflate(R.layout.camera_preference_item, parent, false);
-			}
-			
-		    TextView titleView = (TextView)convertView.findViewById(R.id.prefItemTitle);
-		    TextView valueView = (TextView)convertView.findViewById(R.id.prefItemValue);
-
-		    PreferenceItem item = _items.get(position);
-		    titleView.setText(item._title);
-		    valueView.setText(item.getValueLabel());
-		    return convertView;
-		}
-		
-		@Override
-		public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-			PreferenceItem item = _items.get(position);
-			item.onClick();
-		}
-
-		@Override
-		public void handleChange(ChangeEvent<String> event) {
-			notifyDataSetChanged();
 		}
 	}
 }

@@ -14,6 +14,7 @@ import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.RasterFilter;
+import se.embargo.retroboy.graphic.DitherMatrixes;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -41,6 +42,7 @@ public class Pictures {
 	public static final String PREF_CONTRAST = "contrast";
 	public static final String PREF_RESOLUTION = "resolution";
 	public static final String PREF_ORIENTATION = "orientation";
+	public static final String PREF_MATRIXSIZE = "matrixsize";
 	private static final String PREF_IMAGECOUNT = "imagecount";
 	
 	private static final String DIRECTORY = "Retroboy";
@@ -180,17 +182,18 @@ public class Pictures {
 	public static IImageFilter createEffectFilter(Context context) {
 		SharedPreferences prefs = context.getSharedPreferences(PREFS_NAMESPACE, Context.MODE_PRIVATE);
 		String filtertype = prefs.getString(PREF_FILTER, context.getResources().getString(R.string.pref_filter_default));
+		int[] matrix = getMatrix(context, prefs);
 		
 		if (PREF_FILTER_GAMEBOY_SCREEN.equals(filtertype)) {
-			return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_SCREEN_DESAT), false);
+			return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_SCREEN_DESAT), matrix, false);
 		}
 
 		if (PREF_FILTER_AMSTRAD_CPC464.equals(filtertype)) {
-			return new RasterFilter(context, Distances.YUV, Palettes.AMSTRAD_CPC464);
+			return new RasterFilter(context, Distances.YUV, Palettes.AMSTRAD_CPC464, matrix);
 		}
 
 		if (PREF_FILTER_COMMODORE_64.equals(filtertype)) {
-			return new RasterFilter(context, Distances.YUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED);
+			return new RasterFilter(context, Distances.YUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED, matrix);
 			//return new BayerFilter(new BucketPalette(new YuvPalette(Palettes.COMMODORE_64_GAMMA_ADJUSTED)), true);
 			//return new YliluomaTriFilter(context, Distances.YUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED);
 		}
@@ -203,9 +206,22 @@ public class Pictures {
 			return new HalftoneFilter();
 		}
 
-		return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_CAMERA), false);
+		return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_CAMERA), matrix, false);
 	}
 	
+	private static int[] getMatrix(Context context, SharedPreferences prefs) {
+		int matrixsize = Strings.parseInt(prefs.getString(PREF_MATRIXSIZE, context.getResources().getString(R.string.pref_matrixsize_default)), 4);
+		switch (matrixsize) {
+			case 8: 
+				return DitherMatrixes.MATRIX_8x8;
+			
+			case 2: 
+				return DitherMatrixes.MATRIX_2x2;
+		}
+		
+		return DitherMatrixes.MATRIX_4x4;
+	}
+
 	/**
 	 * Creates a matrix that rotates and scales an input frame to fit the preview surface.
 	 * @param	inputwidth		Input frame width 

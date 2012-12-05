@@ -30,7 +30,7 @@
 				android:src="@drawable/ic_focus"
 				android:contentDescription="@string/btn_auto_focus"/>
 
-		    <include layout="@layout/camera_detailed_preferences"/>
+		    <include layout="@layout/detailed_preferences"/>
 		</se.embargo.retroboy.widget.PreviewFrameLayout>
 	</RelativeLayout>
     

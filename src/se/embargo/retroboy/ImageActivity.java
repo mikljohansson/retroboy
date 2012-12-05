@@ -10,9 +10,9 @@ import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.MonochromeFilter;
 import se.embargo.retroboy.widget.ListPreferenceDialog;
+import se.embargo.retroboy.widget.PreferenceListAdapter;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -23,7 +23,10 @@ import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ListView;
 
 import com.actionbarsherlock.app.SherlockActivity;
 import com.actionbarsherlock.view.Menu;
@@ -45,6 +48,10 @@ public class ImageActivity extends SherlockActivity {
 	
 	private ImageView _imageview;
 	
+	private View _detailedPreferences;
+	private ListView _detailedPreferencesList;
+	private PreferenceListAdapter _detailedPreferenceAdapter = new PreferenceListAdapter(this);
+	
 	private ProcessImageTask _task = null;
 	
 	@Override
@@ -63,6 +70,45 @@ public class ImageActivity extends SherlockActivity {
 		setContentView(R.layout.image_activity);
 		
 		_imageview = (ImageView)findViewById(R.id.processedImage);
+
+		_detailedPreferences = findViewById(R.id.detailedPreferences);
+		_detailedPreferencesList = (ListView)findViewById(R.id.detailedPreferencesList);
+		_detailedPreferencesList.setAdapter(_detailedPreferenceAdapter);
+		_detailedPreferencesList.setOnItemClickListener(_detailedPreferenceAdapter);
+
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+			Pictures.PREF_FILTER, R.string.pref_filter_default, R.string.menu_option_filter, 
+			R.array.pref_filter_labels, R.array.pref_filter_values));
+
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+			Pictures.PREF_RESOLUTION, R.string.pref_resolution_default, R.string.menu_option_resolution, 
+			R.array.pref_resolution_labels, R.array.pref_resolution_values));
+
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+			Pictures.PREF_CONTRAST, R.string.pref_contrast_default, R.string.menu_option_contrast, 
+			R.array.pref_contrast_labels, R.array.pref_contrast_values));
+		
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+			Pictures.PREF_MATRIXSIZE, R.string.pref_matrixsize_default, R.string.menu_option_matrixsize, 
+			R.array.pref_matrixsize_labels, R.array.pref_matrixsize_values));
+		
+		// Connect the OK button
+		{
+			Button cancelButton = (Button)findViewById(R.id.cancelDetailedPreferences);
+			cancelButton.setOnClickListener(new View.OnClickListener() {
+				@Override
+				public void onClick(View v) {
+					toggleDetailedPreferences();
+				}
+			});
+		}
+		
+		_imageview.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				resetFocus();
+			}
+		});
 		
 		// Attempt to read previously processed image
 		if (_outputpath != null) {
@@ -169,6 +215,8 @@ public class ImageActivity extends SherlockActivity {
             }
             
             case R.id.shareImageButton: {
+            	resetFocus();
+            	
             	if (_outputpath != null) {
 	            	Intent intent = new Intent(Intent.ACTION_SEND);
 	            	intent.setType("image/png");
@@ -180,6 +228,8 @@ public class ImageActivity extends SherlockActivity {
             }
 
 			case R.id.switchFilterButton: {
+				resetFocus();
+				
 				new ListPreferenceDialog(
 					this, _prefs, 
 					Pictures.PREF_FILTER, getResources().getString(R.string.pref_filter_default),
@@ -188,6 +238,8 @@ public class ImageActivity extends SherlockActivity {
 			}
             
 			case R.id.adjustContrastButton: {
+				resetFocus();
+				
 				new ListPreferenceDialog(
 					this, _prefs, 
 					Pictures.PREF_CONTRAST, getResources().getString(R.string.pref_contrast_default),
@@ -211,18 +263,9 @@ public class ImageActivity extends SherlockActivity {
                 return true;
             }
 
-            case R.id.editSettingsButton: {
-				// Start preferences activity
-            	/*
-				Intent intent = new Intent(this, SettingsActivity.class);
-				startActivity(intent);
-				*/
-    			new ListPreferenceDialog(
-    				this, _prefs,
-    				Pictures.PREF_RESOLUTION, getResources().getString(R.string.pref_resolution_default),
-    				R.string.pref_title_resolution, R.array.pref_resolution_labels, R.array.pref_resolution_values).show();
+            case R.id.editSettingsButton:
+            	toggleDetailedPreferences();
 				return true;
-			}
             
 			default:
 				return super.onOptionsItemSelected(item);
@@ -232,6 +275,21 @@ public class ImageActivity extends SherlockActivity {
     private void startParentActivity() {
         finish();
     }
+    
+	private void resetFocus() {
+		if (_detailedPreferences.getVisibility() == View.VISIBLE) {
+			_detailedPreferences.setVisibility(View.GONE);
+		}
+	}
+    
+	private void toggleDetailedPreferences() {
+		if (_detailedPreferences.getVisibility() != View.VISIBLE) {
+			_detailedPreferences.setVisibility(View.VISIBLE);
+		}
+		else {
+			resetFocus();
+		}
+	}
     
     /**
      * Holds information about a gallery image
@@ -277,15 +335,20 @@ public class ImageActivity extends SherlockActivity {
 		};
     }
 	
-	private class PreferencesListener implements OnSharedPreferenceChangeListener {
+	private class PreferencesListener implements SharedPreferences.OnSharedPreferenceChangeListener {
 		@Override
 		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
-			if (Pictures.PREF_FILTER.equals(key) || Pictures.PREF_CONTRAST.equals(key) || Pictures.PREF_RESOLUTION.equals(key)) {
+			if (Pictures.PREF_FILTER.equals(key) || 
+				Pictures.PREF_CONTRAST.equals(key) || 
+				Pictures.PREF_RESOLUTION.equals(key) ||
+				Pictures.PREF_MATRIXSIZE.equals(key)) {
 				// Process image in background
 				if (_inputinfo != null) {
 					new ProcessImageTask(_inputinfo, _outputpath).execute();
 				}
 			}
+			
+			_detailedPreferenceAdapter.notifyDataSetChanged();
 		}
 	}
 
