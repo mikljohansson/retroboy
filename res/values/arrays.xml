@@ -73,6 +73,18 @@
 		<item>4</item>
 		<item>2</item>
 	</string-array>
+
+	<string name="pref_rasterlevel_default">50</string>
+    <string-array name="pref_rasterlevel_labels">
+        <item>High</item>
+        <item>Normal</item>
+        <item>Low</item>
+	</string-array>
+    <string-array name="pref_rasterlevel_values">
+		<item>100</item>
+		<item>50</item>
+		<item>25</item>
+	</string-array>
     
     <string name="pref_scenemode_default">auto</string>
 </resources>

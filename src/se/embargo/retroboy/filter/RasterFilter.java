@@ -12,7 +12,7 @@ public class RasterFilter extends AbstractColorFilter {
 	/**
 	 * Version number for the cache files
 	 */
-	private static final int CACHE_VERSION_NUMBER = 0x06;
+	private static final int CACHE_VERSION_NUMBER = 0x07;
 
 	/**
 	 * Number of integers per bucket.
@@ -35,15 +35,28 @@ public class RasterFilter extends AbstractColorFilter {
 	private final int _mixingratio;
 
 	/**
+	 * Divisor for the too-far-apart color penalty.
+	 */
+	private final double _penaltyDivisor;
+	
+	/**
 	 * Parallel functor used to process frames.
 	 */
 	private final ForBody<ImageBuffer> _body = new ColorBody();
 	
-	public RasterFilter(Context context, IColorDistance distance, int[] palette, int[] matrix) {
-		super("raster-" + matrix.length, context, distance, palette, COLOR_BUCKET_SIZE, CACHE_VERSION_NUMBER);
+	/**
+	 * @param context		Context running the filter
+	 * @param distance		Measure for color distance
+	 * @param palette		Palette of available colors
+	 * @param matrix		Dithering matrix to use
+	 * @param rasterlevel	Level of rastering to apply
+	 */
+	public RasterFilter(Context context, IColorDistance distance, int[] palette, int[] matrix, int rasterlevel) {
+		super("raster-" + rasterlevel, context, distance, palette, COLOR_BUCKET_SIZE, CACHE_VERSION_NUMBER);
 		_matrix = matrix;
 		_patternsize = (int)Math.sqrt(_matrix.length);
 		_mixingratio = _matrix.length / 2;
+		_penaltyDivisor = (double)rasterlevel / 10d;
 	}
     
     @Override
@@ -100,7 +113,7 @@ public class RasterFilter extends AbstractColorFilter {
 	        	       r12dist = _distance.get(r1,g1,b1, r2,g2,b2);
 	            
 	            // Penalize color combinations too far apart
-	            penalty += r12dist / 3;
+	            penalty += r12dist / _penaltyDivisor;
 	            
 	            if (penalty < minpenalty) {
 	                minpenalty = penalty;

@@ -44,7 +44,7 @@ public class PreferenceListAdapter extends BaseAdapter implements AdapterView.On
 	public View getView(int position, View convertView, ViewGroup parent) {
 		if (convertView == null) {
 		    LayoutInflater inflater = (LayoutInflater)_context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-		    convertView = inflater.inflate(R.layout.camera_preference_item, parent, false);
+		    convertView = inflater.inflate(R.layout.detailed_preference_item, parent, false);
 		}
 		
 	    TextView titleView = (TextView)convertView.findViewById(R.id.prefItemTitle);

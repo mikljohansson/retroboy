@@ -73,7 +73,6 @@ public class ImageActivity extends SherlockActivity {
 
 		_detailedPreferences = findViewById(R.id.detailedPreferences);
 		_detailedPreferencesList = (ListView)findViewById(R.id.detailedPreferencesList);
-		_detailedPreferencesList.setAdapter(_detailedPreferenceAdapter);
 		_detailedPreferencesList.setOnItemClickListener(_detailedPreferenceAdapter);
 
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
@@ -91,6 +90,13 @@ public class ImageActivity extends SherlockActivity {
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
 			Pictures.PREF_MATRIXSIZE, R.string.pref_matrixsize_default, R.string.menu_option_matrixsize, 
 			R.array.pref_matrixsize_labels, R.array.pref_matrixsize_values));
+		
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+			Pictures.PREF_RASTERLEVEL, R.string.pref_rasterlevel_default, R.string.menu_option_rasterlevel, 
+			R.array.pref_rasterlevel_labels, R.array.pref_rasterlevel_values));
+
+		// Set the adapter after populating to ensure list height measure is done properly
+		_detailedPreferencesList.setAdapter(_detailedPreferenceAdapter);
 		
 		// Connect the OK button
 		{
@@ -341,7 +347,8 @@ public class ImageActivity extends SherlockActivity {
 			if (Pictures.PREF_FILTER.equals(key) || 
 				Pictures.PREF_CONTRAST.equals(key) || 
 				Pictures.PREF_RESOLUTION.equals(key) ||
-				Pictures.PREF_MATRIXSIZE.equals(key)) {
+				Pictures.PREF_MATRIXSIZE.equals(key) ||
+				Pictures.PREF_RASTERLEVEL.equals(key)) {
 				// Process image in background
 				if (_inputinfo != null) {
 					new ProcessImageTask(_inputinfo, _outputpath).execute();
