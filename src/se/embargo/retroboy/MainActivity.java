@@ -170,7 +170,7 @@ public class MainActivity extends SherlockFragmentActivity {
 	/**
 	 * Filter tasked with encoding animated GIF's from the frame stream.
 	 */
-	private GifManager _gifFilter;
+	private GifManager _videoRecorder;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -198,8 +198,8 @@ public class MainActivity extends SherlockFragmentActivity {
 
 		View previewLayout = findViewById(R.id.cameraPreviewLayout);
 		_focusManager = new FocusManager(this, _cameraHandle, previewLayout);
-		_gifFilter = new GifManager(this, previewLayout);
-		_gifFilter.setStateChangeListener(new GifManager.StateChangeListener() {
+		_videoRecorder = new GifManager(this, previewLayout);
+		_videoRecorder.setStateChangeListener(new GifManager.StateChangeListener() {
 			@Override
 			public void onRecord() {
 				_cameraState.setValue(CameraState.Recording);
@@ -423,6 +423,12 @@ public class MainActivity extends SherlockFragmentActivity {
 	}
 	
 	@Override
+	public void onLowMemory() {
+		_videoRecorder.stop();
+		super.onLowMemory();
+	}
+	
+	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		return false;
 	}
@@ -540,7 +546,7 @@ public class MainActivity extends SherlockFragmentActivity {
 		filter.add(new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter()));
 		filter.add(effect);
 		filter.add(new ImageBitmapFilter());
-		filter.add(_gifFilter);
+		filter.add(_videoRecorder);
 		_preview.setFilter(filter);
 	}
 	
@@ -635,7 +641,7 @@ public class MainActivity extends SherlockFragmentActivity {
 			switch (event.getValue()) {
 				case Picture: {
 					// Abort any ongoing video capture							
-					_gifFilter.abort();
+					_videoRecorder.abort();
 					
 					// Prepare to capture still images
 					_captureListener = new TakePhotoListener();
@@ -651,7 +657,7 @@ public class MainActivity extends SherlockFragmentActivity {
 				
 				case Video: {
 					// Abort any ongoing video capture							
-					_gifFilter.abort();
+					_videoRecorder.abort();
 					
 					// Prepare to record video
 					_captureListener = new CaptureVideoListener();
@@ -681,6 +687,7 @@ public class MainActivity extends SherlockFragmentActivity {
 	private class CameraModeButtonListener implements View.OnClickListener {
 		@Override
 		public void onClick(View v) {
+			reset();
 			_cameraState.setValue(_cameraState.getValue() != CameraState.Picture ? CameraState.Picture : CameraState.Video);
 		}
 	}
@@ -728,18 +735,20 @@ public class MainActivity extends SherlockFragmentActivity {
 		
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
+			_detailedPreferences.setVisibility(View.GONE);
+			
 			switch (event.getActionMasked()) {
 				case MotionEvent.ACTION_DOWN:
 				case MotionEvent.ACTION_POINTER_DOWN: {
 					// Start recording if we're not currently doing so
 					CameraHandle handle = _cameraHandle.getValue();
-					if (handle != null && !_gifFilter.isRecording()) {
-						_gifFilter.record(getTransform(handle));
+					if (handle != null && !_videoRecorder.isRecording()) {
+						_videoRecorder.record(getTransform(handle));
 						_prevEvent = System.currentTimeMillis();
 					}
 					else {
 						// Stop recording when button is released from long press
-						_gifFilter.stop();
+						_videoRecorder.stop();
 					}
 					
 					return true;
@@ -749,13 +758,13 @@ public class MainActivity extends SherlockFragmentActivity {
 				case MotionEvent.ACTION_POINTER_UP:
 					// Don't stop if the record button was just tapped quickly
 					if ((System.currentTimeMillis() - _prevEvent) > PRESS_DELAY) {
-						_gifFilter.stop();
+						_videoRecorder.stop();
 					}
 					
 					return true;
 				
 				case MotionEvent.ACTION_CANCEL:
-					_gifFilter.abort();
+					_videoRecorder.abort();
 					return true;
 			}
 			

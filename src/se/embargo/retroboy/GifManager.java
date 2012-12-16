@@ -7,11 +7,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.concurrent.PriorityBlockingQueue;
 
 import se.embargo.core.concurrent.ProgressTask;
 import se.embargo.core.graphic.Bitmaps;
 import se.embargo.core.graphic.Bitmaps.Transform;
-import se.embargo.retroboy.R;
 import se.embargo.retroboy.filter.AbstractFilter;
 import se.embargo.retroboy.graphic.GifEncoder;
 import android.app.Activity;
@@ -34,7 +34,7 @@ public class GifManager extends AbstractFilter {
 	private final ProgressBar _recordProgressBar;
 	private volatile Transform _transform = null;
 	
-	private Queue<BitmapFrame> _frames = new PriorityQueue<BitmapFrame>();
+	private Queue<BitmapFrame> _frames = new PriorityBlockingQueue<BitmapFrame>();
 	private int _framecount = 0;
 	private StateChangeListener _listener;
 	
@@ -82,19 +82,7 @@ public class GifManager extends AbstractFilter {
 	 */
 	public synchronized void stop() {
 		if (_transform != null) {
-			final Queue<BitmapFrame> frames = _frames;
-			reset();
-			
-			_context.runOnUiThread(new Runnable() {
-				@Override
-				public void run() {
-					if (_listener != null) {
-						_listener.onStop();
-					}
-					
-					new EncodeTask(_context, frames, _listener).execute();
-				}
-			});
+			finish();
 		}
 	}
 	
@@ -124,24 +112,58 @@ public class GifManager extends AbstractFilter {
 		_recordProgressBar.setSecondaryProgress(0);
 	}
 	
+	private void finish() {
+		final Queue<BitmapFrame> frames = _frames;
+		reset();
+		
+		_context.runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				if (_listener != null) {
+					_listener.onStop();
+				}
+				
+				new EncodeTask(_context, frames, _listener).execute();
+			}
+		});
+	}
+	
 	@Override
 	public void accept(ImageBuffer buffer) {
 		Bitmaps.Transform transform = _transform;
 		
-		if (_transform != null) {
-			Bitmap bitmap = Bitmaps.transform(buffer.bitmap, transform);
-	
-			synchronized (this) {
-				if (_transform != null) {
-					_framecount++;
-					_recordProgressBar.setSecondaryProgress(_framecount);
-					_frames.add(new BitmapFrame(bitmap, buffer.timestamp));
-					
-					if (_framecount >= MAX_CAPTURED_FRAMES) {
-						stop();
+		try {
+			if (_transform != null) {
+				Bitmap bitmap = Bitmaps.transform(buffer.bitmap, transform, Bitmap.Config.RGB_565);
+		
+				synchronized (this) {
+					if (_transform != null) {
+						_framecount++;
+						_recordProgressBar.setSecondaryProgress(_framecount);
+						_frames.add(new BitmapFrame(bitmap, buffer.timestamp));
+						
+						if (_framecount >= MAX_CAPTURED_FRAMES) {
+							stop();
+						}
 					}
 				}
 			}
+		}
+		catch (OutOfMemoryError e) {
+			_transform = null;
+			
+			for (int i = 0; i < 10; i++) {
+				BitmapFrame frame = _frames.poll();
+				
+				if (frame != null) {
+					frame.bitmap.recycle();
+					frame.bitmap = null;
+					System.gc();
+				}
+			}
+			
+			Log.e(TAG, "Stopping GIF video capture due to lack of memory", e);
+			finish();
 		}
 	}
 	
@@ -168,7 +190,7 @@ public class GifManager extends AbstractFilter {
 		public EncodeTask(Context context, Queue<BitmapFrame> frames, StateChangeListener listener) {
 			super(context, R.string.title_saving_image, R.string.msg_saving_image);
 			setMaxProgress(frames.size());
-			setCancelable(true);
+			setCancelable();
 			_frames = frames;
 			_listener = listener;
 		}
@@ -181,6 +203,8 @@ public class GifManager extends AbstractFilter {
 			
 			OutputStream os = null;
 			try {
+				long ts = System.currentTimeMillis();
+				
 				// Create output encoder
 				os = new BufferedOutputStream(new FileOutputStream(_file)); 
 				GifEncoder encoder = new GifEncoder();
@@ -217,6 +241,8 @@ public class GifManager extends AbstractFilter {
 				os.close();
 				os = null;
 
+				Log.i(TAG, "GIF encoder framerate: " + ((float)_frames.size() / ((float)(System.currentTimeMillis() - ts) / 1000)));
+				
 				// Tell the gallery about the image
 				ContentValues values = new ContentValues();
 				values.put(MediaStore.Images.Media.DATA, _file.getAbsolutePath());
@@ -229,7 +255,7 @@ public class GifManager extends AbstractFilter {
 			}
 			catch (Exception e) {
 				Log.e(TAG, "Failed to write GIF to:" + _file, e);
-				cancel(true);
+				cancel(false);
 			}
 			finally {
 				if (os != null) {
@@ -244,7 +270,7 @@ public class GifManager extends AbstractFilter {
 		}
 		
 		@Override
-		protected void onCancelled(Void result) {
+		protected void onCancelled() {
 			if (_file != null) {
 				_file.delete();
 			}
@@ -253,7 +279,7 @@ public class GifManager extends AbstractFilter {
 				_listener.onFinish();
 			}
 
-			super.onCancelled(result);
+			super.onCancelled();
 		}
 		
 		@Override

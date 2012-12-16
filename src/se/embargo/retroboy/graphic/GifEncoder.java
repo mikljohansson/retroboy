@@ -2,6 +2,7 @@ package se.embargo.retroboy.graphic;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
@@ -9,49 +10,51 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 
 public class GifEncoder {
-	protected int width; // image size
+	private int width; // image size
 
-	protected int height;
+	private int height;
 
-	protected int x = 0;
+	private int x = 0;
 
-	protected int y = 0;
+	private int y = 0;
 
-	protected int transparent = -1; // transparent color if given
+	private int transparent = -1; // transparent color if given
 
-	protected int transIndex; // transparent index in color table
+	private int transIndex; // transparent index in color table
 
-	protected int repeat = -1; // no repeat
+	private int repeat = -1; // no repeat
 
-	protected int delay = 0; // frame delay (hundredths)
+	private int delay = 0; // frame delay (hundredths)
 
-	protected boolean started = false; // ready to output frames
+	private boolean started = false; // ready to output frames
 
-	protected OutputStream out;
+	private OutputStream out;
 
-	protected Bitmap image; // current frame
+	private Bitmap image; // current frame
 
-	protected byte[] pixels; // BGR byte array from frame
+	private byte[] pixels; // BGR byte array from frame
 
-	protected byte[] indexedPixels; // converted frame indexed to palette
+	private byte[] indexedPixels; // converted frame indexed to palette
 
-	protected int colorDepth; // number of bit planes
+	private int colorDepth; // number of bit planes
 
-	protected byte[] colorTab; // RGB palette
+	private byte[] colorTab; // RGB palette
 
-	protected boolean[] usedEntry = new boolean[256]; // active palette entries
+	private boolean[] usedEntry = new boolean[256]; // active palette entries
 
-	protected int palSize = 7; // color table size (bits-1)
+	private int palSize = 7; // color table size (bits-1)
 
-	protected int dispose = -1; // disposal code (-1 = use default)
+	private int dispose = -1; // disposal code (-1 = use default)
 
-	protected boolean closeStream = false; // close stream when finished
+	private boolean closeStream = false; // close stream when finished
 
-	protected boolean firstFrame = true;
+	private boolean firstFrame = true;
 
-	protected boolean sizeSet = false; // if false, get size from first frame
+	private boolean sizeSet = false; // if false, get size from first frame
 
-	protected int sample = 10; // default sample interval for quantizer
+	private int sample = 10; // default sample interval for quantizer
+	
+	private final NeuQuant _quant = new NeuQuant();
 
 	/**
 	 * Sets the delay time between each frame, or changes it for subsequent
@@ -276,32 +279,29 @@ public class GifEncoder {
 	/**
 	 * Analyzes image colors and creates color map.
 	 */
-	protected void analyzePixels() {
+	private void analyzePixels() {
 		int len = pixels.length;
 		int nPix = len / 3;
 		indexedPixels = new byte[nPix];
-		NeuQuant nq = new NeuQuant(pixels, len, sample);
-		// initialize quantizer
-		colorTab = nq.process(); // create reduced palette
-		// convert map from BGR to RGB
-		for (int i = 0; i < colorTab.length; i += 3) {
-			byte temp = colorTab[i];
-			colorTab[i] = colorTab[i + 2];
-			colorTab[i + 2] = temp;
-			usedEntry[i / 3] = false;
-		}
-		// map image pixels to new palette
+		
+		// Quantize image to create the reduced palette
+		_quant.reset();
+		colorTab = _quant.process(pixels, len, sample);
+		Arrays.fill(usedEntry, false);
+		
+		// Map image pixels to new palette
 		int k = 0;
 		for (int i = 0; i < nPix; i++) {
-			int index = nq.map(pixels[k++] & 0xff, pixels[k++] & 0xff,
-				pixels[k++] & 0xff);
+			int index = _quant.map(pixels[k++] & 0xff, pixels[k++] & 0xff, pixels[k++] & 0xff);
 			usedEntry[index] = true;
 			indexedPixels[i] = (byte)index;
 		}
+		
 		pixels = null;
 		colorDepth = 8;
 		palSize = 7;
-		// get closest match to transparent color if specified
+		
+		// Get closest match to transparent color if specified
 		if (transparent != -1) {
 			transIndex = findClosest(transparent);
 		}
@@ -310,7 +310,7 @@ public class GifEncoder {
 	/**
 	 * Returns index of palette color closest to c
 	 */
-	protected int findClosest(int c) {
+	private int findClosest(int c) {
 		if (colorTab == null)
 			return -1;
 		int r = (c >> 16) & 0xff;
@@ -337,7 +337,7 @@ public class GifEncoder {
 	/**
 	 * Extracts image pixels into byte array "pixels"
 	 */
-	protected void getImagePixels() {
+	private void getImagePixels() {
 		int w = image.getWidth();
 		int h = image.getHeight();
 		if ((w != width) || (h != height)) {
@@ -358,7 +358,7 @@ public class GifEncoder {
 		}
 	}
 
-	protected int[] getImageData(Bitmap img) {
+	private int[] getImageData(Bitmap img) {
 		int w = img.getWidth();
 		int h = img.getHeight();
 
@@ -370,7 +370,7 @@ public class GifEncoder {
 	/**
 	 * Writes Graphic Control Extension
 	 */
-	protected void writeGraphicCtrlExt() throws IOException {
+	private void writeGraphicCtrlExt() throws IOException {
 		out.write(0x21); // extension introducer
 		out.write(0xf9); // GCE label
 		out.write(4); // data block size
@@ -402,7 +402,7 @@ public class GifEncoder {
 	/**
 	 * Writes Image Descriptor
 	 */
-	protected void writeImageDesc() throws IOException {
+	private void writeImageDesc() throws IOException {
 		out.write(0x2c); // image separator
 		writeShort(x); // image position x,y = 0,0
 		writeShort(y);
@@ -426,7 +426,7 @@ public class GifEncoder {
 	/**
 	 * Writes Logical Screen Descriptor
 	 */
-	protected void writeLSD() throws IOException {
+	private void writeLSD() throws IOException {
 		// logical screen size
 		writeShort(width);
 		writeShort(height);
@@ -443,7 +443,7 @@ public class GifEncoder {
 	/**
 	 * Writes Netscape application extension to define repeat count.
 	 */
-	protected void writeNetscapeExt() throws IOException {
+	private void writeNetscapeExt() throws IOException {
 		out.write(0x21); // extension introducer
 		out.write(0xff); // app extension label
 		out.write(11); // block size
@@ -457,7 +457,7 @@ public class GifEncoder {
 	/**
 	 * Writes color table
 	 */
-	protected void writePalette() throws IOException {
+	private void writePalette() throws IOException {
 		out.write(colorTab, 0, colorTab.length);
 		int n = (3 * 256) - colorTab.length;
 		for (int i = 0; i < n; i++) {
@@ -468,7 +468,7 @@ public class GifEncoder {
 	/**
 	 * Encodes and writes pixel data
 	 */
-	protected void writePixels() throws IOException {
+	private void writePixels() throws IOException {
 		LZWEncoder encoder = new LZWEncoder(width, height, indexedPixels,
 			colorDepth);
 		encoder.encode(out);
@@ -477,7 +477,7 @@ public class GifEncoder {
 	/**
 	 * Write 16-bit value to output stream, LSB first
 	 */
-	protected void writeShort(int value) throws IOException {
+	private void writeShort(int value) throws IOException {
 		out.write(value & 0xff);
 		out.write((value >> 8) & 0xff);
 	}
@@ -485,7 +485,7 @@ public class GifEncoder {
 	/**
 	 * Writes string to output stream
 	 */
-	protected void writeString(String s) throws IOException {
+	private void writeString(String s) throws IOException {
 		for (int i = 0; i < s.length(); i++) {
 			out.write((byte)s.charAt(i));
 		}

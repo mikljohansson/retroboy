@@ -1,5 +1,7 @@
 package se.embargo.retroboy.graphic;
 
+import java.util.Arrays;
+
 /*
  * NeuQuant Neural-Net Quantization Algorithm
  * ------------------------------------------
@@ -20,219 +22,213 @@ package se.embargo.retroboy.graphic;
  * receive copies from any such party to do so, with the only requirement being
  * that this copyright notice remain intact.
  * 
- * Adapted from Jef Poskanzer's Java port by way of J. M. G. Elliott. K Weiner 12/00
  * Ported to Java 12/00 K Weiner
  */
 class NeuQuant {
-	protected static final int netsize = 256; /* number of colours used */
-
-	/* four primes near 500 - assume no image has a length so large */
-	/* that it is divisible by all four primes */
-	protected static final int prime1 = 499;
-
-	protected static final int prime2 = 491;
-
-	protected static final int prime3 = 487;
-
-	protected static final int prime4 = 503;
-
-	protected static final int minpicturebytes = (3 * prime4);
-
-	/* minimum size for input image */
-
-	/*
-	 * Program Skeleton ---------------- [select samplefac in range 1..30] [read
-	 * image from input file] pic = (unsigned char*) malloc(3*width*height);
-	 * initnet(pic,3*width*height,samplefac); learn(); unbiasnet(); [write
-	 * output image header, using writecolourmap(f)] inxbuild(); write output
-	 * image using inxsearch(b,g,r)
+	/**
+	 * Number of colors used 
 	 */
+	private static final int NETWORK_SIZE = 256;
+	private static final int NETWORK_ENTRY_SIZE = 4;
+	private static final int NETWORK_TABLE_SIZE = NETWORK_SIZE * NETWORK_ENTRY_SIZE;
 
-	/*
-	 * Network Definitions -------------------
+	/** 
+	 * Four primes near 500 - assume no image has a length so large that it is divisible by all four primes 
 	 */
+	private static final int prime1 = 499;
+	private static final int prime2 = 491;
+	private static final int prime3 = 487;
+	private static final int prime4 = 503;
 
-	protected static final int maxnetpos = (netsize - 1);
-
-	protected static final int netbiasshift = 4; /* bias for colour values */
-
-	protected static final int ncycles = 100; /* no. of learning cycles */
-
-	/* defs for freq and bias */
-	protected static final int intbiasshift = 16; /* bias for fractions */
-
-	protected static final int intbias = (((int)1) << intbiasshift);
-
-	protected static final int gammashift = 10; /* gamma = 1024 */
-
-	protected static final int gamma = (((int)1) << gammashift);
-
-	protected static final int betashift = 10;
-
-	protected static final int beta = (intbias >> betashift); /* beta = 1/1024 */
-
-	protected static final int betagamma = (intbias << (gammashift - betashift));
-
-	/* defs for decreasing radius factor */
-	protected static final int initrad = (netsize >> 3); /*
-														 * for 256 cols, radius
-														 * starts
-														 */
-
-	protected static final int radiusbiasshift = 6; /* at 32.0 biased by 6 bits */
-
-	protected static final int radiusbias = (((int)1) << radiusbiasshift);
-
-	protected static final int initradius = (initrad * radiusbias); /*
-																	 * and
-																	 * decreases
-																	 * by a
-																	 */
-
-	protected static final int radiusdec = 30; /* factor of 1/30 each cycle */
-
-	/* defs for decreasing alpha factor */
-	protected static final int alphabiasshift = 10; /* alpha starts at 1.0 */
-
-	protected static final int initalpha = (((int)1) << alphabiasshift);
-
-	protected int alphadec; /* biased by 10 bits */
-
-	/* radbias and alpharadbias used for radpower calculation */
-	protected static final int radbiasshift = 8;
-
-	protected static final int radbias = (((int)1) << radbiasshift);
-
-	protected static final int alpharadbshift = (alphabiasshift + radbiasshift);
-
-	protected static final int alpharadbias = (((int)1) << alpharadbshift);
-
-	/*
-	 * Types and Global Variables --------------------------
+	/** 
+	 * Minimum size for input image 
 	 */
-
-	protected byte[] thepicture; /* the input image itself */
-
-	protected int lengthcount; /* lengthcount = H*W*3 */
-
-	protected int samplefac; /* sampling factor 1..30 */
-
-	// typedef int pixel[4]; /* BGRc */
-	protected int[][] network; /* the network itself - [netsize][4] */
-
-	protected int[] netindex = new int[256];
-
-	/* for network lookup - really 256 */
-
-	protected int[] bias = new int[netsize];
-
-	/* bias and freq arrays for learning */
-	protected int[] freq = new int[netsize];
-
-	protected int[] radpower = new int[initrad];
-
-	/* radpower for precomputation */
-
-	/*
-	 * Initialise network in range (0,0,0) to (255,255,255) and set parameters
-	 * -----------------------------------------------------------------------
+	private static final int minpicturebytes = (3 * prime4);
+	private static final int maxnetpos = (NETWORK_SIZE - 1);
+	
+	/**
+	 * Bias for color values 
 	 */
-	public NeuQuant(byte[] thepic, int len, int sample) {
+	private static final int netbiasshift = 4;
+	
+	/** 
+	 * Number of learning cycles 
+	 */
+	private static final int ncycles = 100;
 
-		int i;
-		int[] p;
+	 /** 
+	  * Bias for fractions 
+	  */
+	private static final int intbiasshift = 16;
+	private static final int intbias = (((int)1) << intbiasshift);
 
-		thepicture = thepic;
-		lengthcount = len;
-		samplefac = sample;
+	/** 
+	 * Gamma = 1024 
+	 */
+	private static final int gammashift = 10;
+	//private static final int gamma = (((int)1) << gammashift);
 
-		network = new int[netsize][];
-		for (i = 0; i < netsize; i++) {
-			network[i] = new int[4];
-			p = network[i];
-			p[0] = p[1] = p[2] = (i << (netbiasshift + 8)) / netsize;
-			freq[i] = intbias / netsize; /* 1/netsize */
-			bias[i] = 0;
+	/**
+	 * Beta = 1/1024 
+	 */
+	private static final int betashift = 10;
+	private static final int beta = (intbias >> betashift);
+	private static final int betagamma = (intbias << (gammashift - betashift));
+
+	/**
+	 * For 256 cols, radius starts at 32.0 biased by 6 bits
+	 */
+	private static final int initrad = (NETWORK_SIZE >> 3); 
+	private static final int radiusbiasshift = 6;
+	private static final int radiusbias = (((int)1) << radiusbiasshift);
+
+	/**
+	 * and decreases by a factor of 1/30 each cycle
+	 */
+	private static final int initradius = (initrad * radiusbias);
+	private static final int radiusdec = 30;
+
+	/**
+	 * Alpha starts at 1.0
+	 */
+	private static final int alphabiasshift = 10;
+	private static final int initalpha = (((int)1) << alphabiasshift);
+
+	/**
+	 * Biased by 10 bits
+	 */
+	private int alphadec;
+
+	/**
+	 * adbias and alpharadbias used for radpower calculation 
+	 */
+	private static final int radbiasshift = 8;
+	private static final int radbias = (((int)1) << radbiasshift);
+	private static final int alpharadbshift = (alphabiasshift + radbiasshift);
+	private static final int alpharadbias = (((int)1) << alpharadbshift);
+
+	/**
+	 * The network of neurons
+	 */
+	private final int[] network = new int[NETWORK_TABLE_SIZE];
+
+	/**
+	 * The neuron index for each color
+	 */
+	private final int[] netindex = new int[256];
+
+	/** 
+	 * For network lookup - really 256 
+	 */
+	private final int[] bias = new int[NETWORK_SIZE];
+
+	/**
+	 * Bias and freq arrays for learning 
+	 */
+	private final int[] freq = new int[NETWORK_SIZE];
+	
+	/**
+	 * Radpower for precomputation
+	 */
+	private final int[] radpower = new int[initrad];
+
+	/**
+	 * Initialize network in range (0,0,0) to (255,255,255) and set parameters
+	 */
+	public void reset() {
+		for (int i = 0, j = 0; i < NETWORK_SIZE; i++, j += NETWORK_ENTRY_SIZE) {
+			network[j] = network[j + 1] = network[j + 2] = (i << (netbiasshift + 8)) / NETWORK_SIZE;
+			freq[i] = intbias / NETWORK_SIZE;
 		}
+		
+		Arrays.fill(netindex, 0);
+		Arrays.fill(bias, 0);
+		Arrays.fill(radpower, 0);
 	}
 
-	public byte[] colorMap() {
-		byte[] map = new byte[3 * netsize];
-		int[] index = new int[netsize];
-		for (int i = 0; i < netsize; i++)
-			index[network[i][3]] = i;
-		int k = 0;
-		for (int i = 0; i < netsize; i++) {
-			int j = index[i];
-			map[k++] = (byte)(network[j][0]);
-			map[k++] = (byte)(network[j][1]);
-			map[k++] = (byte)(network[j][2]);
+	/**
+	 * @return	RGB color palette
+	 */
+	private byte[] colorMap() {
+		byte[] map = new byte[NETWORK_SIZE * 3];
+		int[] index = new int[NETWORK_SIZE];
+		for (int j = 0; j < NETWORK_TABLE_SIZE; j += NETWORK_ENTRY_SIZE) {
+			index[network[j + 3]] = j;
 		}
+		
+		for (int i = 0, k = 0; i < NETWORK_SIZE; i++) {
+			int j = index[i];
+			map[k++] = (byte)(network[j + 2]);
+			map[k++] = (byte)(network[j + 1]);
+			map[k++] = (byte)(network[j]);
+		}
+		
 		return map;
 	}
 
-	/*
-	 * Insertion sort of network and building of netindex[0..255] (to do after
-	 * unbias)
-	 * ------------------------------------------------------------------
-	 * -------------
+	/**
+	 * Insertion sort of network and building of netindex[0..255] (to do after unbias)
 	 */
-	public void inxbuild() {
-
-		int i, j, smallpos, smallval;
-		int[] p;
-		int[] q;
+	private void inxbuild() {
+		int smallpos, smallval;
 		int previouscol, startpos;
 
 		previouscol = 0;
 		startpos = 0;
-		for (i = 0; i < netsize; i++) {
-			p = network[i];
-			smallpos = i;
-			smallval = p[1]; /* index on g */
-			/* find smallest in i..netsize-1 */
-			for (j = i + 1; j < netsize; j++) {
-				q = network[j];
-				if (q[1] < smallval) { /* index on g */
-					smallpos = j;
-					smallval = q[1]; /* index on g */
+		for (int i = 0, j = 0; i < NETWORK_SIZE; i++, j += NETWORK_ENTRY_SIZE) {
+			smallpos = j;
+			smallval = network[j + 1];
+			
+			// Find smallest in i..netsize-1
+			for (int k = j + NETWORK_ENTRY_SIZE; k < NETWORK_TABLE_SIZE; k += NETWORK_ENTRY_SIZE) {
+				if (network[k + 1] < smallval) {
+					smallpos = k;
+					smallval = network[k + 1];
 				}
 			}
-			q = network[smallpos];
-			/* swap p (i) and q (smallpos) entries */
-			if (i != smallpos) {
-				j = q[0];
-				q[0] = p[0];
-				p[0] = j;
-				j = q[1];
-				q[1] = p[1];
-				p[1] = j;
-				j = q[2];
-				q[2] = p[2];
-				p[2] = j;
-				j = q[3];
-				q[3] = p[3];
-				p[3] = j;
+			
+			// Swap i and smallpos entries
+			if (j != smallpos) {
+				int k = network[smallpos];
+				network[smallpos] = network[j];
+				network[j] = k;
+				
+				k = network[smallpos + 1];
+				network[smallpos + 1] = network[j + 1];
+				network[j + 1] = k;
+
+				k = network[smallpos + 2];
+				network[smallpos + 2] = network[j + 2];
+				network[j + 2] = k;
+
+				k = network[smallpos + 3];
+				network[smallpos + 3] = network[j + 3];
+				network[j + 3] = k;
 			}
-			/* smallval entry is now in position i */
+			
+			// smallval entry is now in position i
 			if (smallval != previouscol) {
 				netindex[previouscol] = (startpos + i) >> 1;
-				for (j = previouscol + 1; j < smallval; j++)
-					netindex[j] = i;
+				for (int k = previouscol + 1; k < smallval; k++) {
+					netindex[k] = i;
+				}
+				
 				previouscol = smallval;
 				startpos = i;
 			}
 		}
+		
 		netindex[previouscol] = (startpos + maxnetpos) >> 1;
-		for (j = previouscol + 1; j < 256; j++)
-			netindex[j] = maxnetpos; /* really 256 */
+		for (int k = previouscol + 1; k < 256; k++) {
+			// really 256
+			netindex[k] = maxnetpos;
+		}
 	}
 
-	/*
-	 * Main Learning Loop ------------------
+	/**
+	 * Main learning loop
 	 */
-	public void learn() {
-
+	private void learn(byte[] thepicture, int lengthcount, int samplefac) {
 		int i, j, b, g, r;
 		int radius, rad, alpha, step, delta, samplepixels;
 		byte[] p;
@@ -255,8 +251,6 @@ class NeuQuant {
 		for (i = 0; i < rad; i++)
 			radpower[i] = alpha
 				* (((rad * rad - i * i) * radbias) / (rad * rad));
-
-		// fprintf(stderr,"beginning 1D learning: initial radius=%d\n", rad);
 
 		if (lengthcount < minpicturebytes)
 			step = 3;
@@ -302,216 +296,168 @@ class NeuQuant {
 						* (((rad * rad - j * j) * radbias) / (rad * rad));
 			}
 		}
-		// fprintf(stderr,"finished 1D learning: final alpha=%f
-		// !\n",((float)alpha)/initalpha);
 	}
 
-	/*
-	 * Search for BGR values 0..255 (after net is unbiased) and return colour
-	 * index
-	 * --------------------------------------------------------------------
-	 * --------
+	/**
+	 * Search for BGR values 0..255 (after net is unbiased) and return color index
 	 */
 	public int map(int b, int g, int r) {
-
-		int i, j, dist, a, bestd;
-		int[] p;
+		int i, j, dist, bestd;
 		int best;
 
 		bestd = 1000; /* biggest possible dist is 256*3 */
 		best = -1;
-		i = netindex[g]; /* index on g */
-		j = i - 1; /* start at netindex[g] and work outwards */
+		i = netindex[g] * NETWORK_ENTRY_SIZE; /* index on g */
+		j = i - NETWORK_ENTRY_SIZE; /* start at netindex[g] and work outwards */
 
-		while ((i < netsize) || (j >= 0)) {
-			if (i < netsize) {
-				p = network[i];
-				dist = p[1] - g; /* inx key */
-				if (dist >= bestd)
-					i = netsize; /* stop iter */
+		while ((i < NETWORK_TABLE_SIZE) || (j >= 0)) {
+			if (i < NETWORK_TABLE_SIZE) {
+				dist = network[i + 1] - g;
+				
+				if (dist >= bestd) {
+					// Stop iteration
+					i = NETWORK_TABLE_SIZE;
+				}
 				else {
-					i++;
-					if (dist < 0)
-						dist = -dist;
-					a = p[0] - b;
-					if (a < 0)
-						a = -a;
-					dist += a;
+					dist = 
+						Math.abs(dist) + 
+						Math.abs(network[i] - b) + 
+						Math.abs(network[i + 2] - r);
+					
 					if (dist < bestd) {
-						a = p[2] - r;
-						if (a < 0)
-							a = -a;
-						dist += a;
-						if (dist < bestd) {
-							bestd = dist;
-							best = p[3];
-						}
+						bestd = dist;
+						best = network[i + 3];
 					}
+
+					i += NETWORK_ENTRY_SIZE;
 				}
 			}
+			
 			if (j >= 0) {
-				p = network[j];
-				dist = g - p[1]; /* inx key - reverse dif */
-				if (dist >= bestd)
-					j = -1; /* stop iter */
+				dist = g - network[j + 1];
+				if (dist >= bestd) {
+					// Stop iteration
+					j = -1;
+				}
 				else {
-					j--;
-					if (dist < 0)
-						dist = -dist;
-					a = p[0] - b;
-					if (a < 0)
-						a = -a;
-					dist += a;
+					dist = 
+						Math.abs(dist) + 
+						Math.abs(network[j] - b) + 
+						Math.abs(network[j + 2] - r);
+					
 					if (dist < bestd) {
-						a = p[2] - r;
-						if (a < 0)
-							a = -a;
-						dist += a;
-						if (dist < bestd) {
-							bestd = dist;
-							best = p[3];
-						}
+						bestd = dist;
+						best = network[j + 3];
 					}
+					
+					j -= NETWORK_ENTRY_SIZE;
 				}
 			}
 		}
-		return (best);
+		
+		return best;
 	}
 
-	public byte[] process() {
-		learn();
+	/**
+	 * @return	RGB color palette
+	 */
+	public byte[] process(byte[] thepicture, int lengthcount, int samplefac) {
+		learn(thepicture, lengthcount, samplefac);
 		unbiasnet();
 		inxbuild();
 		return colorMap();
 	}
 
-	/*
-	 * Unbias network to give byte values 0..255 and record position i to
-	 * prepare for sort
-	 * ----------------------------------------------------------
-	 * -------------------------
+	/**
+	 * Unbias network to give byte values 0..255 and record position i to prepare for sort
 	 */
-	public void unbiasnet() {
-
-		int i;
-
-		for (i = 0; i < netsize; i++) {
-			network[i][0] >>= netbiasshift;
-			network[i][1] >>= netbiasshift;
-			network[i][2] >>= netbiasshift;
-			network[i][3] = i; /* record colour no */
+	private void unbiasnet() {
+		for (int i = 0, j = 0; i < NETWORK_SIZE; i++, j += NETWORK_ENTRY_SIZE) {
+			network[j] >>= netbiasshift;
+			network[j + 1] >>= netbiasshift;
+			network[j + 2] >>= netbiasshift;
+			
+			// Record color number		
+			network[j + 3] = i;
 		}
 	}
 
-	/*
-	 * Move adjacent neurons by precomputed alpha*(1-((i-j)^2/[r]^2)) in
-	 * radpower[|i-j|]
-	 * ----------------------------------------------------------
-	 * -----------------------
+	/**
+	 * Move adjacent neurons by precomputed alpha*(1-((i-j)^2/[r]^2)) in radpower[|i-j|]
 	 */
-	protected void alterneigh(int rad, int i, int b, int g, int r) {
-
+	private void alterneigh(final int rad, final int i, final int b, final int g, final int r) {
 		int j, k, lo, hi, a, m;
-		int[] p;
+		lo = Math.max(i - rad, -1) * NETWORK_ENTRY_SIZE;
+		hi = Math.min(i + rad, NETWORK_SIZE) * NETWORK_ENTRY_SIZE;
 
-		lo = i - rad;
-		if (lo < -1)
-			lo = -1;
-		hi = i + rad;
-		if (hi > netsize)
-			hi = netsize;
-
-		j = i + 1;
-		k = i - 1;
+		j = (i + 1) * NETWORK_ENTRY_SIZE;
+		k = (i - 1) * NETWORK_ENTRY_SIZE;
 		m = 1;
+		
 		while ((j < hi) || (k > lo)) {
 			a = radpower[m++];
+			
 			if (j < hi) {
-				p = network[j++];
-				try {
-					p[0] -= (a * (p[0] - b)) / alpharadbias;
-					p[1] -= (a * (p[1] - g)) / alpharadbias;
-					p[2] -= (a * (p[2] - r)) / alpharadbias;
-				}
-				catch (Exception e) {
-				} // prevents 1.3 miscompilation
+				network[j] -= (a * (network[j] - b)) / alpharadbias;
+				network[j + 1] -= (a * (network[j + 1] - g)) / alpharadbias;
+				network[j + 2] -= (a * (network[j + 2] - r)) / alpharadbias;
+				j += NETWORK_ENTRY_SIZE;
 			}
+
 			if (k > lo) {
-				p = network[k--];
-				try {
-					p[0] -= (a * (p[0] - b)) / alpharadbias;
-					p[1] -= (a * (p[1] - g)) / alpharadbias;
-					p[2] -= (a * (p[2] - r)) / alpharadbias;
-				}
-				catch (Exception e) {
-				}
+				network[k] -= (a * (network[k] - b)) / alpharadbias;
+				network[k + 1] -= (a * (network[k + 1] - g)) / alpharadbias;
+				network[k + 2] -= (a * (network[k + 2] - r)) / alpharadbias;
+				k -= NETWORK_ENTRY_SIZE;
 			}
 		}
 	}
 
-	/*
+	/**
 	 * Move neuron i towards biased (b,g,r) by factor alpha
-	 * ----------------------------------------------------
 	 */
-	protected void altersingle(int alpha, int i, int b, int g, int r) {
-
-		/* alter hit neuron */
-		int[] n = network[i];
-		n[0] -= (alpha * (n[0] - b)) / initalpha;
-		n[1] -= (alpha * (n[1] - g)) / initalpha;
-		n[2] -= (alpha * (n[2] - r)) / initalpha;
+	private final void altersingle(int alpha, int i, int b, int g, int r) {
+		final int j = i * NETWORK_ENTRY_SIZE;
+		network[j] -= (alpha * (network[j] - b)) / initalpha;
+		network[j + 1] -= (alpha * (network[j + 1] - g)) / initalpha;
+		network[j + 2] -= (alpha * (network[j + 2] - r)) / initalpha;
 	}
 
-	/*
-	 * Search for biased BGR values ----------------------------
+	/**
+	 * Search for biased BGR values
+	 * 
+	 * Finds closest neuron (min dist) and updates freq
+	 * Finds best neuron (min dist-bias) and returns position
+	 * For frequently chosen neurons, freq[i] is high and bias[i] is negative
 	 */
-	protected int contest(int b, int g, int r) {
+	private int contest(int b, int g, int r) {
+		int biasdist, betafreq;
+		int bestpos = -1, bestbiaspos = bestpos, bestdist = Integer.MAX_VALUE, bestbiasdist = bestdist;
 
-		/* finds closest neuron (min dist) and updates freq */
-		/* finds best neuron (min dist-bias) and returns position */
-		/*
-		 * for frequently chosen neurons, freq[i] is high and bias[i] is
-		 * negative
-		 */
-		/* bias[i] = gamma*((1/netsize)-freq[i]) */
-
-		int i, dist, a, biasdist, betafreq;
-		int bestpos, bestbiaspos, bestd, bestbiasd;
-		int[] n;
-
-		bestd = ~(((int)1) << 31);
-		bestbiasd = bestd;
-		bestpos = -1;
-		bestbiaspos = bestpos;
-
-		for (i = 0; i < netsize; i++) {
-			n = network[i];
-			dist = n[0] - b;
-			if (dist < 0)
-				dist = -dist;
-			a = n[1] - g;
-			if (a < 0)
-				a = -a;
-			dist += a;
-			a = n[2] - r;
-			if (a < 0)
-				a = -a;
-			dist += a;
-			if (dist < bestd) {
-				bestd = dist;
+		for (int i = 0, j = 0; i < NETWORK_SIZE; i++, j += NETWORK_ENTRY_SIZE) {
+			final int dist = 
+				Math.abs(network[j] - b) + 
+				Math.abs(network[j + 1] - g) + 
+				Math.abs(network[j + 2] - r);
+			
+			if (dist < bestdist) {
+				bestdist = dist;
 				bestpos = i;
 			}
+			
 			biasdist = dist - ((bias[i]) >> (intbiasshift - netbiasshift));
-			if (biasdist < bestbiasd) {
-				bestbiasd = biasdist;
+			if (biasdist < bestbiasdist) {
+				bestbiasdist = biasdist;
 				bestbiaspos = i;
 			}
+			
 			betafreq = (freq[i] >> betashift);
 			freq[i] -= betafreq;
 			bias[i] += (betafreq << gammashift);
 		}
+		
 		freq[bestpos] += beta;
 		bias[bestpos] -= betagamma;
-		return (bestbiaspos);
+		return bestbiaspos;
 	}
 }
