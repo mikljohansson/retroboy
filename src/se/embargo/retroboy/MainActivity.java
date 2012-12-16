@@ -655,7 +655,7 @@ public class MainActivity extends SherlockFragmentActivity {
 					
 					// Prepare to record video
 					_captureListener = new CaptureVideoListener();
-					takePhotoButton.setImageResource(R.drawable.ic_button_playback_record);
+					takePhotoButton.setImageResource(R.drawable.ic_button_video);
 					takePhotoButton.setOnTouchListener(_captureListener);
 					cameraModeButton.setImageResource(R.drawable.ic_button_camera);
 					videoProgressLayout.setVisibility(View.VISIBLE);

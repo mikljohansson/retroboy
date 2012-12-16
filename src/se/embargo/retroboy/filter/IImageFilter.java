@@ -52,7 +52,7 @@ public interface IImageFilter {
 		public Bitmap bitmap;
 		
 		/**
-		 * Timestamp when frame was captured in milliseconds.
+		 * Timestamp when frame was captured in nanoseconds.
 		 */
 		public long timestamp;
 		

@@ -194,7 +194,12 @@ public class GifManager extends AbstractFilter {
 					}
 					
 					if (prevtimestamp != 0) {
-						encoder.setDelay((int)(frame.timestamp - prevtimestamp));					
+						// Make sure to not multiply the rounding error (the delay is internally expressed in 1/100 seconds)
+						long delay = (frame.timestamp - prevtimestamp) / 10000000L * 10000000L;
+						encoder.setDelay((int)(delay / 1000000L));					
+						prevtimestamp = frame.timestamp - ((frame.timestamp - prevtimestamp) - delay);
+					}
+					else {
 						prevtimestamp = frame.timestamp;
 					}
 					
