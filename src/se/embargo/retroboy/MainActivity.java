@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import se.embargo.core.concurrent.ProgressTask;
+import se.embargo.core.database.ObservableCursorLoader;
 import se.embargo.core.databinding.DataBindingContext;
 import se.embargo.core.databinding.IPropertyDescriptor;
 import se.embargo.core.databinding.PojoProperties;
@@ -55,14 +56,13 @@ import android.view.View.OnTouchListener;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.ListView;
 
-import com.actionbarsherlock.app.SherlockActivity;
+import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.Window;
 
-public class MainActivity extends SherlockActivity {
+public class MainActivity extends SherlockFragmentActivity {
 	private static final String TAG = "MainActivity";
 	
 	public static final String PREF_CAMERA = "camera";
@@ -119,14 +119,12 @@ public class MainActivity extends SherlockActivity {
 	/**
 	 * Listener to receive taken photos
 	 */
-	private TakePhotoListener _takePhotoListener = new TakePhotoListener();
+	private View.OnTouchListener _captureListener = new TakePhotoListener();
 
 	/**
 	 * Listener to handle auto-focus
 	 */
-	private AutoFocusListener _autoFocusListener = new AutoFocusListener();
-	private ImageView _autoFocusMarker;
-	private boolean _hasAutoFocus;
+	private FocusManager _focusManager;
 	
 	private View _detailedPreferences;
 	private ListView _detailedPreferencesList;
@@ -159,13 +157,27 @@ public class MainActivity extends SherlockActivity {
 	 */
 	private DataBindingContext _binding = new DataBindingContext();
 	
+	/**
+	 * Picture or video mode.
+	 */
+	private enum CameraState { Picture, Video, Recording }
+
+	/**
+	 * Current camera state. 
+	 */
+	private IObservableValue<CameraState> _cameraState = new WritableValue<CameraState>(CameraState.Picture);
+	
+	/**
+	 * Filter tasked with encoding animated GIF's from the frame stream.
+	 */
+	private GifManager _gifFilter;
+	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
 		_cameraCount = Camera.getNumberOfCameras();
 		_hasCameraFlash = getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
-		_hasAutoFocus = getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_AUTOFOCUS);
 		
 		_sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
 		_gyroscope = _sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
@@ -183,8 +195,37 @@ public class MainActivity extends SherlockActivity {
 
 		// Setup preview display surface
 		setContentView(R.layout.main_activity);
+
+		View previewLayout = findViewById(R.id.cameraPreviewLayout);
+		_focusManager = new FocusManager(this, _cameraHandle, previewLayout);
+		_gifFilter = new GifManager(this, previewLayout);
+		_gifFilter.setStateChangeListener(new GifManager.StateChangeListener() {
+			@Override
+			public void onRecord() {
+				_cameraState.setValue(CameraState.Recording);
+			}
+
+			@Override
+			public void onStop() {
+				_cameraState.setValue(CameraState.Video);
+
+				// Stop preview while image is processed
+				CameraHandle handle = _cameraHandle.getValue();
+				if (handle != null) {
+					handle.camera.setPreviewCallback(null);
+				}
+			}
+			
+			@Override
+			public void onFinish() {
+				_cameraState.setValue(CameraState.Video);
+
+				// Restart preview
+				_preview.initPreviewCallback();
+			}
+		});
+		
 		_preview = (CameraPreview)findViewById(R.id.cameraPreview);
-		_autoFocusMarker = (ImageView)findViewById(R.id.autoFocusMarker);
 		_detailedPreferences = findViewById(R.id.detailedPreferences);
 		_detailedPreferencesList = (ListView)findViewById(R.id.detailedPreferencesList);
 		_detailedPreferencesList.setOnItemClickListener(_detailedPreferenceAdapter);
@@ -225,10 +266,12 @@ public class MainActivity extends SherlockActivity {
 			}
 		});
 		
-		// Connect the take photo button
+		// Connect the switch camera mode button
 		{
-			ImageButton button = (ImageButton)findViewById(R.id.takePhotoButton);
-			button.setOnClickListener(_takePhotoListener);
+			final ImageButton cameraModeButton = (ImageButton)findViewById(R.id.cameraModeButton);
+			cameraModeButton.setOnClickListener(new CameraModeButtonListener());
+			_cameraState.addChangeListener(new CameraStateListener());
+			_cameraState.setValue(CameraState.Picture);
 		}
 		
 		// Connect the open gallery button
@@ -285,7 +328,7 @@ public class MainActivity extends SherlockActivity {
 			}
 			else {
 				// Disable the flash on/off button if the current camera doesn't support it
-				_cameraHandle.addChangeListener(new IChangeListener<MainActivity.CameraHandle>() {
+				_cameraHandle.addChangeListener(new IChangeListener<CameraHandle>() {
 					@Override
 					public void handleChange(ChangeEvent<CameraHandle> event) {
 						CameraHandle handle = event.getValue();
@@ -308,6 +351,19 @@ public class MainActivity extends SherlockActivity {
 		_binding.bindValue(
 			PojoProperties.value(new SceneModeDescriptor()).observe(_cameraHandle), 
 			_sceneMode);
+		
+		// Update the thumbnail when the repo changes
+		ObservableCursorLoader loader = new ObservableCursorLoader(
+			this, MediaStore.Images.Media.EXTERNAL_CONTENT_URI, new String[] { "COUNT(1)" }, 
+			MediaStore.Images.ImageColumns.BUCKET_ID + " = " + getBucketId(), new String[] {});
+		
+		loader.addChangeListener(new IChangeListener<Cursor>() {
+			@Override
+			public void handleChange(ChangeEvent<Cursor> event) {
+				// Update the last photo thumbnail
+				new GetLastThumbnailTask().execute();
+			}
+		});
 		
 		// Initialize the image filter
 		initFilter();
@@ -335,11 +391,16 @@ public class MainActivity extends SherlockActivity {
 		_gyroListener.reset();
 	}
 
+	private void reset() {
+		_detailedPreferences.setVisibility(View.GONE);
+		_focusManager.setVisible(true);
+	}
+	
 	private void stop() {
 		_prefs.unregisterOnSharedPreferenceChangeListener(_prefsListener);
 		_sensorManager.unregisterListener(_gyroListener);
 		_rotationListener.disable();
-		resetFocus();
+		reset();
 		stopPreview();
 	}
 	
@@ -371,7 +432,15 @@ public class MainActivity extends SherlockActivity {
 		switch (keyCode) {
 			case KeyEvent.KEYCODE_FOCUS:
 				// Reset auto focus when dedicated photo button is completely released
-				_autoFocusListener.resetFocus();
+				_focusManager.resetFocus();
+				return true;
+
+			case KeyEvent.KEYCODE_CAMERA:
+				if (event.getRepeatCount() == 0 && event.getAction() == KeyEvent.ACTION_UP) {
+					// Take photo when the dedicated photo button is pressed
+					_captureListener.onTouch(null, MotionEvent.obtain(0, 0, MotionEvent.ACTION_UP, 0, 0, 0));
+				}
+				
 				return true;
 		}
 
@@ -380,13 +449,13 @@ public class MainActivity extends SherlockActivity {
 	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		resetFocus();
+		reset();
 
 		switch (keyCode) {
 			case KeyEvent.KEYCODE_FOCUS:
 				// Trigger auto focus when dedicated photo button is pressed half way
 				if (event.getRepeatCount() == 0) {
-					_autoFocusListener.autoFocus();
+					_focusManager.autoFocus();
 				}
 				
 				return true;
@@ -394,7 +463,7 @@ public class MainActivity extends SherlockActivity {
 			case KeyEvent.KEYCODE_CAMERA:
 				if (event.getRepeatCount() == 0 && event.getAction() == KeyEvent.ACTION_DOWN) {
 					// Take photo when the dedicated photo button is pressed
-					_takePhotoListener.takePhoto();
+					_captureListener.onTouch(null, MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 0, 0, 0));
 				}
 				
 				return true;
@@ -431,9 +500,6 @@ public class MainActivity extends SherlockActivity {
 			Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
 			Camera.getCameraInfo(cameraid, cameraInfo);
 			_cameraHandle.setValue(new CameraHandle(camera, cameraInfo, cameraid));
-
-			// Check if camera supports auto-focus
-			initAutoFocusMarker();
 			
 			// Configure the camera
 			Camera.Parameters params = camera.getParameters();
@@ -474,6 +540,7 @@ public class MainActivity extends SherlockActivity {
 		filter.add(new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter()));
 		filter.add(effect);
 		filter.add(new ImageBitmapFilter());
+		filter.add(_gifFilter);
 		_preview.setFilter(filter);
 	}
 	
@@ -507,8 +574,8 @@ public class MainActivity extends SherlockActivity {
         	MediaStore.Images.ImageColumns._ID};
         
         String selection = 
-        	MediaStore.Images.ImageColumns.MIME_TYPE + "='image/png' AND " +
-        	MediaStore.Images.ImageColumns.BUCKET_ID + '=' + getBucketId();
+        	MediaStore.Images.ImageColumns.MIME_TYPE + " IN ('image/png', 'image/gif') AND " +
+        	MediaStore.Images.ImageColumns.BUCKET_ID + " = " + getBucketId();
         
         String order = 
         	MediaStore.Images.ImageColumns.DATE_TAKEN + " DESC," + 
@@ -536,97 +603,106 @@ public class MainActivity extends SherlockActivity {
 		return String.valueOf(Pictures.getStorageDirectory().toString().toLowerCase().hashCode());
 	}
 
-	private Bitmap getPreviousThumbnail() {
-        long id = getLastImageId();
-        if (id >= 0) {
-			return MediaStore.Images.Thumbnails.getThumbnail(getContentResolver(), id, MediaStore.Images.Thumbnails.MINI_KIND, null);
-        }
-        
-        return null;
-	}
-	
-	private void setPreviousThumbnail(Bitmap result) {
-		ImageButton button = (ImageButton)findViewById(R.id.openGalleryButton);
-		View layout = (View)button.getParent();
-		
-		button.setImageBitmap(result);
-		layout.setVisibility(result != null ? View.VISIBLE : View.GONE);
-		button.setEnabled(result != null);
-	}
-	
-	private void initAutoFocusMarker() {
-		if (_hasAutoFocus) {
-			CameraHandle handle = _cameraHandle.getValue();
-			
-			if (handle != null && handle.info.facing == Camera.CameraInfo.CAMERA_FACING_BACK && _detailedPreferences.getVisibility() != View.VISIBLE) {
-				_autoFocusMarker.setVisibility(View.VISIBLE);
-				Log.i(TAG, "Auto-focus enabled");
-			}
-			else {
-				_autoFocusMarker.setVisibility(View.GONE);
-				Log.i(TAG, "Auto-focus disabled");
-			}
-		}
-	}
-	
-	private void resetFocus() {
-		if (_detailedPreferences.getVisibility() == View.VISIBLE) {
-			_detailedPreferences.setVisibility(View.GONE);
-			initAutoFocusMarker();
-		}
-	}
-	
-	private void toggleDetailedPreferences() {
-		if (_detailedPreferences.getVisibility() != View.VISIBLE) {
-			_autoFocusMarker.setVisibility(View.GONE);
-			_detailedPreferences.setVisibility(View.VISIBLE);
-		}
-		else {
-			resetFocus();
-		}
-	}
-	
 	private class GetLastThumbnailTask extends AsyncTask<Void, Void, Bitmap> {
 		@Override
 		protected Bitmap doInBackground(Void... params) {
-			try {
-				Thread.sleep(500);
-			}
-			catch (InterruptedException e) {}
-	    	
-	    	return getPreviousThumbnail();
+	        long id = getLastImageId();
+	        if (id >= 0) {
+				return MediaStore.Images.Thumbnails.getThumbnail(getContentResolver(), id, MediaStore.Images.Thumbnails.MINI_KIND, null);
+	        }
+	        
+	        return null;
 		}
 		
 		@Override
 		protected void onPostExecute(Bitmap result) {
-			setPreviousThumbnail(result);
+			ImageButton button = (ImageButton)findViewById(R.id.openGalleryButton);
+			View layout = (View)button.getParent();
+			
+			button.setImageBitmap(result);
+			button.setEnabled(result != null);
+			layout.setVisibility(result != null ? View.VISIBLE : View.GONE);
 		}
 	}
 	
-	private static class CameraHandle {
-		public final Camera camera;
-		public final Camera.CameraInfo info;
-		public final int id;
-		
-		public CameraHandle(Camera camera, Camera.CameraInfo info, int id) {
-			this.camera = camera;
-			this.info = info;
-			this.id = id;
-		}
-	}
-	
-	private class TakePhotoListener implements View.OnClickListener, PreviewCallback {
-		public void takePhoto() {
-			CameraHandle handle = _cameraHandle.getValue();
-			if (handle != null) {
-				handle.camera.setPreviewCallbackWithBuffer(this);
+	private class CameraStateListener implements IChangeListener<CameraState> {
+		@Override
+		public void handleChange(ChangeEvent<CameraState> event) {
+			final ImageButton takePhotoButton = (ImageButton)findViewById(R.id.takePhotoButton);
+			final ImageButton cameraModeButton = (ImageButton)findViewById(R.id.cameraModeButton);
+			final View videoProgressLayout = findViewById(R.id.videoProgressLayout);
+
+			switch (event.getValue()) {
+				case Picture: {
+					// Abort any ongoing video capture							
+					_gifFilter.abort();
+					
+					// Prepare to capture still images
+					_captureListener = new TakePhotoListener();
+					takePhotoButton.setImageResource(R.drawable.ic_button_camera);
+					takePhotoButton.setOnTouchListener(_captureListener);
+					cameraModeButton.setImageResource(R.drawable.ic_button_video);
+					videoProgressLayout.setVisibility(View.GONE);
+					
+					// Enable auto-focus
+					_focusManager.setVisible(true);
+					break;
+				}
+				
+				case Video: {
+					// Abort any ongoing video capture							
+					_gifFilter.abort();
+					
+					// Prepare to record video
+					_captureListener = new CaptureVideoListener();
+					takePhotoButton.setImageResource(R.drawable.ic_button_playback_record);
+					takePhotoButton.setOnTouchListener(_captureListener);
+					cameraModeButton.setImageResource(R.drawable.ic_button_camera);
+					videoProgressLayout.setVisibility(View.VISIBLE);
+
+					// Enable auto-focus
+					_focusManager.setVisible(true);
+					break;
+				}
+				
+				case Recording: {
+					// Hide auto-focus marker
+					_focusManager.setVisible(false);
+
+					// Recording video
+					takePhotoButton.setImageResource(R.drawable.ic_button_playback_stop);
+					cameraModeButton.setImageResource(R.drawable.ic_button_camera);
+					videoProgressLayout.setVisibility(View.VISIBLE);
+				}
 			}
 		}
-		
+	}
+	
+	private class CameraModeButtonListener implements View.OnClickListener {
 		@Override
 		public void onClick(View v) {
-			resetFocus();
-			takePhoto();
+			_cameraState.setValue(_cameraState.getValue() != CameraState.Picture ? CameraState.Picture : CameraState.Video);
+		}
+	}
+	
+	private class TakePhotoListener implements View.OnTouchListener, PreviewCallback {
+		@Override
+		public boolean onTouch(View v, MotionEvent event) {
+			reset();
+
+			switch (event.getActionMasked()) {
+				case MotionEvent.ACTION_DOWN:
+				case MotionEvent.ACTION_POINTER_DOWN: {
+					CameraHandle handle = _cameraHandle.getValue();
+					if (handle != null) {
+						handle.camera.setPreviewCallbackWithBuffer(this);
+					}
+					
+					return true;
+				}
+			}
+			
+			return false;
 		}
 
 		@Override
@@ -639,54 +715,51 @@ public class MainActivity extends SherlockActivity {
 				
 				// Stop receiving camera frames
 				handle.camera.setPreviewCallbackWithBuffer(null);
-	
-				// Get the current device orientation
-				WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
-				int rotation = _rotationListener.getCurrentRotation(windowManager.getDefaultDisplay().getRotation());
 				
 				// Process and save the picture
-				new ProcessFrameTask(handle, data, rotation).execute();
+				new ProcessFrameTask(handle, data).execute();
 			}
 		}
 	}
 	
-	private class AutoFocusListener implements Camera.AutoFocusCallback {
-		public void autoFocus() {
-			_autoFocusMarker.setImageResource(R.drawable.ic_focus);
-
-			CameraHandle handle = _cameraHandle.getValue();
-			if (handle != null) {
-				try {
-					handle.camera.autoFocus(this);
-				}
-				catch (Exception e) {
-					Log.e(TAG, "Failed to start auto-focus", e);
-				}
-			}
-		}
+	private class CaptureVideoListener implements View.OnTouchListener {
+		private static final long PRESS_DELAY = 350;
+		private long _prevEvent = 0;
 		
-		public void resetFocus() {
-			_autoFocusMarker.setImageResource(R.drawable.ic_focus);
-
-			CameraHandle handle = _cameraHandle.getValue();
-			if (handle != null) {
-				try {
-					handle.camera.cancelAutoFocus();
-				}
-				catch (Exception e) {
-					Log.e(TAG, "Failed to reset auto-focus", e);
-				}
-			}
-		}
-
 		@Override
-		public void onAutoFocus(boolean success, Camera camera) {
-			if (success) {
-				_autoFocusMarker.setImageResource(R.drawable.ic_focus_ok);
+		public boolean onTouch(View v, MotionEvent event) {
+			switch (event.getActionMasked()) {
+				case MotionEvent.ACTION_DOWN:
+				case MotionEvent.ACTION_POINTER_DOWN: {
+					// Start recording if we're not currently doing so
+					CameraHandle handle = _cameraHandle.getValue();
+					if (handle != null && !_gifFilter.isRecording()) {
+						_gifFilter.record(getTransform(handle));
+						_prevEvent = System.currentTimeMillis();
+					}
+					else {
+						// Stop recording when button is released from long press
+						_gifFilter.stop();
+					}
+					
+					return true;
+				}
+
+				case MotionEvent.ACTION_UP:
+				case MotionEvent.ACTION_POINTER_UP:
+					// Don't stop if the record button was just tapped quickly
+					if ((System.currentTimeMillis() - _prevEvent) > PRESS_DELAY) {
+						_gifFilter.stop();
+					}
+					
+					return true;
+				
+				case MotionEvent.ACTION_CANCEL:
+					_gifFilter.abort();
+					return true;
 			}
-			else {
-				_autoFocusMarker.setImageResource(R.drawable.ic_focus_fail);
-			}
+			
+			return false;
 		}
 	}
 	
@@ -717,46 +790,64 @@ public class MainActivity extends SherlockActivity {
 				else if (((event.timestamp - _timestamp) / 1000000) > GYROSCOPE_FOCUSING_TIMEOUT) {
 					// Movement stopped
 					_movement = false;
-					_autoFocusListener.autoFocus();
+					_focusManager.autoFocus();
 				}
 			}
 			else if (rotation >= GYROSCOPE_MOVEMENT_THRESHOLD) {
 				// Movement detected
 				_movement = true;
 				_timestamp = event.timestamp;
-				_autoFocusListener.resetFocus();
+				_focusManager.resetFocus();
 			}
 		}
+	}
+	
+	private Bitmaps.Transform getTransform(CameraHandle handle) {
+		Camera.Size size = handle.camera.getParameters().getPreviewSize();
+		
+		// Get the current device orientation
+		WindowManager windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
+		int rotation = _rotationListener.getCurrentRotation(windowManager.getDefaultDisplay().getRotation());
+		
+		// Get the resolution and contrast from preferences
+		Pictures.Resolution resolution = Pictures.getResolution(MainActivity.this, _prefs);
+		int contrast = Pictures.getContrast(MainActivity.this, _prefs);
+
+		// Check for orientation override
+		int orientation = Pictures.getCameraOrientation(_prefs, handle.info, handle.id);
+		
+		// Create the image filter pipeline
+		YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast, false);
+		Bitmaps.Transform transform = Pictures.createTransformMatrix(
+			yuvFilter.getEffectiveWidth(size.width, size.height), 
+			yuvFilter.getEffectiveHeight(size.width, size.height), 
+			handle.info.facing, orientation, rotation,
+			resolution);
+		
+		return transform;
 	}
 	
 	/**
 	 * Process an camera preview frame
 	 */
-	private class ProcessFrameTask extends ProgressTask<Void, Void, Bitmap> {
+	private class ProcessFrameTask extends ProgressTask<Void, Void, Void> {
 		private IImageFilter _filter;
 		private IImageFilter.ImageBuffer _buffer;
 
-		public ProcessFrameTask(CameraHandle handle, byte[] data, int rotation) {
+		public ProcessFrameTask(CameraHandle handle, byte[] data) {
 			super(MainActivity.this, R.string.title_saving_image, R.string.msg_saving_image);
 			Camera.Size size = handle.camera.getParameters().getPreviewSize();
 			_buffer = new IImageFilter.ImageBuffer(data, size.width, size.height);
 			_task = this;
-
+			
 			// Get the resolution and contrast from preferences
 			Pictures.Resolution resolution = Pictures.getResolution(MainActivity.this, _prefs);
 			int contrast = Pictures.getContrast(MainActivity.this, _prefs);
-
-			// Check for orientation override
-			int orientation = Pictures.getCameraOrientation(_prefs, handle.info, handle.id);
 			
 			// Create the image filter pipeline
 			IImageFilter effect = Pictures.createEffectFilter(MainActivity.this);
 			YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter());
-			Bitmaps.Transform transform = Pictures.createTransformMatrix(
-				yuvFilter.getEffectiveWidth(size.width, size.height), 
-				yuvFilter.getEffectiveHeight(size.width, size.height), 
-				handle.info.facing, orientation, rotation,
-				resolution);
+			Bitmaps.Transform transform = getTransform(handle);
 			
 			CompositeFilter filter = new CompositeFilter();
 			filter.add(yuvFilter);
@@ -767,7 +858,7 @@ public class MainActivity extends SherlockActivity {
 		}
 		
 		@Override
-		protected Bitmap doInBackground(Void... params) {
+		protected Void doInBackground(Void... params) {
 			Log.d(TAG, "Processing captured image");
 			
 			// Apply the image filter to the current image			
@@ -776,9 +867,8 @@ public class MainActivity extends SherlockActivity {
 			// Write the image to disk
 			File file = Pictures.compress(MainActivity.this, null, null, _buffer.bitmap);
 			Log.i(TAG, "Wrote image to disk: " + file);
-		
-			// Update the last photo thumbnail
-			return getPreviousThumbnail();
+			
+			return null;
 		}
 		
 		@Override
@@ -793,12 +883,9 @@ public class MainActivity extends SherlockActivity {
 		}
 		
 		@Override
-		protected void onPostExecute(Bitmap result) {
+		protected void onPostExecute(Void result) {
 			Log.i(TAG, "Successfully captured image");
 
-			// Update the last image thumbnail
-			setPreviousThumbnail(result);
-			
 			// Restart preview
 			_preview.initPreviewCallback();
 
@@ -890,7 +977,13 @@ public class MainActivity extends SherlockActivity {
 	private class EditSettingsButtonListener implements OnClickListener {
 		@Override
 		public void onClick(View v) {
-			toggleDetailedPreferences();
+			if (_detailedPreferences.getVisibility() != View.VISIBLE) {
+				_focusManager.setVisible(false);
+				_detailedPreferences.setVisibility(View.VISIBLE);
+			}
+			else {
+				reset();
+			}
 		}
 	}
 
@@ -904,7 +997,7 @@ public class MainActivity extends SherlockActivity {
 		
 		@Override
 		public void onClick(View v) {
-			resetFocus();
+			reset();
 			show();
 		}
 	}
@@ -915,7 +1008,7 @@ public class MainActivity extends SherlockActivity {
 	private class SwitchCameraButtonListener implements OnClickListener {
 		@Override
 		public void onClick(View v) {
-			resetFocus();
+			reset();
 
 			int cameraid = _prefs.getInt(PREF_CAMERA, 0) + 1;
         	if (cameraid >= _cameraCount) {
@@ -934,7 +1027,7 @@ public class MainActivity extends SherlockActivity {
 	private class FlashButtonListener implements OnClickListener {
 		@Override
 		public void onClick(View v) {
-			resetFocus();
+			reset();
 
 			CameraHandle handle = _cameraHandle.getValue();
 			Camera.Parameters params = handle.camera.getParameters();
@@ -962,7 +1055,7 @@ public class MainActivity extends SherlockActivity {
 
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
-			resetFocus();
+			reset();
 
 			boolean result = super.onTouchEvent(event);
 			switch (event.getAction()) {
@@ -973,7 +1066,7 @@ public class MainActivity extends SherlockActivity {
 				case MotionEvent.ACTION_UP:
 					if (_singleTouch) {
 						Log.i(TAG, "Detected single touch, triggering auto-focus");
-						_autoFocusListener.autoFocus();
+						_focusManager.autoFocus();
 					}
 					
 					_singleTouch = false;

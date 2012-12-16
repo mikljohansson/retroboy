@@ -14,6 +14,7 @@
     <string name="menu_option_discard_image">Discard</string>
     <string name="menu_option_settings">Settings</string>
     <string name="menu_option_switch_camera">Switch Camera</string>
+    <string name="menu_option_switch_camera_mode">Camera/Video</string>
     <string name="menu_option_filter">Filter</string>
     <string name="menu_option_share_image">Share</string>
     <string name="menu_option_camera_torch">Torch</string>

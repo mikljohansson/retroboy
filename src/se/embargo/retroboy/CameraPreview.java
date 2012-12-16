@@ -277,6 +277,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			_filter = filter;
 			_transform = transform;
 			_buffer.frame = data;
+			_buffer.timestamp = System.currentTimeMillis();
 			_frameseq = CameraPreview.this._frameseq++;
 		}
 		

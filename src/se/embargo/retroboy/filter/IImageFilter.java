@@ -51,6 +51,11 @@ public interface IImageFilter {
 
 		public Bitmap bitmap;
 		
+		/**
+		 * Timestamp when frame was captured in milliseconds.
+		 */
+		public long timestamp;
+		
 		public ImageBuffer(byte[] frame, int framewidth, int frameheight) {
 			this.frame = frame;
 			this.framewidth = framewidth;

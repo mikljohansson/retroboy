@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/videoProgressLayout"
+	android:layout_width="100dp"
+	android:layout_height="5dp"
+	android:layout_alignParentBottom="true"
+	android:layout_alignParentRight="true"
+	android:layout_margin="15dp"
+	android:orientation="vertical"
+	android:visibility="gone">
+    		    
+	<ProgressBar
+	    android:id="@+id/recordProgressBar"
+		android:layout_width="match_parent"
+		android:layout_height="5dp"
+		style="@android:style/Widget.ProgressBar.Horizontal"/>
+
+</LinearLayout>

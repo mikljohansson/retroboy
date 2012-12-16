@@ -12,6 +12,7 @@
 		android:layout_weight="1">
 	
 	    <se.embargo.retroboy.widget.PreviewFrameLayout
+	        android:id="@+id/cameraPreviewLayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_centerInParent="true"
@@ -30,6 +31,7 @@
 				android:src="@drawable/ic_focus"
 				android:contentDescription="@string/btn_auto_focus"/>
 
+		    <include layout="@layout/video_progress"/>
 		    <include layout="@layout/detailed_preferences"/>
 		</se.embargo.retroboy.widget.PreviewFrameLayout>
 	</RelativeLayout>

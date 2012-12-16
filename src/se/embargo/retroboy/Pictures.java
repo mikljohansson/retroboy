@@ -48,7 +48,7 @@ public class Pictures {
 	private static final String PREF_IMAGECOUNT = "imagecount";
 	
 	private static final String DIRECTORY = "Retroboy";
-	private static final String FILENAME = "IMGR%04d.png";
+	private static final String FILENAME_PATTERN = "IMGR%04d";
 
 	public static class Resolution {
 		public final int width, height;
@@ -112,41 +112,18 @@ public class Pictures {
 	
 	@SuppressLint("DefaultLocale")
 	public static File compress(Context context, String inputname, String outputpath, Bitmap bm) {
-		SharedPreferences prefs = context.getSharedPreferences(PREFS_NAMESPACE, Context.MODE_PRIVATE);
-
 		// Create path to output file
 		File file;
 		if (outputpath != null) {
 			// Overwrite the previously processed file
 			file = new File(outputpath);
+
+			// Create parent directory as needed
+			new File(file.getParent()).mkdirs();
 		}
 		else {
-			String filename;
-			do {
-				if (inputname != null) {
-					// Use the original image name
-					filename = new File(inputname).getName();
-					filename = filename.split("\\.", 2)[0];
-					filename += ".png";
-				}
-				else {
-					// Create a new sequential name
-					int count = prefs.getInt(PREF_IMAGECOUNT, 0);
-					filename = String.format(FILENAME, count);
-					
-					// Increment the image count
-					SharedPreferences.Editor editor = prefs.edit();
-					editor.putInt(PREF_IMAGECOUNT, count + 1);
-					editor.commit();
-				}
-				
-				file = new File(getStorageDirectory(), filename);
-				inputname = null;
-			} while (file.exists());
+			file = createOutputFile(context, inputname, "png");
 		}
-		
-		// Create parent directory as needed
-		new File(file.getParent()).mkdirs();
 		
 		try {
 			// Delete old instance of image
@@ -174,6 +151,40 @@ public class Pictures {
 			}
 		}
 		catch (IOException e) {}
+		
+		return file;
+	}
+	
+	public static File createOutputFile(Context context, String inputname, String fileext) {
+		SharedPreferences prefs = context.getSharedPreferences(PREFS_NAMESPACE, Context.MODE_PRIVATE);
+		
+		String filename;
+		File file;
+		
+		do {
+			if (inputname != null) {
+				// Use the original image name
+				filename = new File(inputname).getName();
+				filename = filename.split("\\.", 2)[0];
+				filename += "." + fileext;
+			}
+			else {
+				// Create a new sequential name
+				int count = prefs.getInt(PREF_IMAGECOUNT, 0);
+				filename = String.format(FILENAME_PATTERN + "." + fileext, count);
+				
+				// Increment the image count
+				SharedPreferences.Editor editor = prefs.edit();
+				editor.putInt(PREF_IMAGECOUNT, count + 1);
+				editor.commit();
+			}
+			
+			file = new File(getStorageDirectory(), filename);
+			inputname = null;
+		} while (file.exists());
+		
+		// Create parent directory as needed
+		new File(file.getParent()).mkdirs();
 		
 		return file;
 	}
