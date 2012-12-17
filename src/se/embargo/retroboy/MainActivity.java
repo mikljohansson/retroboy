@@ -388,19 +388,27 @@ public class MainActivity extends SherlockFragmentActivity {
 		
 		// Connect to the sensors
 		_sensorManager.registerListener(_gyroListener, _gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
-		_gyroListener.reset();
+		_gyroListener.resetMovement();
 	}
 
-	private void reset() {
+	private void reset(boolean abort) {
 		_detailedPreferences.setVisibility(View.GONE);
 		_focusManager.setVisible(true);
+		
+		if (abort) {
+			_videoRecorder.abort();
+		}
 	}
 	
+	private void reset() {
+		reset(true);
+	}
+
 	private void stop() {
 		_prefs.unregisterOnSharedPreferenceChangeListener(_prefsListener);
 		_sensorManager.unregisterListener(_gyroListener);
 		_rotationListener.disable();
-		reset();
+		reset(true);
 		stopPreview();
 	}
 	
@@ -455,7 +463,7 @@ public class MainActivity extends SherlockFragmentActivity {
 	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		reset();
+		reset(false);
 
 		switch (keyCode) {
 			case KeyEvent.KEYCODE_FOCUS:
@@ -777,10 +785,10 @@ public class MainActivity extends SherlockFragmentActivity {
 		private long _timestamp = 0;
 		
 		public GyroscopeListener() {
-			reset();
+			resetMovement();
 		}
 		
-		public void reset() {
+		public void resetMovement() {
 			_movement = true;
 			_timestamp = System.nanoTime();
 		}
@@ -987,8 +995,9 @@ public class MainActivity extends SherlockFragmentActivity {
 		@Override
 		public void onClick(View v) {
 			if (_detailedPreferences.getVisibility() != View.VISIBLE) {
-				_focusManager.setVisible(false);
 				_detailedPreferences.setVisibility(View.VISIBLE);
+				_focusManager.setVisible(false);
+				_videoRecorder.abort();
 			}
 			else {
 				reset();
@@ -1036,7 +1045,7 @@ public class MainActivity extends SherlockFragmentActivity {
 	private class FlashButtonListener implements OnClickListener {
 		@Override
 		public void onClick(View v) {
-			reset();
+			reset(false);
 
 			CameraHandle handle = _cameraHandle.getValue();
 			Camera.Parameters params = handle.camera.getParameters();
@@ -1064,7 +1073,7 @@ public class MainActivity extends SherlockFragmentActivity {
 
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
-			reset();
+			reset(false);
 
 			boolean result = super.onTouchEvent(event);
 			switch (event.getAction()) {

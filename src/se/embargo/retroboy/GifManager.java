@@ -50,11 +50,11 @@ public class GifManager extends AbstractFilter {
 		_recordProgressBar.setMax(MAX_CAPTURED_FRAMES);
 	}
 	
-	public synchronized boolean isRecording() {
+	public boolean isRecording() {
 		return _transform != null;
 	}
 	
-	public void setStateChangeListener(StateChangeListener listener) {
+	public synchronized void setStateChangeListener(StateChangeListener listener) {
 		_listener = listener;
 	}
 	
@@ -104,16 +104,9 @@ public class GifManager extends AbstractFilter {
 		}
 	}
 	
-	private synchronized void reset() {
-		_transform = null;
-		_framecount = 0;
-		_frames = new PriorityQueue<BitmapFrame>();
-		_recordProgressBar.setProgress(0);
-		_recordProgressBar.setSecondaryProgress(0);
-	}
-	
-	private void finish() {
+	private synchronized void finish() {
 		final Queue<BitmapFrame> frames = _frames;
+		_frames = new PriorityQueue<BitmapFrame>();
 		reset();
 		
 		_context.runOnUiThread(new Runnable() {
@@ -122,10 +115,25 @@ public class GifManager extends AbstractFilter {
 				if (_listener != null) {
 					_listener.onStop();
 				}
-				
-				new EncodeTask(_context, frames, _listener).execute();
+
+				if (!frames.isEmpty()) {
+					new EncodeTask(_context, frames, _listener).execute();
+				}
 			}
 		});
+	}
+	
+	private synchronized void reset() {
+		_transform = null;
+		_framecount = 0;
+		_recordProgressBar.setProgress(0);
+		
+		for (BitmapFrame frame : _frames) {
+			frame.bitmap.recycle();
+			frame.bitmap = null;
+		}
+		
+		_frames = new PriorityQueue<BitmapFrame>();
 	}
 	
 	@Override
@@ -139,7 +147,7 @@ public class GifManager extends AbstractFilter {
 				synchronized (this) {
 					if (_transform != null) {
 						_framecount++;
-						_recordProgressBar.setSecondaryProgress(_framecount);
+						_recordProgressBar.setProgress(_framecount);
 						_frames.add(new BitmapFrame(bitmap, buffer.timestamp));
 						
 						if (_framecount >= MAX_CAPTURED_FRAMES) {
@@ -258,6 +266,16 @@ public class GifManager extends AbstractFilter {
 				cancel(false);
 			}
 			finally {
+				for (BitmapFrame frame : _frames) {
+					if (frame.bitmap != null) {
+						frame.bitmap.recycle();
+						frame.bitmap = null;
+					}
+				}
+
+				_frames.clear();
+				System.gc();
+
 				if (os != null) {
 					try {
 						os.close();
@@ -275,25 +293,25 @@ public class GifManager extends AbstractFilter {
 				_file.delete();
 			}
 			
-			if (_listener != null) {
-				_listener.onFinish();
-			}
-
+			finish();
 			super.onCancelled();
 		}
 		
 		@Override
 		protected void onPostExecute(Void result) {
-			if (_listener != null) {
-				_listener.onFinish();
-			}
-			
+			finish();
 			super.onPostExecute(result);
 		}
 		
 		@Override
 		protected void onProgressUpdate(Integer... progress) {
 			setProgress(progress[0]);
+		}
+		
+		private void finish() {
+			if (_listener != null) {
+				_listener.onFinish();
+			}
 		}
 	}
 }

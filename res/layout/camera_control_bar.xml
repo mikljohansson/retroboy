@@ -34,13 +34,14 @@
 		android:layout_height="wrap_content"
 		android:layout_alignParentRight="true"
 		android:layout_centerVertical="true"
-		android:layout_marginRight="8dp">
+		android:layout_marginRight="20dp">
 		<ImageButton
 			android:id="@+id/cameraModeButton"
-			android:layout_width="30dp"
-			android:layout_height="30dp"
+			android:layout_width="35dp"
+			android:layout_height="35dp"
 			android:scaleType="fitXY"
 			android:background="@null"
+			android:tint="#33b5e5"
 			android:src="@drawable/ic_button_video"
 			android:contentDescription="@string/menu_option_switch_camera_mode"/>
 	</LinearLayout>
