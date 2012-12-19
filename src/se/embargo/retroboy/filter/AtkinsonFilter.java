@@ -1,7 +1,20 @@
 package se.embargo.retroboy.filter;
 
+import se.embargo.retroboy.color.BucketPalette;
+import se.embargo.retroboy.color.Distances;
+import se.embargo.retroboy.color.IPalette;
+import se.embargo.retroboy.color.IndexedPalette;
+import se.embargo.retroboy.color.Palettes;
+
 public class AtkinsonFilter extends AbstractFilter {
-    @Override
+	private final IPalette _palette = new BucketPalette(new IndexedPalette(Distances.YUV, Palettes.MONOCHROME));
+
+	@Override
+	public IPalette getPalette() {
+		return _palette;
+	}
+
+	@Override
 	public void accept(ImageBuffer buffer) {
     	final int[] image = buffer.image.array();
 		final int width = buffer.imagewidth, 

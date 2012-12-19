@@ -12,6 +12,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import se.embargo.core.concurrent.ProgressTask;
 import se.embargo.core.graphic.Bitmaps;
 import se.embargo.core.graphic.Bitmaps.Transform;
+import se.embargo.retroboy.color.IIndexedPalette;
 import se.embargo.retroboy.filter.AbstractFilter;
 import se.embargo.retroboy.graphic.GifEncoder;
 import android.app.Activity;
@@ -26,13 +27,15 @@ import android.widget.ProgressBar;
 /**
  * Handles animated GIF recording.
  */
-public class GifManager extends AbstractFilter {
+public class VideoRecorder extends AbstractFilter {
 	private static final String TAG = "GifFilter";
 	private static final int MAX_CAPTURED_FRAMES = 100;
 	
 	private final Activity _context;
 	private final ProgressBar _recordProgressBar;
+	
 	private volatile Transform _transform = null;
+	private IIndexedPalette _palette;
 	
 	private Queue<BitmapFrame> _frames = new PriorityBlockingQueue<BitmapFrame>();
 	private int _framecount = 0;
@@ -44,7 +47,7 @@ public class GifManager extends AbstractFilter {
 		public void onFinish();
 	}
 	
-	public GifManager(Activity context, View parent) {
+	public VideoRecorder(Activity context, View parent) {
 		_context = context;
 		_recordProgressBar = (ProgressBar)parent.findViewById(R.id.recordProgressBar);
 		_recordProgressBar.setMax(MAX_CAPTURED_FRAMES);
@@ -60,11 +63,13 @@ public class GifManager extends AbstractFilter {
 	
 	/**
 	 * Start recording frames.
-	 * @param transform	Transform to apply on frames, e.g. rotation.
+	 * @param	transform	Transform to apply on frames, e.g. rotation.
+	 * @param	palette		Fixed indexed palette if one exists 
 	 */
-	public synchronized void record(Transform transform) {
+	public synchronized void record(Transform transform, IIndexedPalette palette) {
 		if (_transform == null) {
 			_transform = transform;
+			_palette = palette;
 	
 			_context.runOnUiThread(new Runnable() {
 				@Override
@@ -117,7 +122,7 @@ public class GifManager extends AbstractFilter {
 				}
 
 				if (!frames.isEmpty()) {
-					new EncodeTask(_context, frames, _listener).execute();
+					new EncodeTask(_context, frames, _listener, _palette).execute();
 				}
 			}
 		});
@@ -193,14 +198,16 @@ public class GifManager extends AbstractFilter {
 	private static class EncodeTask extends ProgressTask<Void, Integer, Void> {
 		private final Queue<BitmapFrame> _frames;
 		private final StateChangeListener _listener;
+		private final IIndexedPalette _palette;
 		private File _file = null;
 		
-		public EncodeTask(Context context, Queue<BitmapFrame> frames, StateChangeListener listener) {
+		public EncodeTask(Context context, Queue<BitmapFrame> frames, StateChangeListener listener, IIndexedPalette palette) {
 			super(context, R.string.title_saving_image, R.string.msg_saving_image);
 			setMaxProgress(frames.size());
 			setCancelable();
 			_frames = frames;
 			_listener = listener;
+			_palette = palette;
 		}
 
 		@Override
@@ -215,7 +222,7 @@ public class GifManager extends AbstractFilter {
 				
 				// Create output encoder
 				os = new BufferedOutputStream(new FileOutputStream(_file)); 
-				GifEncoder encoder = new GifEncoder();
+				GifEncoder encoder = new GifEncoder(_palette);
 				encoder.setRepeat(0);
 				encoder.start(os);
 				

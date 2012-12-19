@@ -14,6 +14,8 @@ import se.embargo.core.databinding.observable.IChangeListener;
 import se.embargo.core.databinding.observable.IObservableValue;
 import se.embargo.core.databinding.observable.WritableValue;
 import se.embargo.core.graphic.Bitmaps;
+import se.embargo.retroboy.color.IIndexedPalette;
+import se.embargo.retroboy.color.IPalette;
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
@@ -170,7 +172,7 @@ public class MainActivity extends SherlockFragmentActivity {
 	/**
 	 * Filter tasked with encoding animated GIF's from the frame stream.
 	 */
-	private GifManager _videoRecorder;
+	private VideoRecorder _videoRecorder;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -198,8 +200,8 @@ public class MainActivity extends SherlockFragmentActivity {
 
 		View previewLayout = findViewById(R.id.cameraPreviewLayout);
 		_focusManager = new FocusManager(this, _cameraHandle, previewLayout);
-		_videoRecorder = new GifManager(this, previewLayout);
-		_videoRecorder.setStateChangeListener(new GifManager.StateChangeListener() {
+		_videoRecorder = new VideoRecorder(this, previewLayout);
+		_videoRecorder.setStateChangeListener(new VideoRecorder.StateChangeListener() {
 			@Override
 			public void onRecord() {
 				_cameraState.setValue(CameraState.Recording);
@@ -751,7 +753,9 @@ public class MainActivity extends SherlockFragmentActivity {
 					// Start recording if we're not currently doing so
 					CameraHandle handle = _cameraHandle.getValue();
 					if (handle != null && !_videoRecorder.isRecording()) {
-						_videoRecorder.record(getTransform(handle));
+						IPalette palette = _preview.getFilter().getPalette();
+						IIndexedPalette indexed = (palette instanceof IIndexedPalette) ? (IIndexedPalette)palette : null;
+						_videoRecorder.record(getTransform(handle), indexed);
 						_prevEvent = System.currentTimeMillis();
 					}
 					else {

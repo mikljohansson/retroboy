@@ -4,7 +4,7 @@ import java.io.File;
 
 import se.embargo.core.concurrent.ProgressTask;
 import se.embargo.core.graphic.Bitmaps;
-import se.embargo.retroboy.filter.ColorFilter;
+import se.embargo.retroboy.filter.RgbFilter;
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
@@ -398,7 +398,7 @@ public class ImageActivity extends SherlockActivity {
 			
 			IImageFilter effect = Pictures.createEffectFilter(ImageActivity.this);
 			if (effect.isColorFilter()) {
-				filter.add(new ColorFilter(contrast));
+				filter.add(new RgbFilter(contrast));
 			}
 			else {
 				filter.add(new MonochromeFilter(contrast));

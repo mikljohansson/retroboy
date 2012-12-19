@@ -92,10 +92,10 @@ public class RasterFilter extends AbstractColorFilter {
 
     protected void initBucket(final int bucket, final int r, final int g, final int b) {
     	double minpenalty = Double.MAX_VALUE;
-        for (int i = 0; i < _palette.length; ++i) {
-	        for (int j = i; j < _palette.length; ++j) {
+        for (int i = 0; i < _colors.length; ++i) {
+	        for (int j = i; j < _colors.length; ++j) {
 	            // Determine the two component colors
-	            final int color1 = _palette[i], color2 = _palette[j];
+	            final int color1 = _colors[i], color2 = _colors[j];
 	            final int r1 = color1 & 0xff, 
 	            		  g1 = (color1 >> 8) & 0xff, 
 	            		  b1 = (color1 >> 16) & 0xff;

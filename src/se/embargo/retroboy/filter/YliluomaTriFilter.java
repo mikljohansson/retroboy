@@ -85,10 +85,10 @@ public class YliluomaTriFilter extends AbstractColorFilter {
     
     protected void initBucket(final int bucket, final int r, final int g, final int b) {
     	double minpenalty = Double.MAX_VALUE;
-        for (int i = 0; i < _palette.length; ++i) {
-	        for (int j = i; j < _palette.length; ++j) {
+        for (int i = 0; i < _colors.length; ++i) {
+	        for (int j = i; j < _colors.length; ++j) {
 	            // Determine the two component colors
-	            final int color1 = _palette[i], color2 = _palette[j];
+	            final int color1 = _colors[i], color2 = _colors[j];
 	            final int r1 = color1 & 0xff, 
 	            		  g1 = (color1 >> 8) & 0xff, 
 	            		  b1 = (color1 >> 16) & 0xff;
@@ -130,13 +130,13 @@ public class YliluomaTriFilter extends AbstractColorFilter {
 	            }
 	            
 	            if (i != j) {
-	            	for (int k = 0; k < _palette.length; k++) {
+	            	for (int k = 0; k < _colors.length; k++) {
 	                    if (k == i || k == j) {
 	                    	continue;
 	                    }
 	                    
 	                    // 50% index3, 25% index2, 25% index1
-	                    final int color3 = _palette[k];
+	                    final int color3 = _colors[k];
 	                    final int r3 = color3 & 0xff, 
 	    	            		  g3 = (color3 >> 8) & 0xff, 
 	    	            		  b3 = (color3 >> 16) & 0xff;

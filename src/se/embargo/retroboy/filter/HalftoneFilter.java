@@ -6,6 +6,11 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
+import se.embargo.retroboy.color.BucketPalette;
+import se.embargo.retroboy.color.Distances;
+import se.embargo.retroboy.color.IPalette;
+import se.embargo.retroboy.color.IndexedPalette;
+import se.embargo.retroboy.color.Palettes;
 
 public class HalftoneFilter extends AbstractFilter {
     private static final int _patternsize = 6;
@@ -22,8 +27,14 @@ public class HalftoneFilter extends AbstractFilter {
 	
 	private Queue<FilterItem> _bufferpool = new ArrayBlockingQueue<FilterItem>(16);
 	private FilterBody _body = new FilterBody();
+	private final IPalette _palette = new BucketPalette(new IndexedPalette(Distances.YUV, Palettes.MONOCHROME));
     
     @Override
+	public IPalette getPalette() {
+		return _palette;
+	}
+
+	@Override
 	public void accept(ImageBuffer buffer) {
 		// Allocate a buffer to hold the luminance
 		final int width = buffer.imagewidth, height = buffer.imageheight;
@@ -95,13 +106,9 @@ public class HalftoneFilter extends AbstractFilter {
     	for (int y = 0; y < _patternsize; y++) {
     		for(int x = 0; x < _patternsize; x++){
     			final int i = x + y * _patternsize;
-    			final double threshold = (cos1((double)x / _patternsize) + cos1((double)y / _patternsize) + 2.0) / 4.0 * 0xff;
+    			final double threshold = (Math.cos(2 * Math.PI * ((double)x / _patternsize)) + Math.cos(2 * Math.PI * ((double)y / _patternsize)) + 2.0) / 4.0 * 0xff;
     			_thresholds[i] = (int)Math.min(Math.max(1.0, Math.round(threshold)), 254.0);
     		}
     	}
     }
-
-	private static double cos1(double v) { 
-		return Math.cos(2 * Math.PI * v); 
-	}
 }

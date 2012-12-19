@@ -2,15 +2,11 @@ package se.embargo.retroboy.filter;
 
 import java.nio.IntBuffer;
 
+import se.embargo.retroboy.color.IPalette;
+
 import android.graphics.Bitmap;
 
 public interface IImageFilter {
-	/**
-	 * Filter one frame
-	 * @param buffer	Frame to process
-	 */
-	public void accept(ImageBuffer buffer);
-	
 	/**
 	 * Returns the output image width
 	 * @param framewidth	Raw input frame width
@@ -28,10 +24,21 @@ public interface IImageFilter {
 	public int getEffectiveHeight(int framewidth, int frameheight);
 
 	/**
-	 * @return	Returns true if this is a color filter 
+	 * @return	Returns true if this is a color filter. 
 	 */
 	public boolean isColorFilter();	
+
+	/**
+	 * @return	The palette used by this filter.
+	 */
+	public IPalette getPalette();
 	
+	/**
+	 * Filter one frame
+	 * @param buffer	Frame to process
+	 */
+	public void accept(ImageBuffer buffer);
+
 	/**
 	 * Camera frame buffer
 	 */

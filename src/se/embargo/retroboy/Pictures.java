@@ -7,8 +7,8 @@ import java.io.IOException;
 import se.embargo.core.Strings;
 import se.embargo.core.graphic.Bitmaps;
 import se.embargo.retroboy.color.Distances;
+import se.embargo.retroboy.color.IndexedPalette;
 import se.embargo.retroboy.color.Palettes;
-import se.embargo.retroboy.color.YuvPalette;
 import se.embargo.retroboy.filter.AtkinsonFilter;
 import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
@@ -33,7 +33,7 @@ public class Pictures {
 	
 	public static final String PREF_FILTER = "filter";
 	
-	private static final String PREF_FILTER_GAMEBOY_CAMERA = "nintendo_gameboy_camera";
+	//private static final String PREF_FILTER_GAMEBOY_CAMERA = "nintendo_gameboy_camera";
 	private static final String PREF_FILTER_GAMEBOY_SCREEN = "nintendo_gameboy_screen";
 	private static final String PREF_FILTER_AMSTRAD_CPC464 = "amstrad_cpc464";
 	private static final String PREF_FILTER_COMMODORE_64 = "commodore_64";
@@ -197,17 +197,17 @@ public class Pictures {
 			context.getResources().getString(R.string.pref_rasterlevel_default)), 4);
 		
 		if (PREF_FILTER_GAMEBOY_SCREEN.equals(filtertype)) {
-			return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_SCREEN_DESAT), matrix, false);
+			return new BayerFilter(new IndexedPalette(Distances.YUV, Palettes.GAMEBOY_SCREEN_DESAT), matrix, false);
 		}
 
 		if (PREF_FILTER_AMSTRAD_CPC464.equals(filtertype)) {
-			return new RasterFilter(context, Distances.YUV, Palettes.AMSTRAD_CPC464, matrix, rasterlevel);
+			return new RasterFilter(context, Distances.LUV, Palettes.AMSTRAD_CPC464, matrix, rasterlevel);
 		}
 
 		if (PREF_FILTER_COMMODORE_64.equals(filtertype)) {
-			return new RasterFilter(context, Distances.YUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED, matrix, rasterlevel);
+			return new RasterFilter(context, Distances.LUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED, matrix, rasterlevel);
 			//return new BayerFilter(new BucketPalette(new YuvPalette(Palettes.COMMODORE_64_GAMMA_ADJUSTED)), true);
-			//return new YliluomaTriFilter(context, Distances.YUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED);
+			//return new YliluomaTriFilter(context, Distances.LUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED);
 		}
 
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
@@ -218,7 +218,7 @@ public class Pictures {
 			return new HalftoneFilter();
 		}
 
-		return new BayerFilter(new YuvPalette(Palettes.GAMEBOY_CAMERA), matrix, false);
+		return new BayerFilter(new IndexedPalette(Distances.YUV, Palettes.GAMEBOY_CAMERA), matrix, false);
 	}
 	
 	private static int[] getMatrix(Context context, SharedPreferences prefs) {

@@ -11,7 +11,10 @@ import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.core.concurrent.ProgressTask;
 import se.embargo.retroboy.R;
+import se.embargo.retroboy.color.BucketPalette;
 import se.embargo.retroboy.color.IColorDistance;
+import se.embargo.retroboy.color.IPalette;
+import se.embargo.retroboy.color.IndexedPalette;
 import android.content.Context;
 import android.util.Log;
 
@@ -57,9 +60,14 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 	private final Context _context;
 	
 	/**
+	 * Palette instance.
+	 */
+	private final IPalette _palette;
+	
+	/**
 	 * Colors in palette.
 	 */
-	protected final int[] _palette;
+	protected final int[] _colors;
 	
 	/**
 	 * Number of ints per bucket.
@@ -76,10 +84,11 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 	 */
 	protected final IColorDistance _distance;
 	
-    public AbstractColorFilter(String filtername, Context context, IColorDistance distance, int[] palette, int bucketSize, int version) {
+    public AbstractColorFilter(String filtername, Context context, IColorDistance distance, int[] colors, int bucketSize, int version) {
 		_context = context;
 		_distance = distance;
-		_palette = palette;
+		_palette = new BucketPalette(new IndexedPalette(distance, colors));
+		_colors = colors;
 		_bucketSize = bucketSize;
 		_version = version;
 		_buckets = new int[(1 << (_bits * 3)) * bucketSize];
@@ -88,7 +97,7 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 		
 		// Check for cached mixing plans
 		int hash = 0;
-		for (int color : _palette) {
+		for (int color : _colors) {
 			hash ^= color;
 		}
 		
@@ -122,6 +131,16 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 		}
 	}
     
+    @Override
+    public boolean isColorFilter() {
+    	return true;
+    }
+    
+    @Override
+    public IPalette getPalette() {
+    	return _palette;
+    }
+    
 	@Override
 	public final void accept(ImageBuffer buffer) {
     	try {
@@ -131,11 +150,6 @@ public abstract class AbstractColorFilter extends AbstractFilter {
     	
     	process(buffer);
 	}
-    
-    @Override
-    public boolean isColorFilter() {
-    	return true;
-    }
     
     private void init(String filename) {
     	long ts = System.nanoTime();

@@ -1,11 +1,25 @@
 package se.embargo.retroboy.filter;
 
+import se.embargo.retroboy.color.IPalette;
+import se.embargo.retroboy.color.RgbPalette;
 
-public class ColorFilter extends AbstractFilter {
-	private float _factor;
+
+public class RgbFilter extends AbstractFilter {
+	private final IPalette _palette = new RgbPalette();
+	private final float _factor;
 	
-	public ColorFilter(int contrast) {
+	public RgbFilter(int contrast) {
 		_factor = (259.0f * ((float)contrast + 255.0f)) / (255.0f * (259.0f - (float)contrast));
+	}
+	
+	@Override
+	public boolean isColorFilter() {
+		return true;
+	}
+
+	@Override
+	public IPalette getPalette() {
+		return _palette;
 	}
 
 	@Override

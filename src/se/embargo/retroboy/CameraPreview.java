@@ -149,6 +149,13 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		initTransform();
 	}
 	
+	/**
+	 * @return	The active image filter.
+	 */
+	public IImageFilter getFilter() {
+		return _filter;
+	}
+	
 	@Override
 	public void onPreviewFrame(byte[] data, Camera camera) {
 		// data may be null if buffer was too small

@@ -4,8 +4,12 @@ import java.nio.IntBuffer;
 
 import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
+import se.embargo.retroboy.color.IPalette;
 import android.util.Log;
 
+/**
+ * Decodes YUV frames into RGB images.
+ */
 public class YuvFilter implements IImageFilter {
 	private static final String TAG = "YuvFilter";
 	private int _width, _height;
@@ -24,6 +28,28 @@ public class YuvFilter implements IImageFilter {
 		else {
 			_body = new MonochromeBody();
 		}
+	}
+	
+	@Override
+	public int getEffectiveWidth(int framewidth, int frameheight) {
+		final float stride = getStride(framewidth, frameheight); 
+		return Math.min((int)(framewidth / stride), _width);
+	}
+	
+	@Override
+	public int getEffectiveHeight(int framewidth, int frameheight) {
+		final float stride = getStride(framewidth, frameheight); 
+		return Math.min((int)(frameheight / stride), _height);
+	}
+	
+	@Override
+	public boolean isColorFilter() {
+		return _body instanceof ColorBody;
+	}
+	
+	@Override
+	public IPalette getPalette() {
+		return null;
 	}
 	
 	@Override
@@ -134,23 +160,6 @@ public class YuvFilter implements IImageFilter {
 				}
 			}
 		}
-	}
-
-	@Override
-	public int getEffectiveWidth(int framewidth, int frameheight) {
-		final float stride = getStride(framewidth, frameheight); 
-		return Math.min((int)(framewidth / stride), _width);
-	}
-	
-	@Override
-	public int getEffectiveHeight(int framewidth, int frameheight) {
-		final float stride = getStride(framewidth, frameheight); 
-		return Math.min((int)(frameheight / stride), _height);
-	}
-	
-	@Override
-	public boolean isColorFilter() {
-		return _body instanceof ColorBody;
 	}
 
 	private float getStride(float framewidth, float frameheight) {

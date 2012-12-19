@@ -10,11 +10,6 @@ public class TransformFilter extends AbstractFilter {
 	}
 	
 	@Override
-	public void accept(ImageBuffer buffer) {
-		buffer.bitmap = Bitmaps.transform(buffer.bitmap, _transform);
-	}
-
-	@Override
 	public int getEffectiveWidth(int framewidth, int frameheight) {
 		return _transform.width;
 	}
@@ -22,5 +17,10 @@ public class TransformFilter extends AbstractFilter {
 	@Override
 	public int getEffectiveHeight(int framewidth, int frameheight) {
 		return _transform.height;
+	}
+
+	@Override
+	public void accept(ImageBuffer buffer) {
+		buffer.bitmap = Bitmaps.transform(buffer.bitmap, _transform);
 	}
 }

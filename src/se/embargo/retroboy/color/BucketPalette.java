@@ -6,7 +6,7 @@ import se.embargo.core.concurrent.Parallel;
 /**
  * Approximates an arbitrary palette by expanding it to a larger regular one.
  */
-public class BucketPalette implements IPalette {
+public class BucketPalette implements IIndexedPalette {
 	/**
 	 * Number of most significant bits to store per color channel.
 	 */
@@ -20,13 +20,18 @@ public class BucketPalette implements IPalette {
 	/**
 	 * Palette to sample colors from.
 	 */
-	private final IPalette _palette;
+	private final IIndexedPalette _palette;
 	
 	/**
 	 * Each bucket corresponds to an RGB color and stores the color the inner palette returned.
 	 */
 	private final int[] _buckets = new int[1 << (_bits * 3)];
 	
+	/**
+	 * Each bucket corresponds to an RGB color and stores the index the inner palette returned.
+	 */
+	private final int[] _indexes = new int[1 << (_bits * 3)];
+
 	/**
 	 * Number of bits to shift green and blue colors. 
 	 */
@@ -40,10 +45,12 @@ public class BucketPalette implements IPalette {
 					  _gm = _rm << _gsb, 
 					  _bm = _rm << _bsb;
 	
-	public BucketPalette(IPalette palette) {
+	public BucketPalette(IIndexedPalette palette) {
 		_palette = palette;
 
 		// Initialize the cached buckets
+		final int[] colors = palette.getIndexedColors();
+
 		Parallel.forRange(new ForBody<int[]>() {
 			@Override
 			public void run(int[] item, int it, int last) {
@@ -52,23 +59,25 @@ public class BucketPalette implements IPalette {
 							  g = ((i & _gm) >> _gsb) << _step,
 							  b = ((i & _bm) >> _bsb) << _step;
 					
-					item[i] = _palette.getNearestColor(r, g, b);
+					final int index = _palette.getNearestIndex(r, g, b);
+					_indexes[i] = index;
+					_buckets[i] = colors[index];
 				}
 			}
 		}, _buckets, 0, _buckets.length);
 	}
 	
 	@Override
-	public int getPaletteSize() {
-		return _palette.getPaletteSize();
-	}
-
-	@Override
 	public int getNearestColor(final int r1, final int g1, final int b1) {
 		return _buckets[(r1 >> _step) | ((g1 >> _step) << _gsb) | ((b1 >> _step) << _bsb)];
 	}
+	
+	@Override
+	public int[] getIndexedColors() {
+		return _palette.getIndexedColors();
+	}
 
-	public int getNearestColor(final int pixel) {
-		return getNearestColor(pixel & 0xff, (pixel >> 8) & 0xff, (pixel >> 16) & 0xff);
+	public int getNearestIndex(final int r1, final int g1, final int b1) {
+		return _indexes[(r1 >> _step) | ((g1 >> _step) << _gsb) | ((b1 >> _step) << _bsb)];
 	}
 }

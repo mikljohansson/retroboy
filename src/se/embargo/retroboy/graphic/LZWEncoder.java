@@ -32,19 +32,37 @@ class LZWEncoder {
 	private int remaining;
 	private int curPixel;
 
-	private int n_bits; // number of bits/code
-	private int maxbits = BITS; // user settable max # bits/code
-	private int maxcode; // maximum code, given n_bits
-	private int maxmaxcode = 1 << BITS; // should NEVER generate this code
+	/**
+	 * Number of bits per code
+	 */
+	private int n_bits;
+	
+	/**
+	 * Maximum code, given n_bits
+	 */
+	private int maxcode;
+	
+	/**
+	 * Should NEVER generate this code
+	 */
+	private int maxmaxcode = 1 << BITS;
 
 	private int[] htab = new int[HSIZE];
 	private int[] codetab = new int[HSIZE];
 
-	private int hsize = HSIZE; // for dynamic table sizing
-	private int free_ent = 0; // first unused entry
+	/**
+	 * For dynamic table sizing
+	 */
+	private int hsize = HSIZE;
+	
+	/**
+	 * First unused entry
+	 */
+	private int free_ent = 0;
 
-	// block compression parameters -- after all codes are used up,
-	// and compression rate changes, start over.
+	/**
+	 * After all codes are used up and compression rate changes, start over.
+	 */
 	private boolean clear_flg = false;
 
 	private int g_init_bits;
@@ -61,10 +79,14 @@ class LZWEncoder {
 		0x0FFF, 0x1FFF, 0x3FFF, 0x7FFF,
 		0xFFFF };
 
-	// Number of characters so far in this 'packet'
+	/**
+	 * Number of characters so far in this 'packet'
+	 */
 	private int a_count;
 
-	// Define the storage for the packet accumulator
+	/**
+	 * Define the storage for the packet accumulator
+	 */
 	private byte[] accum = new byte[256];
 
 	public LZWEncoder(int width, int height, byte[] pixels, int color_depth) {
@@ -74,17 +96,39 @@ class LZWEncoder {
 		initCodeSize = Math.max(2, color_depth);
 	}
 
-	// Add a character to the end of the current packet, and if it is 254
-	// characters, flush the packet to disk.
+	public void encode(OutputStream os) throws IOException {
+		// Write "initial code size" byte
+		os.write(initCodeSize);
+
+		// Reset navigation variables
+		remaining = imgW * imgH;
+		curPixel = 0;
+
+		// Compress and write the pixel data
+		compress(initCodeSize + 1, os);
+
+		// Write block terminator
+		os.write(0);
+	}
+	
+	/**
+	 * Add a character to the end of the current packet, and if it is 254 characters, flush the packet to disk.
+	 * @param	c				Character to write
+	 * @param	outs			Stream to write to
+	 * @throws	IOException		If the write fails
+	 */
 	private void char_out(byte c, OutputStream outs) throws IOException {
 		accum[a_count++] = c;
-		if (a_count >= 254)
+		if (a_count >= 254) {
 			flush_char(outs);
+		}
 	}
 
-	// Clear out the hash table
-
-	// table clear for block compress
+	/**
+	 * Clear out the hash table for block compress
+	 * @param	outs			Stream to write to
+	 * @throws	IOException		If the write fails
+	 */
 	private void cl_block(OutputStream outs) throws IOException {
 		cl_hash(hsize);
 		free_ent = ClearCode + 2;
@@ -93,10 +137,14 @@ class LZWEncoder {
 		output(ClearCode, outs);
 	}
 
-	// reset code table
+	/**
+	 * Reset code table
+	 * @param	hsize
+	 */
 	private void cl_hash(int hsize) {
-		for (int i = 0; i < hsize; ++i)
+		for (int i = 0; i < hsize; ++i) {
 			htab[i] = -1;
+		}
 	}
 
 	private void compress(int init_bits, OutputStream outs) throws IOException {
@@ -114,7 +162,7 @@ class LZWEncoder {
 		// Set up the necessary values
 		clear_flg = false;
 		n_bits = g_init_bits;
-		maxcode = MAXCODE(n_bits);
+		maxcode = (1 << n_bits) - 1;
 
 		ClearCode = 1 << (init_bits - 1);
 		EOFCode = ClearCode + 1;
@@ -135,7 +183,7 @@ class LZWEncoder {
 		output(ClearCode, outs);
 
 		outer_loop: while ((c = nextPixel()) != EOF) {
-			fcode = (c << maxbits) + ent;
+			fcode = (c << BITS) + ent;
 			i = (c << hshift) ^ ent; // xor hashing
 
 			if (htab[i] == fcode) {
@@ -157,33 +205,29 @@ class LZWEncoder {
 					}
 				} while (htab[i] >= 0);
 			}
+			
 			output(ent, outs);
 			ent = c;
+			
 			if (free_ent < maxmaxcode) {
-				codetab[i] = free_ent++; // code -> hashtable
+				// code -> hashtable
+				codetab[i] = free_ent++;
 				htab[i] = fcode;
 			}
 			else
 				cl_block(outs);
 		}
-		// Put out the final code.
+		
+		// Output the final code.
 		output(ent, outs);
 		output(EOFCode, outs);
 	}
 
-	// ----------------------------------------------------------------------------
-	public void encode(OutputStream os) throws IOException {
-		os.write(initCodeSize); // write "initial code size" byte
-
-		remaining = imgW * imgH; // reset navigation variables
-		curPixel = 0;
-
-		compress(initCodeSize + 1, os); // compress and write the pixel data
-
-		os.write(0); // write block terminator
-	}
-
-	// Flush the packet to disk, and reset the accumulator
+	/**
+	 * Flush the packet to disk, and reset the accumulator
+	 * @param	outs		Where to write the trailer
+	 * @throws 	IOException	If the write failes
+	 */
 	private void flush_char(OutputStream outs) throws IOException {
 		if (a_count > 0) {
 			outs.write(a_count);
@@ -192,13 +236,9 @@ class LZWEncoder {
 		}
 	}
 
-	private final int MAXCODE(int n_bits) {
-		return (1 << n_bits) - 1;
-	}
-
-	// ----------------------------------------------------------------------------
-	// Return the next pixel from the image
-	// ----------------------------------------------------------------------------
+	/**
+	 * @return	Return the next pixel from the image
+	 */
 	private int nextPixel() {
 		if (remaining == 0)
 			return EOF;
@@ -230,15 +270,18 @@ class LZWEncoder {
 		// then increase it, if possible.
 		if (free_ent > maxcode || clear_flg) {
 			if (clear_flg) {
-				maxcode = MAXCODE(n_bits = g_init_bits);
+				n_bits = g_init_bits;
+				maxcode = (1 << n_bits) - 1;
 				clear_flg = false;
 			}
 			else {
 				++n_bits;
-				if (n_bits == maxbits)
+				if (n_bits == BITS) {
 					maxcode = maxmaxcode;
-				else
-					maxcode = MAXCODE(n_bits);
+				}
+				else {
+					maxcode = (1 << n_bits) - 1;
+				}
 			}
 		}
 

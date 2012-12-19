@@ -5,6 +5,8 @@ import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.IPalette;
 
 public class BayerFilter extends AbstractFilter {
+	private final IPalette _palette;
+
 	/**
 	 * Dither matrix.
 	 */
@@ -23,30 +25,29 @@ public class BayerFilter extends AbstractFilter {
 	private final ForBody<ImageBuffer> _body;
 	
 	public BayerFilter(IPalette palette, int[] matrix, boolean color) {
+		_palette = palette;
 		_matrix = matrix;
 		_patternsize = (int)Math.sqrt(_matrix.length);
 		_mixingratio = _matrix.length / 2;
-		
-		if (color) {
-			_body = new ColorBody(palette);
-		}
-		else {
-			_body = new MonochromeBody(palette);
-		}
+		_body = color ? new ColorBody() : new MonochromeBody();
 	}
     
+    @Override
+    public boolean isColorFilter() {
+    	return _body instanceof ColorBody;
+    }
+
+    @Override
+    public IPalette getPalette() {
+		return _palette;
+	}
+	
     @Override
 	public void accept(ImageBuffer buffer) {
 		Parallel.forRange(_body, buffer, 0, buffer.imageheight);
 	}
     
     private class ColorBody implements ForBody<ImageBuffer> {
-    	private final IPalette _palette;
-    	
-		public ColorBody(IPalette palette) {
-			_palette = palette;
-		}
-
 		@Override
 		public void run(ImageBuffer buffer, int it, int last) {
 	    	final int[] image = buffer.image.array();
@@ -72,11 +73,11 @@ public class BayerFilter extends AbstractFilter {
     }
 
     private class MonochromeBody implements ForBody<ImageBuffer> {
-    	private final int[] _palette = new int[256];
+    	private final int[] _colors = new int[256];
 
-    	public MonochromeBody(IPalette palette) {
+    	public MonochromeBody() {
 			for (int i = 0; i < 256; i++) {
-				_palette[i] = (palette.getNearestColor(i, i, i) & 0xffffff);
+				_colors[i] = (_palette.getNearestColor(i, i, i) & 0xffffff);
 			}
 		}
 
@@ -96,14 +97,9 @@ public class BayerFilter extends AbstractFilter {
 
 					final int lum = Math.max(0,  Math.min((pixel & 0xff) + threshold - _mixingratio, 255));
 					
-					image[i] = (pixel & 0xff000000) | _palette[lum];
+					image[i] = (pixel & 0xff000000) | _colors[lum];
 				}
 			}
 		}
-    }
-
-    @Override
-    public boolean isColorFilter() {
-    	return _body instanceof ColorBody;
     }
 }

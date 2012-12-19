@@ -1,5 +1,7 @@
 package se.embargo.retroboy.filter;
 
+import se.embargo.retroboy.color.IPalette;
+
 public abstract class AbstractFilter implements IImageFilter {
 	@Override
 	public int getEffectiveWidth(int framewidth, int frameheight) {
@@ -14,5 +16,10 @@ public abstract class AbstractFilter implements IImageFilter {
 	@Override
 	public boolean isColorFilter() {
 		return false;
+	}
+	
+	@Override
+	public IPalette getPalette() {
+		return null;
 	}
 }

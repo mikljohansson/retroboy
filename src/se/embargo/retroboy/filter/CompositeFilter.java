@@ -3,6 +3,8 @@ package se.embargo.retroboy.filter;
 import java.util.ArrayList;
 import java.util.List;
 
+import se.embargo.retroboy.color.IPalette;
+
 public class CompositeFilter extends AbstractFilter {
 	private List<IImageFilter> _filters = new ArrayList<IImageFilter>();
 	
@@ -10,13 +12,6 @@ public class CompositeFilter extends AbstractFilter {
 		_filters.add(filter);
 	}
 	
-	@Override
-	public void accept(ImageBuffer buffer) {
-		for (IImageFilter filter : _filters) {
-			filter.accept(buffer);
-		}
-	}
-
 	@Override
 	public int getEffectiveWidth(int framewidth, int frameheight) {
 		for (IImageFilter filter : _filters) {
@@ -50,5 +45,24 @@ public class CompositeFilter extends AbstractFilter {
 		}
 		
 		return false;
+	}
+	
+	@Override
+	public IPalette getPalette() {
+		for (IImageFilter filter : _filters) {
+			IPalette palette = filter.getPalette();
+			if (palette != null) {
+				return palette;
+			}
+		}
+		
+		return null;
+	}
+
+	@Override
+	public void accept(ImageBuffer buffer) {
+		for (IImageFilter filter : _filters) {
+			filter.accept(buffer);
+		}
 	}
 }
