@@ -49,7 +49,7 @@ public class BucketPalette implements IIndexedPalette {
 		_palette = palette;
 
 		// Initialize the cached buckets
-		final int[] colors = palette.getIndexedColors();
+		final int[] colors = palette.getColors();
 
 		Parallel.forRange(new ForBody<int[]>() {
 			@Override
@@ -59,7 +59,7 @@ public class BucketPalette implements IIndexedPalette {
 							  g = ((i & _gm) >> _gsb) << _step,
 							  b = ((i & _bm) >> _bsb) << _step;
 					
-					final int index = _palette.getNearestIndex(r, g, b);
+					final int index = _palette.getIndex(r, g, b);
 					_indexes[i] = index;
 					_buckets[i] = colors[index];
 				}
@@ -73,11 +73,11 @@ public class BucketPalette implements IIndexedPalette {
 	}
 	
 	@Override
-	public int[] getIndexedColors() {
-		return _palette.getIndexedColors();
+	public int[] getColors() {
+		return _palette.getColors();
 	}
 
-	public int getNearestIndex(final int r1, final int g1, final int b1) {
+	public int getIndex(final int r1, final int g1, final int b1) {
 		return _indexes[(r1 >> _step) | ((g1 >> _step) << _gsb) | ((b1 >> _step) << _bsb)];
 	}
 }

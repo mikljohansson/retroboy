@@ -17,7 +17,7 @@ public class MonochromeFilter extends AbstractFilter {
 			final int pixel = image[i];
 			
 			// Convert to monochrome
-			final float lum = (int)(0.299 * (pixel & 0xff) + 0.587 * ((pixel & 0xff00) >> 8) + 0.114 * ((pixel & 0xff0000) >> 16));
+			final float lum = (0.299f * (pixel & 0xff) + 0.587f * ((pixel & 0xff00) >> 8) + 0.114f * ((pixel & 0xff0000) >> 16));
 			
 			// Apply the contrast adjustment
 			final int adjusted = Math.min(Math.max(0, (int)(factor * (lum - 128.0f) + 128.0f)), 255);

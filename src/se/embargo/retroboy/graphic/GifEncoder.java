@@ -62,11 +62,11 @@ public class GifEncoder {
 	private final IIndexedPalette _palette;
 	
 	public GifEncoder(IIndexedPalette palette) {
-		if (palette != null && palette.getIndexedColors().length <= 256) {
+		if (palette != null && palette.getColors().length <= 256) {
 			_palette = palette;
 			
 			// Extract the RGB values as bytes
-			int[] colors = palette.getIndexedColors();
+			int[] colors = palette.getColors();
 			colorTab = new byte[colors.length * 3];
 			
 			for (int i = 0, j = 0; i < colors.length; i++, j += 3) {
@@ -311,7 +311,7 @@ public class GifEncoder {
 		@Override
 		public void run(byte[] item, int it, int last) {
 			for (int i = it * 3; it < last; it++, i += 3) { 
-				int index = _palette.getNearestIndex(item[i + 2] & 0xff, item[i + 1] & 0xff, item[i] & 0xff);
+				int index = _palette.getIndex(item[i + 2] & 0xff, item[i + 1] & 0xff, item[i] & 0xff);
 				usedEntry[index] = true;
 				indexedPixels[it] = (byte)index;
 			}

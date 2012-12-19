@@ -4,10 +4,10 @@ public interface IIndexedPalette extends IPalette {
 	/**
 	 * @return	The colors of the palette.
 	 */
-	public int[] getIndexedColors();
+	public int[] getColors();
 	
 	/**
-	 * @return	The index of the nearest color from the palette.
+	 * @return	The index of a color from the palette.
 	 */
-	public int getNearestIndex(final int r1, final int g1, final int b1);
+	public int getIndex(final int r1, final int g1, final int b1);
 }

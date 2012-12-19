@@ -9,7 +9,7 @@ import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.BucketPalette;
 import se.embargo.retroboy.color.Distances;
 import se.embargo.retroboy.color.IPalette;
-import se.embargo.retroboy.color.IndexedPalette;
+import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.Palettes;
 
 public class HalftoneFilter extends AbstractFilter {
@@ -27,7 +27,7 @@ public class HalftoneFilter extends AbstractFilter {
 	
 	private Queue<FilterItem> _bufferpool = new ArrayBlockingQueue<FilterItem>(16);
 	private FilterBody _body = new FilterBody();
-	private final IPalette _palette = new BucketPalette(new IndexedPalette(Distances.YUV, Palettes.MONOCHROME));
+	private final IPalette _palette = new BucketPalette(new DistancePalette(Distances.YUV, Palettes.MONOCHROME));
     
     @Override
 	public IPalette getPalette() {

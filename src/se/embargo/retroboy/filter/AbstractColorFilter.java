@@ -14,7 +14,7 @@ import se.embargo.retroboy.R;
 import se.embargo.retroboy.color.BucketPalette;
 import se.embargo.retroboy.color.IColorDistance;
 import se.embargo.retroboy.color.IPalette;
-import se.embargo.retroboy.color.IndexedPalette;
+import se.embargo.retroboy.color.DistancePalette;
 import android.content.Context;
 import android.util.Log;
 
@@ -87,7 +87,7 @@ public abstract class AbstractColorFilter extends AbstractFilter {
     public AbstractColorFilter(String filtername, Context context, IColorDistance distance, int[] colors, int bucketSize, int version) {
 		_context = context;
 		_distance = distance;
-		_palette = new BucketPalette(new IndexedPalette(distance, colors));
+		_palette = new BucketPalette(new DistancePalette(distance, colors));
 		_colors = colors;
 		_bucketSize = bucketSize;
 		_version = version;

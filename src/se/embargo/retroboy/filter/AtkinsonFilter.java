@@ -3,11 +3,11 @@ package se.embargo.retroboy.filter;
 import se.embargo.retroboy.color.BucketPalette;
 import se.embargo.retroboy.color.Distances;
 import se.embargo.retroboy.color.IPalette;
-import se.embargo.retroboy.color.IndexedPalette;
+import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.Palettes;
 
 public class AtkinsonFilter extends AbstractFilter {
-	private final IPalette _palette = new BucketPalette(new IndexedPalette(Distances.YUV, Palettes.MONOCHROME));
+	private final IPalette _palette = new BucketPalette(new DistancePalette(Distances.YUV, Palettes.MONOCHROME));
 
 	@Override
 	public IPalette getPalette() {
