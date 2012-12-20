@@ -12,7 +12,7 @@ public class RasterFilter extends AbstractColorFilter {
 	/**
 	 * Version number for the cache files
 	 */
-	private static final int CACHE_VERSION_NUMBER = 0x07;
+	private static final int CACHE_VERSION_NUMBER = 0x08;
 
 	/**
 	 * Number of integers per bucket.
