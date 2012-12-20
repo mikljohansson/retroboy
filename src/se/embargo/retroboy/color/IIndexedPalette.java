@@ -9,5 +9,5 @@ public interface IIndexedPalette extends IPalette {
 	/**
 	 * @return	The index of a color from the palette.
 	 */
-	public int getIndex(final int r1, final int g1, final int b1);
+	public int getIndex(final int color);
 }

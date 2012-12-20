@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import se.embargo.core.concurrent.ProgressTask;
-import se.embargo.core.database.ObservableCursorLoader;
 import se.embargo.core.databinding.DataBindingContext;
 import se.embargo.core.databinding.IPropertyDescriptor;
 import se.embargo.core.databinding.PojoProperties;
@@ -221,6 +220,9 @@ public class MainActivity extends SherlockFragmentActivity {
 			@Override
 			public void onFinish() {
 				_cameraState.setValue(CameraState.Video);
+			
+				// Update the last photo thumbnail
+				new GetLastThumbnailTask().execute();
 
 				// Restart preview
 				_preview.initPreviewCallback();
@@ -353,19 +355,6 @@ public class MainActivity extends SherlockFragmentActivity {
 		_binding.bindValue(
 			PojoProperties.value(new SceneModeDescriptor()).observe(_cameraHandle), 
 			_sceneMode);
-		
-		// Update the thumbnail when the repo changes
-		ObservableCursorLoader loader = new ObservableCursorLoader(
-			this, MediaStore.Images.Media.EXTERNAL_CONTENT_URI, new String[] { "COUNT(1)" }, 
-			MediaStore.Images.ImageColumns.BUCKET_ID + " = " + getBucketId(), new String[] {});
-		
-		loader.addChangeListener(new IChangeListener<Cursor>() {
-			@Override
-			public void handleChange(ChangeEvent<Cursor> event) {
-				// Update the last photo thumbnail
-				new GetLastThumbnailTask().execute();
-			}
-		});
 		
 		// Initialize the image filter
 		initFilter();
@@ -906,6 +895,9 @@ public class MainActivity extends SherlockFragmentActivity {
 		@Override
 		protected void onPostExecute(Void result) {
 			Log.i(TAG, "Successfully captured image");
+
+			// Update the last photo thumbnail
+			new GetLastThumbnailTask().execute();
 
 			// Restart preview
 			_preview.initPreviewCallback();

@@ -13,6 +13,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 
 public class GifEncoder {
+	private static final byte[] ZERO_COLOR_TABLE = new byte[3 * 256];
+	
 	private int width; // image size
 
 	private int height;
@@ -176,7 +178,7 @@ public class GifEncoder {
 			}
 
 			// Encode and write pixel data
-			LZWEncoder encoder = new LZWEncoder(width, height, indexedPixels, colorDepth);
+			LZWEncoder encoder = new LZWEncoder(indexedPixels, colorDepth);
 			encoder.encode(out);
 
 			firstFrame = false;
@@ -307,13 +309,17 @@ public class GifEncoder {
 	/**
 	 * Uses the fixed palette to map each input color to a palette index.
 	 */
-	private class MapPaletteIndex implements ForBody<byte[]> {
+	private class MapPaletteIndex implements ForBody<int[]> {
 		@Override
-		public void run(byte[] item, int it, int last) {
-			for (int i = it * 3; it < last; it++, i += 3) { 
-				int index = _palette.getIndex(item[i + 2] & 0xff, item[i + 1] & 0xff, item[i] & 0xff);
-				usedEntry[index] = true;
-				indexedPixels[it] = (byte)index;
+		public void run(final int[] item, int it, final int last) {
+			final IIndexedPalette palette = _palette;
+			final boolean[] used = usedEntry;
+			final byte[] output = indexedPixels;
+			
+			for (; it < last; it++) { 
+				final int index = palette.getIndex(item[it]);
+				used[index] = true;
+				output[it] = (byte)index;
 			}
 		}
 	}
@@ -323,11 +329,15 @@ public class GifEncoder {
 	 */
 	private class MapQuantizedIndex implements ForBody<byte[]> {
 		@Override
-		public void run(byte[] item, int it, int last) {
+		public void run(final byte[] item, int it, final int last) {
+			final NeuQuant quant = _quant;
+			final boolean[] used = usedEntry;
+			final byte[] output = indexedPixels;
+			
 			for (int i = it * 3; it < last; it++, i += 3) { 
-				int index = _quant.map(item[i] & 0xff, item[i + 1] & 0xff, item[i + 2] & 0xff);
-				usedEntry[index] = true;
-				indexedPixels[it] = (byte)index;
+				final int index = quant.map(item[i] & 0xff, item[i + 1] & 0xff, item[i + 2] & 0xff);
+				used[index] = true;
+				output[it] = (byte)index;
 			}
 		}
 	}
@@ -336,28 +346,58 @@ public class GifEncoder {
 	private MapQuantizedIndex _mapQuantizedIndex = new MapQuantizedIndex();
 	
 	/**
+	 * Extracts bitmap pixels into int[] frame
+	 */
+	private void getImagePixels() {
+		// Resize the frame if needed
+		if (image.getWidth() != width || image.getHeight() != height) {
+			Bitmap temp = Bitmap.createBitmap(width, height, Config.RGB_565);
+			Canvas g = new Canvas(temp);
+			g.drawBitmap(image, 0, 0, new Paint());
+			image = temp;
+		}
+		
+		// Extract the int pixels
+		int size = image.getWidth() * image.getHeight();
+		if (frame == null || frame.length != size) {
+			frame = new int[size];
+		}
+		image.getPixels(frame, 0, image.getWidth(), 0, 0, image.getWidth(), image.getHeight());
+	}
+
+	/**
 	 * Analyzes image colors and creates color map.
 	 */
 	private void analyzePixels() {
-		int len = pixels.length;
-		int nPix = len / 3;
-		
-		if (indexedPixels == null || indexedPixels.length != nPix) {
-			indexedPixels = new byte[nPix];
+		if (indexedPixels == null || indexedPixels.length != frame.length) {
+			indexedPixels = new byte[frame.length];
 		}
 		Arrays.fill(usedEntry, false);
 		
 		if (_palette != null) {
 			// Map image pixels to palette indexes
-			Parallel.forRange(_mapPaletteIndex, pixels, 0, nPix);
+			Parallel.forRange(_mapPaletteIndex, frame, 0, frame.length);
 		}
 		else {
+			// Transform into byte array
+			if (pixels == null || pixels.length != frame.length * 3) {
+				pixels = new byte[frame.length * 3];
+			}
+			
+			for (int i = 0; i < frame.length; i++) {
+				int td = frame[i];
+				int tind = i * 3;
+				pixels[tind++] = (byte)((td >> 0) & 0xFF);
+				pixels[tind++] = (byte)((td >> 8) & 0xFF);
+				pixels[tind] = (byte)((td >> 16) & 0xFF);
+			}
+
 			// Quantize image to create the reduced palette
 			_quant.reset();
-			colorTab = _quant.process(pixels, len, sample);
+			colorTab = _quant.process(pixels, pixels.length, sample);
 
 			// Map image pixels to palette indexes
-			Parallel.forRange(_mapQuantizedIndex, pixels, 0, nPix);
+			Parallel.forRange(_mapQuantizedIndex, pixels, 0, frame.length);
 		}
 		
 		colorDepth = 8;
@@ -397,39 +437,6 @@ public class GifEncoder {
 		}
 		
 		return minpos;
-	}
-
-	/**
-	 * Extracts image pixels into byte array "pixels"
-	 */
-	private void getImagePixels() {
-		// Resize the frame if needed
-		if (image.getWidth() != width || image.getHeight() != height) {
-			Bitmap temp = Bitmap.createBitmap(width, height, Config.RGB_565);
-			Canvas g = new Canvas(temp);
-			g.drawBitmap(image, 0, 0, new Paint());
-			image = temp;
-		}
-		
-		// Extract the int pixels
-		int size = image.getWidth() * image.getHeight();
-		if (frame == null || frame.length != size) {
-			frame = new int[size];
-		}
-		image.getPixels(frame, 0, image.getWidth(), 0, 0, image.getWidth(), image.getHeight());
-		
-		// Transform into byte array
-		if (pixels == null || pixels.length != frame.length * 3) {
-			pixels = new byte[frame.length * 3];
-		}
-		
-		for (int i = 0; i < frame.length; i++) {
-			int td = frame[i];
-			int tind = i * 3;
-			pixels[tind++] = (byte)((td >> 0) & 0xFF);
-			pixels[tind++] = (byte)((td >> 8) & 0xFF);
-			pixels[tind] = (byte)((td >> 16) & 0xFF);
-		}
 	}
 
 	/**
@@ -524,10 +531,7 @@ public class GifEncoder {
 	 */
 	private void writePalette() throws IOException {
 		out.write(colorTab, 0, colorTab.length);
-		int n = (3 * 256) - colorTab.length;
-		for (int i = 0; i < n; i++) {
-			out.write(0);
-		}
+		out.write(ZERO_COLOR_TABLE, 0, ZERO_COLOR_TABLE.length - colorTab.length);
 	}
 
 	/**

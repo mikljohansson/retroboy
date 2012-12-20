@@ -38,13 +38,9 @@ public class DistancePalette implements IIndexedPalette {
 	}
 	
 	@Override
-	public int getIndex(final int r1, final int g1, final int b1) {
+	public int getIndex(final int color) {
 		for (int i = 0; i < _colors.length; i++) {
-			final int r2 = _colors[i] & 0xff,
-				  	  g2 = (_colors[i] >> 8) & 0xff,
-				  	  b2 = (_colors[i] >> 16) & 0xff;
-			
-			if (r1 == r2 && g1 == g2 && b1 == b2) {
+			if ((color & 0xffffff) == (_colors[i] & 0xffffff)) {
 				return i;
 			}
 		}

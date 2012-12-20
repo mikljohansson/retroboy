@@ -33,7 +33,7 @@ import android.widget.ProgressBar;
  */
 public class VideoRecorder extends AbstractFilter {
 	private static final String TAG = "GifFilter";
-	private static final int MAX_CAPTURED_FRAMES = 100;
+	private static final int MAX_CAPTURED_FRAMES = 250;
 	
 	private final Activity _context;
 	private final ProgressBar _recordProgressBar;
@@ -191,10 +191,7 @@ public class VideoRecorder extends AbstractFilter {
 			}
 	
 			// Output the frame
-			int[] image = buffer.image.array();
-			for (int i = 0; i < pixelcount; i++) {
-				block.putInt(image[i]);
-			}
+			block.asIntBuffer().put(buffer.image.array(), 0, pixelcount);
 			
 			// Report progress
 			_framecount++;
@@ -280,35 +277,25 @@ public class VideoRecorder extends AbstractFilter {
 					}
 
 					// Buffers for reading and transforming the frame
-					int size = frame.width * frame.height;
 					if (inputbm == null || inputbm.getWidth() != frame.width || inputbm.getHeight() != frame.height) {
 						inputbm = Bitmap.createBitmap(frame.width, frame.height, Bitmap.Config.ARGB_8888);
-						image = new int[size];
+						image = new int[frame.width * frame.height];
 					}
 					
 					// Read input image
-					final ByteBuffer block = frame.block;
-					block.rewind();
-					
-					for (int i = 0; i < size; i++) {
-						image[i] = block.getInt();
-					}
-					
-					inputbm.setPixels(image, 0, frame.width, 0, 0, frame.width, frame.height);
+					frame.block.rewind();
+					frame.block.asIntBuffer().get(image, 0, image.length);
 					
 					// Transform the frame
+					inputbm.setPixels(image, 0, frame.width, 0, 0, frame.width, frame.height);
 					canvas.drawBitmap(inputbm, _transform.matrix, paint);
 					
-					// Calculate the frame delay
+					// Calculate the frame delay in 1/100 seconds
+					long timestamp = frame.timestamp / 10000000L;
 					if (prevtimestamp != 0) {
-						// Make sure to not multiply the rounding error (the delay is internally expressed in 1/100 seconds)
-						long delay = (frame.timestamp - prevtimestamp) / 10000000L * 10000000L;
-						encoder.setDelay((int)(delay / 1000000L));					
-						prevtimestamp = frame.timestamp - ((frame.timestamp - prevtimestamp) - delay);
+						encoder.setDelay((int)(timestamp - prevtimestamp));					
 					}
-					else {
-						prevtimestamp = frame.timestamp;
-					}
+					prevtimestamp = timestamp;
 					
 					// Encode the frame
 					encoder.addFrame(outputbm);
