@@ -34,6 +34,7 @@ import android.widget.ProgressBar;
 public class VideoRecorder extends AbstractFilter {
 	private static final String TAG = "GifFilter";
 	private static final int MAX_CAPTURED_FRAMES = 250;
+	private static final int MIN_DELAY_MILLIS = 100;
 	
 	private final Activity _context;
 	private final ProgressBar _recordProgressBar;
@@ -48,6 +49,11 @@ public class VideoRecorder extends AbstractFilter {
 	private FileChannel _framechan;
 	private File _framefile;
 	private long _framepos;
+	
+	/**
+	 * Timestamp of previous frame in nanoseconds.
+	 */
+	private long _prevtimestamp = 0;
 	
 	private StateChangeListener _listener;
 	
@@ -176,11 +182,17 @@ public class VideoRecorder extends AbstractFilter {
 	@Override
 	public synchronized void accept(ImageBuffer buffer) {
 		if (_transform != null) {
-			int pixelcount = buffer.imagewidth * buffer.imageheight, 
-				bytes = pixelcount * 4;
+			// Apply framerate limitation
+			long interval = (buffer.timestamp - _prevtimestamp) / 1000000;
+			if (interval < MIN_DELAY_MILLIS) {
+				return;
+			}
 			
 			// Map a memory block from the scratch file
+			int pixelcount = buffer.imagewidth * buffer.imageheight, 
+				bytes = pixelcount * 4;
 			ByteBuffer block;
+			
 			try {
 				block = _framechan.map(FileChannel.MapMode.READ_WRITE, _framepos, bytes);
 			}
@@ -194,6 +206,7 @@ public class VideoRecorder extends AbstractFilter {
 			block.asIntBuffer().put(buffer.image.array(), 0, pixelcount);
 			
 			// Report progress
+			_prevtimestamp = buffer.timestamp;
 			_framecount++;
 			_framepos += bytes;
 			_frames.add(new VideoFrame(block, buffer.imagewidth, buffer.imageheight, buffer.timestamp));
@@ -260,6 +273,7 @@ public class VideoRecorder extends AbstractFilter {
 			Canvas canvas = new Canvas(outputbm);
 			Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG);
 			int[] image = null;
+			long firstts = 0, lastts = 0;
 			
 			try {
 				long ts = System.currentTimeMillis();
@@ -275,6 +289,12 @@ public class VideoRecorder extends AbstractFilter {
 					if (isCancelled()) {
 						return null;
 					}
+					
+					// Remember timestamps for framerate calculation
+					if (firstts == 0) {
+						firstts = frame.timestamp;
+					}
+					lastts = frame.timestamp;
 
 					// Buffers for reading and transforming the frame
 					if (inputbm == null || inputbm.getWidth() != frame.width || inputbm.getHeight() != frame.height) {
@@ -293,7 +313,7 @@ public class VideoRecorder extends AbstractFilter {
 					// Calculate the frame delay in 1/100 seconds
 					long timestamp = frame.timestamp / 10000000L;
 					if (prevtimestamp != 0) {
-						encoder.setDelay((int)(timestamp - prevtimestamp));					
+						encoder.setDelay(((int)(timestamp - prevtimestamp)) * 10);					
 					}
 					prevtimestamp = timestamp;
 					
@@ -312,7 +332,8 @@ public class VideoRecorder extends AbstractFilter {
 				os.close();
 				os = null;
 
-				Log.i(TAG, "GIF encoder framerate: " + ((float)_frames.size() / ((float)(System.currentTimeMillis() - ts) / 1000)));
+				Log.i(TAG, "Encoder performance (frames/sec): " + ((double)_frames.size() / ((double)(System.currentTimeMillis() - ts) / 1000)));
+				Log.i(TAG, "Output GIF framerate: " + ((double)_frames.size() / ((double)(lastts - firstts) / 1000000000)));
 				
 				// Tell the gallery about the image
 				ContentValues values = new ContentValues();
