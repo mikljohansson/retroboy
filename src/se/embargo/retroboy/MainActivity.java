@@ -107,7 +107,6 @@ public class MainActivity extends SherlockFragmentActivity {
 	
 	private CameraPreview _preview;
 	private IObservableValue<CameraHandle> _cameraHandle = new WritableValue<CameraHandle>();
-	private IObservableValue<String> _sceneMode = new WritableValue<String>(Camera.Parameters.SCENE_MODE_AUTO);
 	
 	private int _cameraCount;
 	private boolean _hasCameraFlash;
@@ -263,13 +262,6 @@ public class MainActivity extends SherlockFragmentActivity {
 		// Set the adapter after populating to ensure list height measure is done properly
 		_detailedPreferencesList.setAdapter(_detailedPreferenceAdapter);
 
-		_sceneMode.addChangeListener(new IChangeListener<String>() {
-			@Override
-			public void handleChange(ChangeEvent<String> event) {
-				_detailedPreferenceAdapter.notifyDataSetChanged();
-			}
-		});
-		
 		// Connect the switch camera mode button
 		{
 			final ImageButton cameraModeButton = (ImageButton)findViewById(R.id.cameraModeButton);
@@ -350,11 +342,6 @@ public class MainActivity extends SherlockFragmentActivity {
 		// Connect the zoom support
 		_cameraHandle.addChangeListener(new ZoomCameraHandler());
 		_preview.setOnTouchListener(new GestureDetector());
-		
-		// Connect the scene mode parameter
-		_binding.bindValue(
-			PojoProperties.value(new SceneModeDescriptor()).observe(_cameraHandle), 
-			_sceneMode);
 		
 		// Initialize the image filter
 		initFilter();
@@ -524,6 +511,13 @@ public class MainActivity extends SherlockFragmentActivity {
 			}
 			params.setPreviewSize(optimal.width, optimal.height);
 			Log.i(TAG, "Found preview resolution: " + optimal.width + "x" + optimal.height);
+			
+			// Initialize the scene mode
+			if (params.getSupportedSceneModes() != null) {
+				String scenemode = _prefs.getString(Pictures.PREF_SCENEMODE + "_" + cameraid, Camera.Parameters.SCENE_MODE_AUTO);
+				params.setSceneMode(scenemode);
+				Log.i(TAG, "Applied scene mode: " + scenemode);
+			}
 			
 			// Apply the parameter changes
 			camera.setParameters(params);
@@ -941,6 +935,17 @@ public class MainActivity extends SherlockFragmentActivity {
 					// Change the active image filter
 					initFilter();
 				}
+				else if (key.startsWith(Pictures.PREF_SCENEMODE)) {
+					Camera.Parameters params = handle.camera.getParameters();
+					
+					// Initialize the scene mode
+					if (params.getSupportedSceneModes() != null) {
+						String scenemode = _prefs.getString(Pictures.PREF_SCENEMODE + "_" + handle.id, Camera.Parameters.SCENE_MODE_AUTO);
+						params.setSceneMode(scenemode);
+						handle.camera.setParameters(params);
+						Log.i(TAG, "Applied scene mode: " + scenemode);
+					}
+				}
 			}
 			
 			_detailedPreferenceAdapter.notifyDataSetChanged();
@@ -1223,7 +1228,12 @@ public class MainActivity extends SherlockFragmentActivity {
 
 		@Override
 		public String getValueLabel() {
-			return getValueLabel(_sceneMode.getValue());
+			CameraHandle handle = _cameraHandle.getValue();
+			if (handle != null) {
+				return getValueLabel(handle.camera.getParameters().getSceneMode());
+			}
+			
+			return getValueLabel(null);
 		}
 		
 		@Override
@@ -1264,7 +1274,8 @@ public class MainActivity extends SherlockFragmentActivity {
 					
 					// Show preference dialog
 					ListPreferenceDialog dialog = new ListPreferenceDialog(
-						MainActivity.this, _sceneMode, _title, labels, values);
+						MainActivity.this, _prefs, Pictures.PREF_SCENEMODE + "_" + handle.id, 
+						"", _title, labels, values);
 					dialog.show();
 				}
 			}
@@ -1283,37 +1294,6 @@ public class MainActivity extends SherlockFragmentActivity {
 			}
 			
 			return null;
-		}
-	}
-	
-	private class SceneModeDescriptor implements IPropertyDescriptor<CameraHandle, String> {
-		@Override
-		public String getValue(CameraHandle object) {
-			if (object != null) {
-				Camera.Parameters params = object.camera.getParameters();
-				if (params.getSupportedSceneModes() != null) {
-					return params.getSceneMode();
-				}
-			}
-			
-			return Camera.Parameters.SCENE_MODE_AUTO;
-		}
-
-		@Override
-		public void setValue(CameraHandle object, String value) {
-			if (object != null) {
-				try {
-					Camera.Parameters params = object.camera.getParameters();
-					if (params.getSupportedSceneModes() != null) {
-						params.setSceneMode(value);
-						object.camera.setParameters(params);
-						Log.i(TAG, "Applied scene mode: " + value);
-					}
-				}
-	    		catch (Exception e) {
-	    			Log.e(TAG, "Failed to set scene mode", e);
-	    		}
-			}
 		}
 	}
 }

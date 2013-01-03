@@ -51,7 +51,6 @@
     <string name="label_scenemode_back_light">Backlight</string>
     <string name="label_scenemode_beach">Beach/Snow</string>
     <string name="label_scenemode_night">Night</string>
-    <string name="label_scenemode_night_portrait">Night Portrait</string>
     <string name="label_scenemode_party">Party/Indoor</string>
     <string name="label_scenemode_sports">Sports</string>
 </resources>

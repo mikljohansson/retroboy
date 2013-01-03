@@ -2,7 +2,7 @@
 <resources>
 	<string name="pref_resolution_default">320x200</string>
     <string-array name="pref_resolution_labels">
-	    <item>Game Boy Camera</item>
+	    <item>256x224</item>
 	    <item>320x200</item>
 		<item>480x320</item>
 	    <item>640x480</item>
@@ -24,6 +24,7 @@
         <item>Amstrad CPC464</item>
         <item>Commodore 64</item>
         <item>Roy Lichtenstein</item>
+        <!-- <item>None</item> -->
     </string-array>
     <string-array name="pref_filter_values">
         <item>nintendo_gameboy_camera</item>
@@ -32,6 +33,7 @@
         <item>amstrad_cpc464</item>
         <item>commodore_64</item>
         <item>halftone</item>
+        <!-- <item>none</item> -->
     </string-array>
     
 	<string name="pref_contrast_default">0</string>

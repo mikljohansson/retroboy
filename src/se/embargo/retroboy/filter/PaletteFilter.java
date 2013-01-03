@@ -7,14 +7,12 @@ import se.embargo.retroboy.color.IPalette;
 public class PaletteFilter extends AbstractFilter {
 	private final FilterBody _body = new FilterBody();
 	private final IPalette _palette;
-	private final float _factor;
 	
 	/**
 	 * @param palette	Color palette in ABGR (Alpha, Blue, Green, Red)
 	 */
-	public PaletteFilter(IPalette palette, int contrast) {
+	public PaletteFilter(IPalette palette) {
 		_palette = palette;
-		_factor = (259.0f * ((float)contrast + 255.0f)) / (255.0f * (259.0f - (float)contrast));
 	}
 
     @Override
@@ -37,7 +35,6 @@ public class PaletteFilter extends AbstractFilter {
 		public void run(ImageBuffer buffer, int it, int last) {
 	    	final int[] image = buffer.image.array();
 			final int width = buffer.imagewidth;
-			final float factor = _factor;
 
 			for (int y = it; y < last; y++) {
 				final int yi = y * width;
@@ -46,10 +43,10 @@ public class PaletteFilter extends AbstractFilter {
 					final int i = x + yi;
 					final int pixel = image[i];
 
-					// Extract color components and apply the contrast adjustment
-					final int r = Math.min(Math.max(0, (int)(factor * ((pixel & 0xff) - 128.0f) + 128.0f)), 255),
-							  g = Math.min(Math.max(0, (int)(factor * (((pixel & 0xff00) >> 8) - 128.0f) + 128.0f)), 255),
-							  b = Math.min(Math.max(0, (int)(factor * (((pixel & 0xff0000) >> 16) - 128.0f) + 128.0f)), 255);
+					// Extract color components
+					final int r = pixel & 0xff,
+							  g = (pixel >> 8) & 0xff,
+							  b = (pixel >> 16) & 0xff;
 
 					// Output the pixel, but keep alpha channel intact
 					image[i] = (pixel & 0xff000000) | (_palette.getNearestColor(r, g, b) & 0xffffff);

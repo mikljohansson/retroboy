@@ -28,8 +28,7 @@ class NeuQuant {
 	/**
 	 * Number of colors used 
 	 */
-	//private static final int NETWORK_SIZE = 256;
-	private static final int NETWORK_SIZE = 16;
+	private static final int NETWORK_SIZE = 256;
 	private static final int NETWORK_ENTRY_SIZE = 4;
 	private static final int NETWORK_TABLE_SIZE = NETWORK_SIZE * NETWORK_ENTRY_SIZE;
 

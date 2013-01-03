@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import se.embargo.core.Strings;
 import se.embargo.core.graphic.Bitmaps;
+import se.embargo.retroboy.color.BitPalette;
 import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.Distances;
 import se.embargo.retroboy.color.Palettes;
@@ -13,6 +14,8 @@ import se.embargo.retroboy.filter.AtkinsonFilter;
 import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
+import se.embargo.retroboy.filter.NullFilter;
+import se.embargo.retroboy.filter.PaletteFilter;
 import se.embargo.retroboy.filter.RasterFilter;
 import se.embargo.retroboy.graphic.DitherMatrixes;
 import android.annotation.SuppressLint;
@@ -39,12 +42,14 @@ public class Pictures {
 	private static final String PREF_FILTER_COMMODORE_64 = "commodore_64";
 	private static final String PREF_FILTER_ATKINSON = "atkinson";
 	private static final String PREF_FILTER_HALFTONE = "halftone";
+	private static final String PREF_FILTER_NONE = "none";
 
 	public static final String PREF_CONTRAST = "contrast";
 	public static final String PREF_RESOLUTION = "resolution";
 	public static final String PREF_ORIENTATION = "orientation";
 	public static final String PREF_MATRIXSIZE = "matrixsize";
 	public static final String PREF_RASTERLEVEL = "rasterlevel";
+	public static final String PREF_SCENEMODE = "scenemode";
 	private static final String PREF_IMAGECOUNT = "imagecount";
 	
 	private static final String DIRECTORY = "Retroboy";
@@ -216,6 +221,11 @@ public class Pictures {
 
 		if (PREF_FILTER_HALFTONE.equals(filtertype)) {
 			return new HalftoneFilter();
+		}
+
+		if (PREF_FILTER_NONE.equals(filtertype)) {
+			return new BayerFilter(new BitPalette(4), matrix, true);
+			//return new PaletteFilter(new BitPalette(4));
 		}
 
 		return new BayerFilter(new DistancePalette(Distances.YUV, Palettes.GAMEBOY_CAMERA), matrix, false);

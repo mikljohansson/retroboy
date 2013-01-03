@@ -387,9 +387,9 @@ public class GifEncoder {
 			for (int i = 0; i < frame.length; i++) {
 				int td = frame[i];
 				int tind = i * 3;
-				pixels[tind++] = (byte)((td >> 0) & 0xFF);
+				pixels[tind++] = (byte)((td >> 16) & 0xFF);
 				pixels[tind++] = (byte)((td >> 8) & 0xFF);
-				pixels[tind] = (byte)((td >> 16) & 0xFF);
+				pixels[tind] = (byte)((td >> 0) & 0xFF);
 			}
 
 			// Quantize image to create the reduced palette
