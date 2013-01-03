@@ -6,8 +6,6 @@ import java.util.List;
 
 import se.embargo.core.concurrent.ProgressTask;
 import se.embargo.core.databinding.DataBindingContext;
-import se.embargo.core.databinding.IPropertyDescriptor;
-import se.embargo.core.databinding.PojoProperties;
 import se.embargo.core.databinding.observable.ChangeEvent;
 import se.embargo.core.databinding.observable.IChangeListener;
 import se.embargo.core.databinding.observable.IObservableValue;
