@@ -30,7 +30,7 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 	 * Number of bits to shift a color.
 	 */
 	protected static final int _step = 8 - _bits;
-
+	
 	/**
 	 * Color bucket entries.
 	 */
@@ -53,7 +53,12 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 	private final int _rm = (1 << _bits) - 1, 
 					  _gm = _rm << _gsb, 
 					  _bm = _rm << _bsb;
-	
+
+	/**
+	 * Name of filter.
+	 */
+	private final String _filtername;
+
 	/**
 	 * Handle on running Activity.
 	 */
@@ -85,14 +90,36 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 	protected final IColorDistance _distance;
 	
     public AbstractColorFilter(String filtername, Context context, IColorDistance distance, int[] colors, int bucketSize, int version) {
-		_context = context;
+		_filtername = filtername;
+    	_context = context;
 		_distance = distance;
 		_palette = new BucketPalette(new DistancePalette(distance, colors));
 		_colors = colors;
 		_bucketSize = bucketSize;
 		_version = version;
 		_buckets = new int[(1 << (_bits * 3)) * bucketSize];
+	}
 
+    /**
+     * Apply this filter to a frame.
+     * @param buffer	Frame to process
+     */
+    protected abstract void process(ImageBuffer buffer);
+    
+    /**
+     * Initialize a bucket.
+     * @param bucket	Index of bucket.
+     * @param r			Red value to select a color for.
+     * @param g			Green value to select a color for.
+     * @param b			Blue value to select a color for.
+     */
+    protected abstract void initBucket(final int bucket, final int r, final int g, final int b);
+    
+    /**
+     * Initialize the buckets.
+     * @remark	This must be done after the child class is done initializing since virtual methods are called.
+     */
+    protected void init() {
     	long ts = System.nanoTime();
 		
 		// Check for cached mixing plans
@@ -102,12 +129,12 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 		}
 		
 		// Read cached mixing plan
-		String filename = filtername + _distance + "-" + Integer.toHexString(hash) + ".bin";
+		String filename = _filtername + _distance + "-" + Integer.toHexString(hash) + ".bin";
 		try {
 			DataInputStream is = new DataInputStream(new BufferedInputStream(_context.openFileInput(filename)));
 			int cachedversion = is.readInt();
 			
-			if (cachedversion == version) {
+			if (cachedversion == _version) {
 				for (int i = 0; i < _buckets.length; i++) {
 					_buckets[i] = is.readInt();
 				}
@@ -129,7 +156,7 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 		else {
 			init(filename);
 		}
-	}
+    }
     
     @Override
     public boolean isColorFilter() {
@@ -200,7 +227,4 @@ public abstract class AbstractColorFilter extends AbstractFilter {
 			return null;
 		}
     }
-
-    protected abstract void process(ImageBuffer buffer);
-    protected abstract void initBucket(final int bucket, final int r, final int g, final int b);
 }

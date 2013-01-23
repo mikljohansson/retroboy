@@ -34,7 +34,7 @@ public class YliluomaFilter extends AbstractColorFilter {
 	/**
 	 * Version number for the cache files
 	 */
-	private static final int CACHE_VERSION_NUMBER = 0x05 | (_matrix.length << 16);
+	private static final int CACHE_VERSION_NUMBER = 6 | (_matrix.length << 16);
 
 	/**
 	 * Parallel functor used to process frames.
@@ -43,6 +43,9 @@ public class YliluomaFilter extends AbstractColorFilter {
 	
 	public YliluomaFilter(Context context, IColorDistance distance, int[] palette) {
 		super("yduotone", context, distance, palette, COLOR_BUCKET_SIZE, CACHE_VERSION_NUMBER);
+	
+		// Initialize buckets after members are initialized
+		init();
 	}
     
     @Override
@@ -77,7 +80,7 @@ public class YliluomaFilter extends AbstractColorFilter {
 		}
     }
     
-    protected void initBucket(final int bucket, final int r, final int g, final int b) {
+    protected final void initBucket(final int bucket, final int r, final int g, final int b) {
     	double minpenalty = Double.MAX_VALUE;
         for (int i = 0; i < _colors.length; ++i) {
 	        for (int j = i; j < _colors.length; ++j) {

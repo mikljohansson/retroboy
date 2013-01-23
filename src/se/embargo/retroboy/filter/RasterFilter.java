@@ -12,7 +12,7 @@ public class RasterFilter extends AbstractColorFilter {
 	/**
 	 * Version number for the cache files
 	 */
-	private static final int CACHE_VERSION_NUMBER = 0x08;
+	private static final int CACHE_VERSION_NUMBER = 10;
 
 	/**
 	 * Number of integers per bucket.
@@ -47,16 +47,19 @@ public class RasterFilter extends AbstractColorFilter {
 	/**
 	 * @param context		Context running the filter
 	 * @param distance		Measure for color distance
-	 * @param palette		Palette of available colors
+	 * @param colors		Palette of available colors
 	 * @param matrix		Dithering matrix to use
 	 * @param rasterlevel	Level of rastering to apply
 	 */
-	public RasterFilter(Context context, IColorDistance distance, int[] palette, int[] matrix, int rasterlevel) {
-		super("raster-" + rasterlevel, context, distance, palette, COLOR_BUCKET_SIZE, CACHE_VERSION_NUMBER);
+	public RasterFilter(Context context, IColorDistance distance, int[] colors, int[] matrix, int rasterlevel) {
+		super("raster-" + rasterlevel, context, distance, colors, COLOR_BUCKET_SIZE, CACHE_VERSION_NUMBER);
 		_matrix = matrix;
 		_patternsize = (int)Math.sqrt(_matrix.length);
 		_mixingratio = _matrix.length / 2;
 		_penaltyDivisor = (double)rasterlevel / 10d;
+		
+		// Initialize buckets after members are initialized
+		init();
 	}
     
     @Override
@@ -90,7 +93,7 @@ public class RasterFilter extends AbstractColorFilter {
 		}
     }
 
-    protected void initBucket(final int bucket, final int r, final int g, final int b) {
+    protected final void initBucket(final int bucket, final int r, final int g, final int b) {
     	double minpenalty = Double.MAX_VALUE;
         for (int i = 0; i < _colors.length; ++i) {
 	        for (int j = i; j < _colors.length; ++j) {
