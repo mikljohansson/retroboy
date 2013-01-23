@@ -3,9 +3,13 @@ package se.embargo.retroboy.filter;
 import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.IPalette;
+import se.embargo.retroboy.color.IPaletteSink;
 
-public class BayerFilter extends AbstractFilter {
-	private final IPalette _palette;
+public class BayerFilter extends AbstractFilter implements IPaletteSink {
+	/**
+	 * Current color palette.
+	 */
+	private volatile IPalette _palette;
 
 	/**
 	 * Dither matrix.
@@ -31,6 +35,11 @@ public class BayerFilter extends AbstractFilter {
 		_mixingratio = _matrix.length / 2;
 		_body = color ? new ColorBody() : new MonochromeBody();
 	}
+	
+	@Override
+	public void accept(IPalette palette) {
+		_palette = palette;
+	}
     
     @Override
     public boolean isColorFilter() {
@@ -50,7 +59,8 @@ public class BayerFilter extends AbstractFilter {
     private class ColorBody implements ForBody<ImageBuffer> {
 		@Override
 		public void run(ImageBuffer buffer, int it, int last) {
-	    	final int[] image = buffer.image.array();
+	    	final IPalette palette = _palette;
+			final int[] image = buffer.image.array();
 			final int width = buffer.imagewidth;
 			
 			for (int y = it; y < last; y++) {
@@ -66,7 +76,7 @@ public class BayerFilter extends AbstractFilter {
 					final int g1 = Math.max(0, Math.min(((pixel & 0x0000ff00) >> 8) + threshold - _mixingratio, 255));
 					final int b1 = Math.max(0, Math.min(((pixel & 0x00ff0000) >> 16) + threshold - _mixingratio, 255));
 					
-					image[i] = (pixel & 0xff000000) | (_palette.getNearestColor(r1, g1, b1) & 0xffffff);
+					image[i] = (pixel & 0xff000000) | (palette.getNearestColor(r1, g1, b1) & 0xffffff);
 				}
 			}
 		}

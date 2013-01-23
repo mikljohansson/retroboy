@@ -3,15 +3,21 @@ package se.embargo.retroboy.filter;
 import se.embargo.core.concurrent.ForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.IPalette;
+import se.embargo.retroboy.color.IPaletteSink;
 
-public class PaletteFilter extends AbstractFilter {
+public class PaletteFilter extends AbstractFilter implements IPaletteSink {
+	private volatile IPalette _palette;
 	private final FilterBody _body = new FilterBody();
-	private final IPalette _palette;
 	
 	/**
 	 * @param palette	Color palette in ABGR (Alpha, Blue, Green, Red)
 	 */
 	public PaletteFilter(IPalette palette) {
+		_palette = palette;
+	}
+	
+	@Override
+	public void accept(IPalette palette) {
 		_palette = palette;
 	}
 
@@ -33,7 +39,8 @@ public class PaletteFilter extends AbstractFilter {
     private class FilterBody implements ForBody<ImageBuffer> {
 		@Override
 		public void run(ImageBuffer buffer, int it, int last) {
-	    	final int[] image = buffer.image.array();
+	    	final IPalette palette = _palette;
+			final int[] image = buffer.image.array();
 			final int width = buffer.imagewidth;
 
 			for (int y = it; y < last; y++) {
@@ -44,12 +51,12 @@ public class PaletteFilter extends AbstractFilter {
 					final int pixel = image[i];
 
 					// Extract color components
-					final int r = pixel & 0xff,
-							  g = (pixel >> 8) & 0xff,
-							  b = (pixel >> 16) & 0xff;
+					final int r1 = pixel & 0xff,
+							  g1 = (pixel >> 8) & 0xff,
+							  b1 = (pixel >> 16) & 0xff;
 
 					// Output the pixel, but keep alpha channel intact
-					image[i] = (pixel & 0xff000000) | (_palette.getNearestColor(r, g, b) & 0xffffff);
+					image[i] = (pixel & 0xff000000) | (palette.getNearestColor(r1, g1, b1) & 0xffffff);
 				}
 			}
 		}

@@ -2,6 +2,8 @@ package se.embargo.retroboy.graphic;
 
 import java.util.Arrays;
 
+import se.embargo.retroboy.color.IPalette;
+
 /*
  * NeuQuant Neural-Net Quantization Algorithm
  * ------------------------------------------
@@ -24,11 +26,11 @@ import java.util.Arrays;
  * 
  * Ported to Java 12/00 K Weiner
  */
-class NeuQuant {
+public class NeuQuant implements IColorQuantizer {
 	/**
 	 * Number of colors used 
 	 */
-	private static final int NETWORK_SIZE = 256;
+	private static final int NETWORK_SIZE = 16;
 	private static final int NETWORK_ENTRY_SIZE = 4;
 	private static final int NETWORK_TABLE_SIZE = NETWORK_SIZE * NETWORK_ENTRY_SIZE;
 
@@ -132,6 +134,54 @@ class NeuQuant {
 	 */
 	private final int[] radpower = new int[initrad];
 
+	@Override
+	public void sample(IPalette palette, int[] frame, int length, int step) {
+		//reset();
+		
+		// Build the pixel byte array		
+		byte[] pixels = new byte[(length / step) * 3];
+		
+		for (int i = 0; i < length; i += step) {
+			// Extract color components
+			final int pixel = frame[i];
+			final int r1 = pixel & 0xff,
+					  g1 = (pixel >> 8) & 0xff,
+					  b1 = (pixel >> 16) & 0xff;
+			
+			// Find the nearest color from the full palette
+			int td = palette.getNearestColor(r1, g1, b1);
+			
+			// Output the BGR bytes
+			int tind = (i / step) * 3;
+			pixels[tind++] = (byte)((td >> 16) & 0xFF);
+			pixels[tind++] = (byte)((td >> 8) & 0xFF);
+			pixels[tind] = (byte)((td >> 0) & 0xFF);
+		}
+		
+		// Pass the pixels through the neural net
+		learn(pixels, pixels.length, 1);
+	}
+	
+	@Override
+	public int[] getPalette() {
+		// Calculate the selected palette
+		unbiasnet();
+		inxbuild();
+		byte[] selected = colorMap();
+		
+		// Decode the result palette
+		int[] colors = new int[selected.length / 3];
+		for (int i = 0; i < colors.length; i++) {
+			int tind = i * 3;
+			colors[i] = 0xff000000 |
+				((((int)selected[tind++]) & 0xff) << 0) |
+				((((int)selected[tind++]) & 0xff) << 8) |
+				((((int)selected[tind]) & 0xff) << 16);
+		}
+		
+		return colors;
+	}
+	
 	/**
 	 * Initialize network in range (0,0,0) to (255,255,255) and set parameters
 	 */
@@ -147,7 +197,7 @@ class NeuQuant {
 	}
 
 	/**
-	 * @return	RGB color palette
+	 * @return	RGB ordered color palette
 	 */
 	private byte[] colorMap() {
 		byte[] map = new byte[NETWORK_SIZE * 3];
@@ -227,8 +277,9 @@ class NeuQuant {
 
 	/**
 	 * Main learning loop
+	 * @param	pixels	BGR ordered values
 	 */
-	private void learn(byte[] thepicture, int lengthcount, int samplefac) {
+	private void learn(byte[] pixels, int lengthcount, int samplefac) {
 		int i, j, b, g, r;
 		int radius, rad, alpha, step, delta, samplepixels;
 		byte[] p;
@@ -237,7 +288,7 @@ class NeuQuant {
 		if (lengthcount < minpicturebytes)
 			samplefac = 1;
 		alphadec = 30 + ((samplefac - 1) / 3);
-		p = thepicture;
+		p = pixels;
 		pix = 0;
 		lim = lengthcount;
 		samplepixels = lengthcount / (3 * samplefac);
@@ -361,8 +412,8 @@ class NeuQuant {
 	/**
 	 * @return	RGB color palette
 	 */
-	public byte[] process(byte[] thepicture, int lengthcount, int samplefac) {
-		learn(thepicture, lengthcount, samplefac);
+	public byte[] process(byte[] pixels, int samplefac) {
+		learn(pixels, pixels.length, samplefac);
 		unbiasnet();
 		inxbuild();
 		return colorMap();

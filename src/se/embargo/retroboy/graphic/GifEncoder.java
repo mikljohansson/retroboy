@@ -384,6 +384,7 @@ public class GifEncoder {
 				pixels = new byte[frame.length * 3];
 			}
 			
+			// TODO: pixels need only contain every sample pixel
 			for (int i = 0; i < frame.length; i++) {
 				int td = frame[i];
 				int tind = i * 3;
@@ -394,7 +395,7 @@ public class GifEncoder {
 
 			// Quantize image to create the reduced palette
 			_quant.reset();
-			colorTab = _quant.process(pixels, pixels.length, sample);
+			colorTab = _quant.process(pixels, sample);
 
 			// Map image pixels to palette indexes
 			Parallel.forRange(_mapQuantizedIndex, pixels, 0, frame.length);

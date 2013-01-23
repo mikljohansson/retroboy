@@ -7,15 +7,18 @@ import java.io.IOException;
 import se.embargo.core.Strings;
 import se.embargo.core.graphic.Bitmaps;
 import se.embargo.retroboy.color.BitPalette;
+import se.embargo.retroboy.color.BucketPalette;
 import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.Distances;
+import se.embargo.retroboy.color.IPalette;
 import se.embargo.retroboy.color.Palettes;
 import se.embargo.retroboy.filter.AtkinsonFilter;
 import se.embargo.retroboy.filter.BayerFilter;
+import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
-import se.embargo.retroboy.filter.NullFilter;
 import se.embargo.retroboy.filter.PaletteFilter;
+import se.embargo.retroboy.filter.QuantizeFilter;
 import se.embargo.retroboy.filter.RasterFilter;
 import se.embargo.retroboy.graphic.DitherMatrixes;
 import android.annotation.SuppressLint;
@@ -40,6 +43,7 @@ public class Pictures {
 	private static final String PREF_FILTER_GAMEBOY_SCREEN = "nintendo_gameboy_screen";
 	private static final String PREF_FILTER_AMSTRAD_CPC464 = "amstrad_cpc464";
 	private static final String PREF_FILTER_COMMODORE_64 = "commodore_64";
+	private static final String PREF_FILTER_AMIGA_500 = "amiga_500";
 	private static final String PREF_FILTER_ATKINSON = "atkinson";
 	private static final String PREF_FILTER_HALFTONE = "halftone";
 	private static final String PREF_FILTER_NONE = "none";
@@ -215,6 +219,18 @@ public class Pictures {
 			//return new YliluomaTriFilter(context, Distances.LUV, Palettes.COMMODORE_64_GAMMA_ADJUSTED);
 		}
 
+		if (PREF_FILTER_AMIGA_500.equals(filtertype)) {
+			//IPalette palette = new BucketPalette(new DistancePalette(Distances.YUV, Palettes.AMSTRAD_CPC464));
+			IPalette palette = new BitPalette(4);
+			
+			CompositeFilter filter = new CompositeFilter();
+			BayerFilter effect = new BayerFilter(palette, matrix, true);
+			//PaletteFilter effect = new PaletteFilter(palette);
+			filter.add(new QuantizeFilter(palette, effect));
+			filter.add(effect);
+			return filter;
+		}
+		
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
 			return new AtkinsonFilter();
 		}

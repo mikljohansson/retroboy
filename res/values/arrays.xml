@@ -23,6 +23,7 @@
         <item>Apple Macintosh OS</item>
         <item>Amstrad CPC464</item>
         <item>Commodore 64</item>
+        <!-- <item>Amiga 500</item> -->
         <item>Roy Lichtenstein</item>
         <!-- <item>None</item> -->
     </string-array>
@@ -32,6 +33,7 @@
         <item>atkinson</item>
         <item>amstrad_cpc464</item>
         <item>commodore_64</item>
+        <!-- <item>amiga_500</item> -->
         <item>halftone</item>
         <!-- <item>none</item> -->
     </string-array>
