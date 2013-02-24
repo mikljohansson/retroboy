@@ -1,6 +1,6 @@
 package se.embargo.retroboy.color;
 
-import se.embargo.core.concurrent.ForBody;
+import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
 
 /**
@@ -49,7 +49,7 @@ public class BucketPalette implements IIndexedPalette {
 		_palette = palette;
 
 		// Initialize the cached buckets
-		Parallel.forRange(new ForBody<int[]>() {
+		Parallel.forRange(new IForBody<int[]>() {
 			@Override
 			public void run(int[] item, int it, int last) {
 				for (int i = it; i < last; i++) {

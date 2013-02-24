@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 
-import se.embargo.core.concurrent.ForBody;
+import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.IIndexedPalette;
 import android.graphics.Bitmap;
@@ -309,7 +309,7 @@ public class GifEncoder {
 	/**
 	 * Uses the fixed palette to map each input color to a palette index.
 	 */
-	private class MapPaletteIndex implements ForBody<int[]> {
+	private class MapPaletteIndex implements IForBody<int[]> {
 		@Override
 		public void run(final int[] item, int it, final int last) {
 			final IIndexedPalette palette = _palette;
@@ -327,7 +327,7 @@ public class GifEncoder {
 	/**
 	 * Uses the quantizer to map each input color to a palette index.
 	 */
-	private class MapQuantizedIndex implements ForBody<byte[]> {
+	private class MapQuantizedIndex implements IForBody<byte[]> {
 		@Override
 		public void run(final byte[] item, int it, final int last) {
 			final NeuQuant quant = _quant;

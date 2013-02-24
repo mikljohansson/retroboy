@@ -2,7 +2,7 @@ package se.embargo.retroboy.filter;
 
 import java.nio.IntBuffer;
 
-import se.embargo.core.concurrent.ForBody;
+import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.IPalette;
 import android.util.Log;
@@ -15,7 +15,7 @@ public class YuvFilter implements IImageFilter {
 	private int _width, _height;
 	private float _factor;
 	
-	private ForBody<ImageBuffer> _body;
+	private IForBody<ImageBuffer> _body;
 	
 	public YuvFilter(int width, int height, int contrast, boolean color) {
 		_width = width;
@@ -73,7 +73,7 @@ public class YuvFilter implements IImageFilter {
 			_body, buffer, 0, Math.min((int)(buffer.imageheight * stride), buffer.frameheight));
 	}
 	
-	private class ColorBody implements ForBody<ImageBuffer> {
+	private class ColorBody implements IForBody<ImageBuffer> {
 		@Override
 		public void run(ImageBuffer buffer, int it, int last) {
 			final float framewidth = buffer.framewidth, 
@@ -127,7 +127,7 @@ public class YuvFilter implements IImageFilter {
 		}
 	}
 	
-	private class MonochromeBody implements ForBody<ImageBuffer> {
+	private class MonochromeBody implements IForBody<ImageBuffer> {
 		@Override
 		public void run(ImageBuffer buffer, int it, int last) {
 			final float framewidth = buffer.framewidth, frameheight = buffer.frameheight;

@@ -1,6 +1,6 @@
 package se.embargo.retroboy.filter;
 
-import se.embargo.core.concurrent.ForBody;
+import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.IColorDistance;
 import se.embargo.retroboy.graphic.DitherMatrixes;
@@ -39,7 +39,7 @@ public class YliluomaFilter extends AbstractColorFilter {
 	/**
 	 * Parallel functor used to process frames.
 	 */
-	private final ForBody<ImageBuffer> _body = new ColorBody();
+	private final IForBody<ImageBuffer> _body = new ColorBody();
 	
 	public YliluomaFilter(Context context, IColorDistance distance, int[] palette) {
 		super("yduotone", context, distance, palette, COLOR_BUCKET_SIZE, CACHE_VERSION_NUMBER);
@@ -53,7 +53,7 @@ public class YliluomaFilter extends AbstractColorFilter {
     	Parallel.forRange(_body, buffer, 0, buffer.imageheight);
 	}
     
-    private class ColorBody implements ForBody<ImageBuffer> {
+    private class ColorBody implements IForBody<ImageBuffer> {
 		@Override
 		public void run(ImageBuffer buffer, int it, int last) {
 	    	final int[] image = buffer.image.array();

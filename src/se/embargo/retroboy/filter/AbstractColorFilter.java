@@ -7,14 +7,14 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
-import se.embargo.core.concurrent.ForBody;
+import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.core.concurrent.ProgressTask;
 import se.embargo.retroboy.R;
 import se.embargo.retroboy.color.BucketPalette;
+import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.IColorDistance;
 import se.embargo.retroboy.color.IPalette;
-import se.embargo.retroboy.color.DistancePalette;
 import android.content.Context;
 import android.util.Log;
 
@@ -182,7 +182,7 @@ public abstract class AbstractColorFilter extends AbstractFilter {
     	long ts = System.nanoTime();
 		
 		// Calculate mixing plans
-		Parallel.forRange(new ForBody<int[]>() {
+		Parallel.forRange(new IForBody<int[]>() {
 			@Override
 			public void run(int[] item, int it, int last) {
 				for (int i = it; i < last; i++) {

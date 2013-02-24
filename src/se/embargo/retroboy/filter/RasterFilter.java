@@ -1,6 +1,6 @@
 package se.embargo.retroboy.filter;
 
-import se.embargo.core.concurrent.ForBody;
+import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.IColorDistance;
 import android.content.Context;
@@ -42,7 +42,7 @@ public class RasterFilter extends AbstractColorFilter {
 	/**
 	 * Parallel functor used to process frames.
 	 */
-	private final ForBody<ImageBuffer> _body = new ColorBody();
+	private final IForBody<ImageBuffer> _body = new ColorBody();
 	
 	/**
 	 * @param context		Context running the filter
@@ -67,7 +67,7 @@ public class RasterFilter extends AbstractColorFilter {
     	Parallel.forRange(_body, buffer, 0, buffer.imageheight);
 	}
     
-    private class ColorBody implements ForBody<ImageBuffer> {
+    private class ColorBody implements IForBody<ImageBuffer> {
 		@Override
 		public void run(ImageBuffer buffer, int it, int last) {
 	    	final int[] image = buffer.image.array();

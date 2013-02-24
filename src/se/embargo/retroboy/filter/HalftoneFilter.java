@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 
-import se.embargo.core.concurrent.ForBody;
+import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.BucketPalette;
 import se.embargo.retroboy.color.Distances;
@@ -60,7 +60,7 @@ public class HalftoneFilter extends AbstractFilter {
 		_bufferpool.offer(item);
 	}
     
-    private class FilterBody implements ForBody<FilterItem> {
+    private class FilterBody implements IForBody<FilterItem> {
 		@Override
 		public void run(FilterItem item, int it, int last) {
 	    	final int[] image = item.buffer.image.array(), cells = item.cells;

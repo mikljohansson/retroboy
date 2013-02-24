@@ -1,6 +1,6 @@
 package se.embargo.retroboy.filter;
 
-import se.embargo.core.concurrent.ForBody;
+import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.retroboy.color.IPalette;
 import se.embargo.retroboy.color.IPaletteSink;
@@ -26,7 +26,7 @@ public class BayerFilter extends AbstractFilter implements IPaletteSink {
 	 */
 	private final int _mixingratio;
 	
-	private final ForBody<ImageBuffer> _body;
+	private final IForBody<ImageBuffer> _body;
 	
 	public BayerFilter(IPalette palette, int[] matrix, boolean color) {
 		_palette = palette;
@@ -56,7 +56,7 @@ public class BayerFilter extends AbstractFilter implements IPaletteSink {
 		Parallel.forRange(_body, buffer, 0, buffer.imageheight);
 	}
     
-    private class ColorBody implements ForBody<ImageBuffer> {
+    private class ColorBody implements IForBody<ImageBuffer> {
 		@Override
 		public void run(ImageBuffer buffer, int it, int last) {
 	    	final IPalette palette = _palette;
@@ -82,7 +82,7 @@ public class BayerFilter extends AbstractFilter implements IPaletteSink {
 		}
     }
 
-    private class MonochromeBody implements ForBody<ImageBuffer> {
+    private class MonochromeBody implements IForBody<ImageBuffer> {
     	private final int[] _colors = new int[256];
 
     	public MonochromeBody() {

@@ -1,6 +1,6 @@
 package se.embargo.retroboy.filter;
 
-import se.embargo.core.concurrent.ForBody;
+import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
 
 /**
@@ -19,7 +19,7 @@ public class RgbFilter extends AbstractFilter {
 		Parallel.forRange(_body, buffer, 0, buffer.imageheight);
 	}
 
-    private class FilterBody implements ForBody<ImageBuffer> {
+    private class FilterBody implements IForBody<ImageBuffer> {
 		@Override
 		public void run(ImageBuffer buffer, int it, int last) {
 			final int[] image = buffer.image.array();
