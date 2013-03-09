@@ -6,6 +6,7 @@ import com.actionbarsherlock.app.SherlockPreferenceActivity;
 import com.actionbarsherlock.view.MenuItem;
 
 public class SettingsActivity extends SherlockPreferenceActivity {
+	@SuppressWarnings("deprecation")
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -14,7 +15,6 @@ public class SettingsActivity extends SherlockPreferenceActivity {
 		
 		getPreferenceManager().setSharedPreferencesName(Pictures.PREFS_NAMESPACE);
 		addPreferencesFromResource(R.xml.settings);
-
 	}
 
 	@Override

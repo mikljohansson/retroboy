@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import se.embargo.core.concurrent.ProgressTask;
-import se.embargo.core.databinding.DataBindingContext;
 import se.embargo.core.databinding.observable.ChangeEvent;
 import se.embargo.core.databinding.observable.IChangeListener;
 import se.embargo.core.databinding.observable.IObservableValue;
@@ -149,11 +148,6 @@ public class MainActivity extends SherlockFragmentActivity {
 	 * Tracks if a single finger is touching the screen.
 	 */
 	private boolean _singleTouch = false;
-	
-	/**
-	 * Context for all data bindings. 
-	 */
-	private DataBindingContext _binding = new DataBindingContext();
 	
 	/**
 	 * Picture or video mode.
@@ -428,7 +422,9 @@ public class MainActivity extends SherlockFragmentActivity {
 			case KeyEvent.KEYCODE_CAMERA:
 				if (event.getRepeatCount() == 0 && event.getAction() == KeyEvent.ACTION_UP) {
 					// Take photo when the dedicated photo button is pressed
-					_captureListener.onTouch(null, MotionEvent.obtain(0, 0, MotionEvent.ACTION_UP, 0, 0, 0));
+					MotionEvent motevent = MotionEvent.obtain(0, 0, MotionEvent.ACTION_UP, 0, 0, 0);
+					_captureListener.onTouch(null, motevent);
+					motevent.recycle();
 				}
 				
 				return true;

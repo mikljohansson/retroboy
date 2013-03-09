@@ -60,6 +60,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		this(context, attrs, 0);
 	}
 	
+	@SuppressWarnings("deprecation")
 	public CameraPreview(Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
 		

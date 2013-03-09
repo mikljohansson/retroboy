@@ -7,7 +7,6 @@ import java.io.IOException;
 import se.embargo.core.Strings;
 import se.embargo.core.graphic.Bitmaps;
 import se.embargo.retroboy.color.BitPalette;
-import se.embargo.retroboy.color.BucketPalette;
 import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.Distances;
 import se.embargo.retroboy.color.IPalette;
@@ -17,7 +16,6 @@ import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
-import se.embargo.retroboy.filter.PaletteFilter;
 import se.embargo.retroboy.filter.QuantizeFilter;
 import se.embargo.retroboy.filter.RasterFilter;
 import se.embargo.retroboy.graphic.DitherMatrixes;
@@ -77,8 +75,9 @@ public class Pictures {
 	 * @return	The directory where images are stored
 	 */
 	public static File getStorageDirectory() {
-		File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-		return new File(path + "/" + DIRECTORY);
+		File result = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/" + DIRECTORY);
+		result.mkdirs();
+		return result;
 	}
 	
 	/**
@@ -191,9 +190,6 @@ public class Pictures {
 			file = new File(getStorageDirectory(), filename);
 			inputname = null;
 		} while (file.exists());
-		
-		// Create parent directory as needed
-		new File(file.getParent()).mkdirs();
 		
 		return file;
 	}
