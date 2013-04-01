@@ -370,6 +370,9 @@ public class MainActivity extends SherlockFragmentActivity {
 		_rotationListener = new OrientationListener();
 		_rotationListener.enable();
 		
+		// Reinitialize the filter in case preferences have changed
+		initFilter();
+		
 		// Update the last photo thumbnail
 		new GetLastThumbnailTask().execute();
 		
