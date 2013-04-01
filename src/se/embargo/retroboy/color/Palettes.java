@@ -1,5 +1,8 @@
 package se.embargo.retroboy.color;
 
+/**
+ * Palettes are expressed as ABGR integers (Alpha, Blue, Green, Red)
+ */
 public class Palettes {
 	public static final int[] BINARY = new int[] {
 		0xff000000,
