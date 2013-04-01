@@ -65,6 +65,9 @@ public class MainActivity extends SherlockFragmentActivity {
 	
 	public static final String PREF_CAMERA = "camera";
 	
+	private static final String PREF_AUTOFOCUS = "autofocus";
+	private static final String PREF_AUTOFOCUS_AUTO = "auto";
+	
 	/**
 	 * Radians per second required to trigger movement detection
 	 */
@@ -262,6 +265,10 @@ public class MainActivity extends SherlockFragmentActivity {
 
 		_detailedPreferenceAdapter.add(new PalettePreferenceItem());
 
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+			PREF_AUTOFOCUS, R.string.pref_autofocus_default, R.string.menu_option_autofocus, 
+			R.array.pref_autofocus_labels, R.array.pref_autofocus_values));
+
 		_detailedPreferenceAdapter.add(new OrientationPreferenceItem(
 			Pictures.PREF_ORIENTATION, R.string.pref_orientation_default, R.string.menu_option_orientation, 
 			R.array.pref_orientation_labels, R.array.pref_orientation_values));
@@ -298,7 +305,7 @@ public class MainActivity extends SherlockFragmentActivity {
 			final ImageButton button = (ImageButton)findViewById(R.id.adjustContrastButton);
 			button.setOnClickListener(new ListPreferenceDialogListener(
 				Pictures.PREF_CONTRAST, getResources().getString(R.string.pref_contrast_default),
-				R.string.pref_title_contrast, R.array.pref_contrast_labels, R.array.pref_contrast_values));
+				R.string.menu_option_contrast, R.array.pref_contrast_labels, R.array.pref_contrast_values));
 		}
 
 		// Connect the image filter button
@@ -306,7 +313,7 @@ public class MainActivity extends SherlockFragmentActivity {
 			final ImageButton button = (ImageButton)findViewById(R.id.switchFilterButton);
 			button.setOnClickListener(new ListPreferenceDialogListener(
 				Pictures.PREF_FILTER, getResources().getString(R.string.pref_filter_default),
-				R.string.pref_title_filter, R.array.pref_filter_labels, R.array.pref_filter_values));
+				R.string.menu_option_filter, R.array.pref_filter_labels, R.array.pref_filter_values));
 		}
 
 		// Connect the switch camera button
@@ -803,7 +810,7 @@ public class MainActivity extends SherlockFragmentActivity {
 				else if (((event.timestamp - _timestamp) / 1000000) > GYROSCOPE_FOCUSING_TIMEOUT) {
 					// Movement stopped
 					_movement = false;
-					_focusManager.autoFocus();
+					autoFocus();
 				}
 			}
 			else if (rotation >= GYROSCOPE_MOVEMENT_THRESHOLD) {
@@ -811,6 +818,12 @@ public class MainActivity extends SherlockFragmentActivity {
 				_movement = true;
 				_timestamp = event.timestamp;
 				_focusManager.resetFocus();
+			}
+		}
+		
+		private void autoFocus() {
+			if (PREF_AUTOFOCUS_AUTO.equals(_prefs.getString(PREF_AUTOFOCUS, PREF_AUTOFOCUS_AUTO))) {
+				_focusManager.autoFocus();
 			}
 		}
 	}

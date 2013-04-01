@@ -239,7 +239,7 @@ public class ImageActivity extends SherlockActivity {
 				new ListPreferenceDialog(
 					this, _prefs, 
 					Pictures.PREF_FILTER, getResources().getString(R.string.pref_filter_default),
-					R.string.pref_title_filter, R.array.pref_filter_labels, R.array.pref_filter_values).show();
+					R.string.menu_option_filter, R.array.pref_filter_labels, R.array.pref_filter_values).show();
 				return true;
 			}
             
@@ -249,7 +249,7 @@ public class ImageActivity extends SherlockActivity {
 				new ListPreferenceDialog(
 					this, _prefs, 
 					Pictures.PREF_CONTRAST, getResources().getString(R.string.pref_contrast_default),
-					R.string.pref_title_contrast, R.array.pref_contrast_labels, R.array.pref_contrast_values).show();
+					R.string.menu_option_contrast, R.array.pref_contrast_labels, R.array.pref_contrast_values).show();
 				return true;
 			}
 

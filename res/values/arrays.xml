@@ -99,6 +99,16 @@
 		<item>50</item>
 		<item>25</item>
 	</string-array>
+
+	<string name="pref_autofocus_default">auto</string>
+    <string-array name="pref_autofocus_labels">
+        <item>Auto</item>
+        <item>Manual</item>
+	</string-array>
+    <string-array name="pref_autofocus_values">
+		<item>auto</item>
+		<item>manual</item>
+	</string-array>
     
     <string name="pref_scenemode_default">auto</string>
 </resources>

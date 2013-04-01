@@ -25,19 +25,7 @@
     <string name="menu_option_palette">Palette</string>
     <string name="menu_option_matrixsize">Dithering</string>
     <string name="menu_option_rasterlevel">Rastering</string>
-    
-    <string name="pref_title_resolution">Resolution</string>
-    <string name="pref_summary_resolution">The larger sizes may be slow or unsupported depending on your device</string>
-    
-    <string name="pref_title_filter">Filter</string>
-    <string name="pref_summary_filter">1-bit dithering filter</string>
-
-    <string name="pref_title_contrast">Contrast</string>
-    <string name="pref_summary_contrast">Adjust image contrast</string>
-    
-    <string name="pref_title_exposure">Exposure Compensation</string>
-    <string name="pref_summary_exposure">Adjust image brightness</string>
-    <string name="pref_format_exposure">%.01f Ev</string>
+    <string name="menu_option_autofocus">Focus</string>
 
     <string name="help_processed_image">1-bit processed image</string>
     
