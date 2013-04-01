@@ -7,7 +7,7 @@ import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.Palettes;
 
 public class AtkinsonFilter extends AbstractFilter {
-	private final IPalette _palette = new BucketPalette(new DistancePalette(Distances.YUV, Palettes.MONOCHROME));
+	private final IPalette _palette = new BucketPalette(new DistancePalette(Distances.YUV, Palettes.BINARY));
 
 	@Override
 	public IPalette getPalette() {

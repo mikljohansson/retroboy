@@ -37,18 +37,18 @@ public class Pictures {
 	
 	public static final String PREF_FILTER = "filter";
 	
-	//private static final String PREF_FILTER_GAMEBOY_CAMERA = "nintendo_gameboy_camera";
-	private static final String PREF_FILTER_GAMEBOY_SCREEN = "nintendo_gameboy_screen";
-	private static final String PREF_FILTER_AMSTRAD_CPC464 = "amstrad_cpc464";
-	private static final String PREF_FILTER_COMMODORE_64 = "commodore_64";
-	private static final String PREF_FILTER_AMIGA_500 = "amiga_500";
-	private static final String PREF_FILTER_ATKINSON = "atkinson";
-	private static final String PREF_FILTER_HALFTONE = "halftone";
-	private static final String PREF_FILTER_NONE = "none";
+	public static final String PREF_FILTER_GAMEBOY_CAMERA = "nintendo_gameboy_camera";
+	public static final String PREF_FILTER_AMSTRAD_CPC464 = "amstrad_cpc464";
+	public static final String PREF_FILTER_COMMODORE_64 = "commodore_64";
+	public static final String PREF_FILTER_AMIGA_500 = "amiga_500";
+	public static final String PREF_FILTER_ATKINSON = "atkinson";
+	public static final String PREF_FILTER_HALFTONE = "halftone";
+	public static final String PREF_FILTER_NONE = "none";
 
 	public static final String PREF_CONTRAST = "contrast";
 	public static final String PREF_RESOLUTION = "resolution";
 	public static final String PREF_ORIENTATION = "orientation";
+	public static final String PREF_PALETTE = "palette";
 	public static final String PREF_MATRIXSIZE = "matrixsize";
 	public static final String PREF_RASTERLEVEL = "rasterlevel";
 	public static final String PREF_SCENEMODE = "scenemode";
@@ -201,10 +201,6 @@ public class Pictures {
 		int rasterlevel = Strings.parseInt(prefs.getString(PREF_RASTERLEVEL, 
 			context.getResources().getString(R.string.pref_rasterlevel_default)), 4);
 		
-		if (PREF_FILTER_GAMEBOY_SCREEN.equals(filtertype)) {
-			return new BayerFilter(new DistancePalette(Distances.YUV, Palettes.GAMEBOY_SCREEN_DESAT), matrix, false);
-		}
-
 		if (PREF_FILTER_AMSTRAD_CPC464.equals(filtertype)) {
 			return new RasterFilter(context, Distances.LUV, Palettes.AMSTRAD_CPC464, matrix, rasterlevel);
 		}
@@ -240,7 +236,21 @@ public class Pictures {
 			//return new PaletteFilter(new BitPalette(4));
 		}
 
-		return new BayerFilter(new DistancePalette(Distances.YUV, Palettes.GAMEBOY_CAMERA), matrix, false);
+		// Default to a Nintendo Game Boy filter
+		int[] palette;
+		String palettename = prefs.getString(PREF_PALETTE, context.getResources().getString(R.string.pref_gameboy_palette_default));
+		
+		if (palettename.equals("gameboy_screen")) {
+			palette = Palettes.GAMEBOY_SCREEN_DESAT;
+		}
+		else if (palettename.equals("binary")) {
+			palette = Palettes.BINARY;
+		}
+		else {
+			palette = Palettes.GAMEBOY_CAMERA;
+		}
+		
+		return new BayerFilter(new DistancePalette(Distances.YUV, palette), matrix, false);
 	}
 	
 	private static int[] getMatrix(Context context, SharedPreferences prefs) {

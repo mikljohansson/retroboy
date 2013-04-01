@@ -53,13 +53,22 @@ public class PreferenceListAdapter extends BaseAdapter implements AdapterView.On
 	    PreferenceItem item = _items.get(position);
 	    titleView.setText(item._title);
 	    valueView.setText(item.getValueLabel());
+	    valueView.setEnabled(item.isEnabled());
 	    return convertView;
+	}
+	
+	@Override
+	public boolean isEnabled(int position) {
+		PreferenceItem item = _items.get(position);
+		return item.isEnabled();
 	}
 	
 	@Override
 	public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 		PreferenceItem item = _items.get(position);
-		item.onClick();
+		if (item.isEnabled()) {
+			item.onClick();
+		}
 	}
 
 	public static abstract class PreferenceItem {
@@ -71,6 +80,10 @@ public class PreferenceListAdapter extends BaseAdapter implements AdapterView.On
 
 		public abstract String getValueLabel();
 		public abstract void onClick();
+		
+		public boolean isEnabled() {
+			return true;
+		}
 	}
 	
 	public static class ArrayPreferenceItem extends PreferenceItem {
@@ -78,6 +91,7 @@ public class PreferenceListAdapter extends BaseAdapter implements AdapterView.On
 		private final SharedPreferences _prefs;
 		private final String _key;
 		private final int _defvalue, _labels, _values;
+		private PreferencePredicate _enabled;		
 		
 		public ArrayPreferenceItem(
 				Context context, SharedPreferences prefs, 
@@ -89,6 +103,23 @@ public class PreferenceListAdapter extends BaseAdapter implements AdapterView.On
 			_key = key;
 			_labels = labels;
 			_values = values;
+		}
+		
+		public ArrayPreferenceItem(
+			Context context, SharedPreferences prefs, 
+			String key, int defvalue, int title, int labels, int values,
+			PreferencePredicate enabled) {
+			this(context, prefs, key, defvalue, title, labels, values);
+			_enabled = enabled;
+		}
+		
+		@Override
+		public final boolean isEnabled() {
+			if (_enabled != null) {
+				return _enabled.isEnabled();
+			}
+			
+			return super.isEnabled();
 		}
 
 		@Override
@@ -118,6 +149,30 @@ public class PreferenceListAdapter extends BaseAdapter implements AdapterView.On
 		
 		protected String getPreferenceKey() {
 			return _key;
+		}
+	}
+	
+	public static class PreferencePredicate {
+		private final SharedPreferences _prefs;
+		private final String _key, _defvalue;
+		private final String[] _values;
+		
+		public PreferencePredicate(SharedPreferences prefs, String key, String defvalue, String[] values) {
+			_prefs = prefs;
+			_key = key;
+			_defvalue = defvalue;
+			_values = values;
+		}
+		
+		public boolean isEnabled() {
+			String value = _prefs.getString(_key, _defvalue);
+			for (String item : _values) {
+				if (value.equals(item)) {
+					return true;
+				}
+			}
+			
+			return false;
 		}
 	}
 }

@@ -1,7 +1,7 @@
 package se.embargo.retroboy.color;
 
 public class Palettes {
-	public static final int[] MONOCHROME = new int[] {
+	public static final int[] BINARY = new int[] {
 		0xff000000,
 		0xffffffff};
 	

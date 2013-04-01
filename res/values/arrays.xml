@@ -18,7 +18,6 @@
     
     <string name="pref_filter_default">nintendo_gameboy_camera</string>
     <string-array name="pref_filter_labels">
-        <item>Game Boy Camera</item>
         <item>Nintendo Game Boy</item>
         <item>Apple Macintosh OS</item>
         <item>Amstrad CPC464</item>
@@ -29,7 +28,6 @@
     </string-array>
     <string-array name="pref_filter_values">
         <item>nintendo_gameboy_camera</item>
-        <item>nintendo_gameboy_screen</item>
         <item>atkinson</item>
         <item>amstrad_cpc464</item>
         <item>commodore_64</item>
@@ -66,7 +64,19 @@
 		<item>270</item>
 	</string-array>
 
-	<string name="pref_matrixsize_default">4</string>
+	<string name="pref_gameboy_palette_default">gameboy_camera</string>
+    <string-array name="pref_gameboy_palette_labels">
+        <item>Monochrome</item>
+        <item>LCD</item>
+        <item>B/W</item>
+	</string-array>
+    <string-array name="pref_gameboy_palette_values">
+		<item>gameboy_camera</item>
+		<item>gameboy_screen</item>
+		<item>binary</item>
+	</string-array>
+    
+    <string name="pref_matrixsize_default">4</string>
     <string-array name="pref_matrixsize_labels">
         <item>High</item>
         <item>Normal</item>

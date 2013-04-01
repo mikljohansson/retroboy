@@ -225,6 +225,7 @@ public class MainActivity extends SherlockFragmentActivity {
 		_detailedPreferencesList = (ListView)findViewById(R.id.detailedPreferencesList);
 		_detailedPreferencesList.setOnItemClickListener(_detailedPreferenceAdapter);
 
+		// Add the items of the details preference dialog
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
 			Pictures.PREF_FILTER, R.string.pref_filter_default, R.string.menu_option_filter, 
 			R.array.pref_filter_labels, R.array.pref_filter_values));
@@ -238,14 +239,28 @@ public class MainActivity extends SherlockFragmentActivity {
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
 			Pictures.PREF_CONTRAST, R.string.pref_contrast_default, R.string.menu_option_contrast, 
 			R.array.pref_contrast_labels, R.array.pref_contrast_values));
-		
+
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
 			Pictures.PREF_MATRIXSIZE, R.string.pref_matrixsize_default, R.string.menu_option_matrixsize, 
-			R.array.pref_matrixsize_labels, R.array.pref_matrixsize_values));
+			R.array.pref_matrixsize_labels, R.array.pref_matrixsize_values,
+			new PreferenceListAdapter.PreferencePredicate(_prefs, 
+				Pictures.PREF_FILTER, Pictures.PREF_FILTER_GAMEBOY_CAMERA, new String[] {
+					Pictures.PREF_FILTER_GAMEBOY_CAMERA,
+					Pictures.PREF_FILTER_AMSTRAD_CPC464,
+					Pictures.PREF_FILTER_COMMODORE_64,
+					Pictures.PREF_FILTER_AMIGA_500,
+			})));
 
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
 			Pictures.PREF_RASTERLEVEL, R.string.pref_rasterlevel_default, R.string.menu_option_rasterlevel, 
-			R.array.pref_rasterlevel_labels, R.array.pref_rasterlevel_values));
+			R.array.pref_rasterlevel_labels, R.array.pref_rasterlevel_values,
+			new PreferenceListAdapter.PreferencePredicate(_prefs, 
+				Pictures.PREF_FILTER, Pictures.PREF_FILTER_GAMEBOY_CAMERA, new String[] {
+					Pictures.PREF_FILTER_AMSTRAD_CPC464,
+					Pictures.PREF_FILTER_COMMODORE_64,
+			})));
+
+		_detailedPreferenceAdapter.add(new PalettePreferenceItem());
 
 		_detailedPreferenceAdapter.add(new OrientationPreferenceItem(
 			Pictures.PREF_ORIENTATION, R.string.pref_orientation_default, R.string.menu_option_orientation, 
@@ -913,7 +928,8 @@ public class MainActivity extends SherlockFragmentActivity {
 					initCamera();
 				}
 				else if (Pictures.PREF_FILTER.equals(key) || 
-						 Pictures.PREF_CONTRAST.equals(key) || 
+						 Pictures.PREF_CONTRAST.equals(key) ||
+						 Pictures.PREF_PALETTE.equals(key) ||
 						 Pictures.PREF_MATRIXSIZE.equals(key) ||
 						 Pictures.PREF_RASTERLEVEL.equals(key) ||
 						 key.startsWith(Pictures.PREF_ORIENTATION)) {
@@ -1194,6 +1210,18 @@ public class MainActivity extends SherlockFragmentActivity {
 					_zoomLevel.addChangeListener(_zoomLevelHandler);
 				}
 			}
+		}
+	}
+	
+	public class PalettePreferenceItem extends ArrayPreferenceItem {
+		public PalettePreferenceItem() {
+			super(MainActivity.this, _prefs,
+				Pictures.PREF_PALETTE, R.string.pref_gameboy_palette_default, R.string.menu_option_palette, 
+				R.array.pref_gameboy_palette_labels, R.array.pref_gameboy_palette_values,
+				new PreferenceListAdapter.PreferencePredicate(_prefs, 
+					Pictures.PREF_FILTER, Pictures.PREF_FILTER_GAMEBOY_CAMERA, new String[] {
+						Pictures.PREF_FILTER_GAMEBOY_CAMERA,
+				}));
 		}
 	}
 

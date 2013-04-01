@@ -27,7 +27,7 @@ public class HalftoneFilter extends AbstractFilter {
 	
 	private Queue<FilterItem> _bufferpool = new ArrayBlockingQueue<FilterItem>(16);
 	private FilterBody _body = new FilterBody();
-	private final IPalette _palette = new BucketPalette(new DistancePalette(Distances.YUV, Palettes.MONOCHROME));
+	private final IPalette _palette = new BucketPalette(new DistancePalette(Distances.YUV, Palettes.BINARY));
     
     @Override
 	public IPalette getPalette() {
