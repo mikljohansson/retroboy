@@ -19,6 +19,7 @@ import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.QuantizeFilter;
 import se.embargo.retroboy.filter.RasterFilter;
 import se.embargo.retroboy.graphic.DitherMatrixes;
+import se.embargo.retroboy.widget.PreferenceListAdapter;
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
@@ -339,5 +340,17 @@ public class Pictures {
 		}
 		
 		return orientation;
+	}
+
+	public static class PalettePreferenceItem extends PreferenceListAdapter.ArrayPreferenceItem {
+		public PalettePreferenceItem(Context context, SharedPreferences prefs) {
+			super(context, prefs,
+				Pictures.PREF_PALETTE, R.string.pref_gameboy_palette_default, R.string.menu_option_palette, 
+				R.array.pref_gameboy_palette_labels, R.array.pref_gameboy_palette_values,
+				new PreferenceListAdapter.PreferencePredicate(prefs, 
+					Pictures.PREF_FILTER, Pictures.PREF_FILTER_GAMEBOY_CAMERA, new String[] {
+						Pictures.PREF_FILTER_GAMEBOY_CAMERA,
+				}));
+		}
 	}
 }

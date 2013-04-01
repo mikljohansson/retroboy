@@ -10,7 +10,7 @@
     <string name="btn_exposure_set">Set</string>
     <string name="btn_exposure_cancel">Cancel</string>
     
-    <string name="menu_option_select_image">Gallery</string>
+    <string name="menu_option_pick_image">Gallery</string>
     <string name="menu_option_discard_image">Discard</string>
     <string name="menu_option_settings">Settings</string>
     <string name="menu_option_switch_camera">Switch Camera</string>

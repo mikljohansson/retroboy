@@ -263,7 +263,7 @@ public class MainActivity extends SherlockFragmentActivity {
 					Pictures.PREF_FILTER_COMMODORE_64,
 			})));
 
-		_detailedPreferenceAdapter.add(new PalettePreferenceItem());
+		_detailedPreferenceAdapter.add(new Pictures.PalettePreferenceItem(this, _prefs));
 
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
 			PREF_AUTOFOCUS, R.string.pref_autofocus_default, R.string.menu_option_autofocus, 
@@ -300,14 +300,12 @@ public class MainActivity extends SherlockFragmentActivity {
 			cancelButton.setOnClickListener(listener);
 		}
 
-		// Connect the contrast button
+		// Connect the pick image button
 		{
-			final ImageButton button = (ImageButton)findViewById(R.id.adjustContrastButton);
-			button.setOnClickListener(new ListPreferenceDialogListener(
-				Pictures.PREF_CONTRAST, getResources().getString(R.string.pref_contrast_default),
-				R.string.menu_option_contrast, R.array.pref_contrast_labels, R.array.pref_contrast_values));
+			final ImageButton button = (ImageButton)findViewById(R.id.pickImageButton);
+			button.setOnClickListener(new PickImageListener());
 		}
-
+		
 		// Connect the image filter button
 		{
 			final ImageButton button = (ImageButton)findViewById(R.id.switchFilterButton);
@@ -640,6 +638,15 @@ public class MainActivity extends SherlockFragmentActivity {
 		}
 	}
 	
+	private class PickImageListener implements View.OnClickListener {
+		@Override
+		public void onClick(View v) {
+			Intent intent = new Intent(MainActivity.this, ImageActivity.class);
+			intent.putExtra(ImageActivity.EXTRA_ACTION, ImageActivity.EXTRA_ACTION_PICK);
+			startActivity(intent);
+		}
+	}
+	
 	private class CameraStateListener implements IChangeListener<CameraState> {
 		@Override
 		public void handleChange(ChangeEvent<CameraState> event) {
@@ -942,9 +949,9 @@ public class MainActivity extends SherlockFragmentActivity {
 				}
 				else if (Pictures.PREF_FILTER.equals(key) || 
 						 Pictures.PREF_CONTRAST.equals(key) ||
-						 Pictures.PREF_PALETTE.equals(key) ||
 						 Pictures.PREF_MATRIXSIZE.equals(key) ||
 						 Pictures.PREF_RASTERLEVEL.equals(key) ||
+						 Pictures.PREF_PALETTE.equals(key) ||
 						 key.startsWith(Pictures.PREF_ORIENTATION)) {
 					// Change the active image filter
 					initFilter();
@@ -1226,18 +1233,6 @@ public class MainActivity extends SherlockFragmentActivity {
 		}
 	}
 	
-	public class PalettePreferenceItem extends ArrayPreferenceItem {
-		public PalettePreferenceItem() {
-			super(MainActivity.this, _prefs,
-				Pictures.PREF_PALETTE, R.string.pref_gameboy_palette_default, R.string.menu_option_palette, 
-				R.array.pref_gameboy_palette_labels, R.array.pref_gameboy_palette_values,
-				new PreferenceListAdapter.PreferencePredicate(_prefs, 
-					Pictures.PREF_FILTER, Pictures.PREF_FILTER_GAMEBOY_CAMERA, new String[] {
-						Pictures.PREF_FILTER_GAMEBOY_CAMERA,
-				}));
-		}
-	}
-
 	public class OrientationPreferenceItem extends ArrayPreferenceItem {
 		public OrientationPreferenceItem(String key, int defvalue, int title, int labels, int values) {
 			super(MainActivity.this, _prefs, key, defvalue, title, labels, values);

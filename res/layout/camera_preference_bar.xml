@@ -23,11 +23,11 @@
 			style="@style/PreviewButtonLayout">
 			<se.embargo.retroboy.widget.PreviewImageButton 
 				style="@style/PreviewButton"
-				android:id="@+id/adjustContrastButton" 
-				android:src="@drawable/ic_button_contrast"
-				android:contentDescription="@string/menu_option_contrast"/>
+				android:id="@+id/pickImageButton" 
+				android:src="@drawable/ic_button_picture"
+				android:contentDescription="@string/menu_option_pick_image"/>
 		</LinearLayout>
-			
+		
 		<LinearLayout 
 			style="@style/PreviewButtonLayout">
 			<se.embargo.retroboy.widget.PreviewImageButton 
@@ -45,7 +45,7 @@
 				android:src="@drawable/ic_button_flash"
 				android:contentDescription="@string/menu_option_camera_torch"/>
 		</LinearLayout>
-		  				
+
 		<LinearLayout 
 			style="@style/PreviewButtonLayout">
 			<se.embargo.retroboy.widget.PreviewImageButton 

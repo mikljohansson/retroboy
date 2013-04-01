@@ -4,13 +4,14 @@ import java.io.File;
 
 import se.embargo.core.concurrent.ProgressTask;
 import se.embargo.core.graphic.Bitmaps;
-import se.embargo.retroboy.filter.RgbFilter;
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.MonochromeFilter;
+import se.embargo.retroboy.filter.RgbFilter;
 import se.embargo.retroboy.widget.ListPreferenceDialog;
 import se.embargo.retroboy.widget.PreferenceListAdapter;
+import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -36,6 +37,11 @@ import com.actionbarsherlock.view.MenuItem;
 public class ImageActivity extends SherlockActivity {
 	private static final String TAG = "ImageActivity";
 	
+	public static final String EXTRA_ACTION = "se.embargo.retroboy.ImageActivity.action";
+	public static final String EXTRA_ACTION_PICK = "pick";
+	
+	private static final int GALLERY_RESPONSE_CODE = 1;
+
 	private SharedPreferences _prefs;
 	
 	/**
@@ -53,6 +59,7 @@ public class ImageActivity extends SherlockActivity {
 	private PreferenceListAdapter _detailedPreferenceAdapter = new PreferenceListAdapter(this);
 	
 	private ProcessImageTask _task = null;
+
 	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
@@ -89,12 +96,26 @@ public class ImageActivity extends SherlockActivity {
 		
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
 			Pictures.PREF_MATRIXSIZE, R.string.pref_matrixsize_default, R.string.menu_option_matrixsize, 
-			R.array.pref_matrixsize_labels, R.array.pref_matrixsize_values));
+			R.array.pref_matrixsize_labels, R.array.pref_matrixsize_values,
+			new PreferenceListAdapter.PreferencePredicate(_prefs, 
+				Pictures.PREF_FILTER, Pictures.PREF_FILTER_GAMEBOY_CAMERA, new String[] {
+					Pictures.PREF_FILTER_GAMEBOY_CAMERA,
+					Pictures.PREF_FILTER_AMSTRAD_CPC464,
+					Pictures.PREF_FILTER_COMMODORE_64,
+					Pictures.PREF_FILTER_AMIGA_500,
+			})));
 		
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
 			Pictures.PREF_RASTERLEVEL, R.string.pref_rasterlevel_default, R.string.menu_option_rasterlevel, 
-			R.array.pref_rasterlevel_labels, R.array.pref_rasterlevel_values));
+			R.array.pref_rasterlevel_labels, R.array.pref_rasterlevel_values,
+			new PreferenceListAdapter.PreferencePredicate(_prefs, 
+				Pictures.PREF_FILTER, Pictures.PREF_FILTER_GAMEBOY_CAMERA, new String[] {
+					Pictures.PREF_FILTER_AMSTRAD_CPC464,
+					Pictures.PREF_FILTER_COMMODORE_64,
+			})));
 
+		_detailedPreferenceAdapter.add(new Pictures.PalettePreferenceItem(this, _prefs));
+		
 		// Set the adapter after populating to ensure list height measure is done properly
 		_detailedPreferencesList.setAdapter(_detailedPreferenceAdapter);
 		
@@ -130,6 +151,18 @@ public class ImageActivity extends SherlockActivity {
 		
 		// Read input from intent
 		Uri inputuri = (Uri)getIntent().getExtras().get(Intent.EXTRA_STREAM);
+		setInput(inputuri);
+		
+        // Check for action parameter
+        String action = getIntent().getStringExtra(EXTRA_ACTION);
+        if (EXTRA_ACTION_PICK.equals(action)) {
+    		Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+    		intent.setType("image/*");
+    		startActivityForResult(intent, GALLERY_RESPONSE_CODE);
+        }
+    }
+
+	private void setInput(Uri inputuri) {
 		if (inputuri != null) {
 			// Find the image info
 			Cursor cursor = null;
@@ -157,7 +190,7 @@ public class ImageActivity extends SherlockActivity {
 		if (_outputpath == null && _inputinfo != null) {
 			new ProcessImageTask(_inputinfo, _outputpath).execute();
 		}
-    }
+	}
 
 	@Override
 	protected void onResume() {
@@ -165,6 +198,25 @@ public class ImageActivity extends SherlockActivity {
 
 		// Listen to preference changes
 		_prefs.registerOnSharedPreferenceChangeListener(_prefsListener);
+	}
+	
+	public void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if (resultCode == Activity.RESULT_OK) {
+			switch(requestCode){
+				case GALLERY_RESPONSE_CODE:
+					if (data != null) {
+						setInput(data.getData());
+					}
+					break;
+
+				default:
+					finish();
+					break;
+			}
+		}
+		else {
+			finish();
+		}
 	}
 	
 	private void stop() {
@@ -240,16 +292,6 @@ public class ImageActivity extends SherlockActivity {
 					this, _prefs, 
 					Pictures.PREF_FILTER, getResources().getString(R.string.pref_filter_default),
 					R.string.menu_option_filter, R.array.pref_filter_labels, R.array.pref_filter_values).show();
-				return true;
-			}
-            
-			case R.id.adjustContrastButton: {
-				resetFocus();
-				
-				new ListPreferenceDialog(
-					this, _prefs, 
-					Pictures.PREF_CONTRAST, getResources().getString(R.string.pref_contrast_default),
-					R.string.menu_option_contrast, R.array.pref_contrast_labels, R.array.pref_contrast_values).show();
 				return true;
 			}
 
@@ -348,7 +390,8 @@ public class ImageActivity extends SherlockActivity {
 				Pictures.PREF_CONTRAST.equals(key) || 
 				Pictures.PREF_RESOLUTION.equals(key) ||
 				Pictures.PREF_MATRIXSIZE.equals(key) ||
-				Pictures.PREF_RASTERLEVEL.equals(key)) {
+				Pictures.PREF_RASTERLEVEL.equals(key) ||
+				Pictures.PREF_PALETTE.equals(key)) {
 				// Process image in background
 				if (_inputinfo != null) {
 					new ProcessImageTask(_inputinfo, _outputpath).execute();
