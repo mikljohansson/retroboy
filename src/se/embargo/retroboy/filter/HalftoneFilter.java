@@ -13,7 +13,7 @@ import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.Palettes;
 
 public class HalftoneFilter extends AbstractFilter {
-    private static final int _patternsize = 6;
+    private static final int _patternsize = 8;
 	private static final int[] _thresholds = new int[_patternsize * _patternsize];
 	
 	private static class FilterItem {
