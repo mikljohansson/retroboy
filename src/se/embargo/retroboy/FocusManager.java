@@ -30,7 +30,6 @@ class FocusManager implements IChangeListener<CameraHandle>, Camera.AutoFocusCal
 	
 	@Override
 	public void handleChange(ChangeEvent<CameraHandle> event) {
-		_visible = true;
 		init();
 	}
 
