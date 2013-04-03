@@ -55,7 +55,6 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
 import android.view.WindowManager;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ListView;
 
@@ -129,8 +128,7 @@ public class MainActivity extends SherlockFragmentActivity {
 	 */
 	private FocusManager _focusManager;
 	
-	private View _detailedPreferences;
-	private ListView _detailedPreferencesList;
+	private ListView _detailedPreferences;
 	private PreferenceListAdapter _detailedPreferenceAdapter = new PreferenceListAdapter(this);
 	
 	/**
@@ -227,9 +225,8 @@ public class MainActivity extends SherlockFragmentActivity {
 		});
 		
 		_preview = (CameraPreview)findViewById(R.id.cameraPreview);
-		_detailedPreferences = findViewById(R.id.detailedPreferences);
-		_detailedPreferencesList = (ListView)findViewById(R.id.detailedPreferencesList);
-		_detailedPreferencesList.setOnItemClickListener(_detailedPreferenceAdapter);
+		_detailedPreferences = (ListView)findViewById(R.id.detailedPreferences);
+		_detailedPreferences.setOnItemClickListener(_detailedPreferenceAdapter);
 
 		// Add the items of the details preference dialog
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
@@ -266,8 +263,8 @@ public class MainActivity extends SherlockFragmentActivity {
 					Pictures.PREF_FILTER_COMMODORE_64,
 			})));
 
-		_detailedPreferenceAdapter.add(new ExposurePreferenceItem());
 		_detailedPreferenceAdapter.add(new Pictures.PalettePreferenceItem(this, _prefs));
+		_detailedPreferenceAdapter.add(new ExposurePreferenceItem());
 
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
 			PREF_AUTOFOCUS, R.string.pref_autofocus_default, R.string.menu_option_autofocus, 
@@ -278,7 +275,7 @@ public class MainActivity extends SherlockFragmentActivity {
 			R.array.pref_orientation_labels, R.array.pref_orientation_values));
 		
 		// Set the adapter after populating to ensure list height measure is done properly
-		_detailedPreferencesList.setAdapter(_detailedPreferenceAdapter);
+		_detailedPreferences.setAdapter(_detailedPreferenceAdapter);
 
 		// Connect the switch camera mode button
 		{
@@ -299,9 +296,6 @@ public class MainActivity extends SherlockFragmentActivity {
 			EditSettingsButtonListener listener = new EditSettingsButtonListener();
 			ImageButton button = (ImageButton)findViewById(R.id.editSettingsButton);
 			button.setOnClickListener(listener);
-			
-			Button cancelButton = (Button)findViewById(R.id.cancelDetailedPreferences);
-			cancelButton.setOnClickListener(listener);
 		}
 
 		// Connect the pick image button
@@ -388,6 +382,17 @@ public class MainActivity extends SherlockFragmentActivity {
 		_gyroListener.resetMovement();
 	}
 
+	@Override
+	public void onBackPressed() {
+		// Close the detail preferences if open
+		if (_detailedPreferences.getVisibility() == View.VISIBLE) {
+			reset();
+		}
+		else {
+			super.onBackPressed();
+		}
+	}
+	
 	private void reset(boolean abort) {
 		_detailedPreferences.setVisibility(View.GONE);
 		_focusManager.setVisible(true);
@@ -462,10 +467,10 @@ public class MainActivity extends SherlockFragmentActivity {
 	
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		reset(false);
-
 		switch (keyCode) {
 			case KeyEvent.KEYCODE_FOCUS:
+				reset(false);
+				
 				// Trigger auto focus when dedicated photo button is pressed half way
 				if (event.getRepeatCount() == 0) {
 					_focusManager.autoFocus();
@@ -474,6 +479,8 @@ public class MainActivity extends SherlockFragmentActivity {
 				return true;
 		
 			case KeyEvent.KEYCODE_CAMERA:
+				reset(false);
+				
 				if (event.getRepeatCount() == 0 && event.getAction() == KeyEvent.ACTION_DOWN) {
 					// Take photo when the dedicated photo button is pressed
 					_captureListener.onTouch(null, MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 0, 0, 0));
@@ -481,17 +488,19 @@ public class MainActivity extends SherlockFragmentActivity {
 				
 				return true;
 				
-			case KeyEvent.KEYCODE_VOLUME_UP: {
+			case KeyEvent.KEYCODE_VOLUME_UP:
+				reset(false);
+
 				// Zoom in when volume up is pressed
 				_zoomLevel.setValue(Math.min(_zoomLevel.getValue() + ZOOM_VOLUME_STEP, ZOOM_MAX));
 				return true;
-			}
 
-			case KeyEvent.KEYCODE_VOLUME_DOWN: {
+			case KeyEvent.KEYCODE_VOLUME_DOWN:
+				reset(false);
+
 				// Zoom out when volume down is pressed
 				_zoomLevel.setValue(Math.max(0, _zoomLevel.getValue() - ZOOM_VOLUME_STEP));
 				return true;
-			}
 		}
 		
 		return super.onKeyDown(keyCode, event);
@@ -1380,7 +1389,7 @@ public class MainActivity extends SherlockFragmentActivity {
 		
 		@Override
 		public void onDismiss(DialogInterface dialog) {
-			_detailedPreferences.setVisibility(View.VISIBLE);
+			reset();
 		}
 		
 		private String format(float value) {

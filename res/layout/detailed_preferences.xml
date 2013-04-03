@@ -1,19 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ListView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/detailedPreferences"
     android:layout_width="250dp"
 	android:layout_height="wrap_content"
+    android:layout_margin="25dp"
     android:layout_centerInParent="true"
-    android:orientation="vertical"
     android:visibility="gone"
-    android:background="@drawable/bg_detailed_preferences">
-	<se.embargo.retroboy.widget.FixedHeightListView
-	    android:id="@+id/detailedPreferencesList"
-	    android:layout_width="match_parent"
-		android:layout_height="wrap_content"/>
-	<Button
-	    android:id="@+id/cancelDetailedPreferences"
-	    android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:text="@string/btn_ok"/>
-</LinearLayout>
+    android:background="@drawable/bg_detailed_preferences"/>

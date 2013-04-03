@@ -54,8 +54,7 @@ public class ImageActivity extends SherlockActivity {
 	
 	private ImageView _imageview;
 	
-	private View _detailedPreferences;
-	private ListView _detailedPreferencesList;
+	private ListView _detailedPreferences;
 	private PreferenceListAdapter _detailedPreferenceAdapter = new PreferenceListAdapter(this);
 	
 	private ProcessImageTask _task = null;
@@ -78,9 +77,8 @@ public class ImageActivity extends SherlockActivity {
 		
 		_imageview = (ImageView)findViewById(R.id.processedImage);
 
-		_detailedPreferences = findViewById(R.id.detailedPreferences);
-		_detailedPreferencesList = (ListView)findViewById(R.id.detailedPreferencesList);
-		_detailedPreferencesList.setOnItemClickListener(_detailedPreferenceAdapter);
+		_detailedPreferences = (ListView)findViewById(R.id.detailedPreferences);
+		_detailedPreferences.setOnItemClickListener(_detailedPreferenceAdapter);
 
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
 			Pictures.PREF_FILTER, R.string.pref_filter_default, R.string.menu_option_filter, 
@@ -117,23 +115,13 @@ public class ImageActivity extends SherlockActivity {
 		_detailedPreferenceAdapter.add(new Pictures.PalettePreferenceItem(this, _prefs));
 		
 		// Set the adapter after populating to ensure list height measure is done properly
-		_detailedPreferencesList.setAdapter(_detailedPreferenceAdapter);
+		_detailedPreferences.setAdapter(_detailedPreferenceAdapter);
 		
-		// Connect the OK button
-		{
-			Button cancelButton = (Button)findViewById(R.id.cancelDetailedPreferences);
-			cancelButton.setOnClickListener(new View.OnClickListener() {
-				@Override
-				public void onClick(View v) {
-					toggleDetailedPreferences();
-				}
-			});
-		}
-		
+		// Close the detail preferences when clicked outside
 		_imageview.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				resetFocus();
+				reset();
 			}
 		});
 		
@@ -273,7 +261,7 @@ public class ImageActivity extends SherlockActivity {
             }
             
             case R.id.shareImageButton: {
-            	resetFocus();
+            	reset();
             	
             	if (_outputpath != null) {
 	            	Intent intent = new Intent(Intent.ACTION_SEND);
@@ -286,7 +274,7 @@ public class ImageActivity extends SherlockActivity {
             }
 
 			case R.id.switchFilterButton: {
-				resetFocus();
+				reset();
 				
 				new ListPreferenceDialog(
 					this, _prefs, 
@@ -324,7 +312,18 @@ public class ImageActivity extends SherlockActivity {
         finish();
     }
     
-	private void resetFocus() {
+	@Override
+	public void onBackPressed() {
+		// Close the detail preferences if open
+		if (_detailedPreferences.getVisibility() == View.VISIBLE) {
+			reset();
+		}
+		else {
+			super.onBackPressed();
+		}
+	}
+    
+	private void reset() {
 		if (_detailedPreferences.getVisibility() == View.VISIBLE) {
 			_detailedPreferences.setVisibility(View.GONE);
 		}
@@ -335,7 +334,7 @@ public class ImageActivity extends SherlockActivity {
 			_detailedPreferences.setVisibility(View.VISIBLE);
 		}
 		else {
-			resetFocus();
+			reset();
 		}
 	}
     

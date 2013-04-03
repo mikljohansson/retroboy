@@ -22,8 +22,8 @@
     <string name="menu_option_palette">Palette</string>
     <string name="menu_option_matrixsize">Dithering</string>
     <string name="menu_option_rasterlevel">Rastering</string>
-    <string name="menu_option_autofocus">Focus</string>
-    <string name="menu_option_exposure">Exposure</string>
+    <string name="menu_option_autofocus">Focus Trigger</string>
+    <string name="menu_option_exposure">Exposure Value</string>
 
     <string name="help_processed_image">1-bit processed image</string>
     
