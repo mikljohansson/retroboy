@@ -4,11 +4,8 @@
     
     <string name="btn_ok">OK</string>
     <string name="btn_cancel">Cancel</string>
-    
     <string name="btn_take_photo">Take Photo</string>
     <string name="btn_auto_focus">Auto Focus</string>
-    <string name="btn_exposure_set">Set</string>
-    <string name="btn_exposure_cancel">Cancel</string>
     
     <string name="menu_option_pick_image">Gallery</string>
     <string name="menu_option_discard_image">Discard</string>
@@ -26,6 +23,7 @@
     <string name="menu_option_matrixsize">Dithering</string>
     <string name="menu_option_rasterlevel">Rastering</string>
     <string name="menu_option_autofocus">Focus</string>
+    <string name="menu_option_exposure">Exposure</string>
 
     <string name="help_processed_image">1-bit processed image</string>
     

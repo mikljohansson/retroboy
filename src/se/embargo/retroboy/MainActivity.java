@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import se.embargo.core.concurrent.ProgressTask;
+import se.embargo.core.databinding.PreferenceProperties;
 import se.embargo.core.databinding.observable.ChangeEvent;
 import se.embargo.core.databinding.observable.IChangeListener;
 import se.embargo.core.databinding.observable.IObservableValue;
@@ -17,6 +18,7 @@ import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.TransformFilter;
 import se.embargo.retroboy.filter.YuvFilter;
+import se.embargo.retroboy.widget.ExposurePreferenceDialog;
 import se.embargo.retroboy.widget.ListPreferenceDialog;
 import se.embargo.retroboy.widget.PreferenceListAdapter;
 import se.embargo.retroboy.widget.PreferenceListAdapter.ArrayPreferenceItem;
@@ -25,6 +27,7 @@ import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
@@ -263,6 +266,7 @@ public class MainActivity extends SherlockFragmentActivity {
 					Pictures.PREF_FILTER_COMMODORE_64,
 			})));
 
+		_detailedPreferenceAdapter.add(new ExposurePreferenceItem());
 		_detailedPreferenceAdapter.add(new Pictures.PalettePreferenceItem(this, _prefs));
 
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
@@ -535,6 +539,10 @@ public class MainActivity extends SherlockFragmentActivity {
 				params.setSceneMode(scenemode);
 				Log.i(TAG, "Applied scene mode: " + scenemode);
 			}
+			
+			// Initialize the exposure compensation
+			int exposure = _prefs.getInt(Pictures.PREF_EXPOSURE + "_" + cameraid, 0);
+			params.setExposureCompensation(exposure);
 			
 			// Apply the parameter changes
 			camera.setParameters(params);
@@ -968,6 +976,12 @@ public class MainActivity extends SherlockFragmentActivity {
 					// Change the active image filter
 					initFilter();
 				}
+				else if (key.equals(Pictures.PREF_EXPOSURE + "_" + handle.id)) {
+					int exposure = _prefs.getInt(Pictures.PREF_EXPOSURE + "_" + handle.id, 0);
+					Camera.Parameters params = handle.camera.getParameters();
+					params.setExposureCompensation(exposure);
+					handle.camera.setParameters(params);
+				}
 				else if (key.startsWith(Pictures.PREF_SCENEMODE)) {
 					Camera.Parameters params = handle.camera.getParameters();
 					
@@ -1327,6 +1341,54 @@ public class MainActivity extends SherlockFragmentActivity {
 			}
 			
 			return null;
+		}
+	}
+	
+	private class ExposurePreferenceItem extends PreferenceItem implements DialogInterface.OnDismissListener {
+		public ExposurePreferenceItem() {
+			super(R.string.menu_option_exposure);
+		}
+
+		@Override
+		public String getValueLabel() {
+			CameraHandle handle = _cameraHandle.getValue();
+			if (handle != null) {
+				Camera.Parameters params = handle.camera.getParameters();
+				float value = (float)params.getExposureCompensation() * params.getExposureCompensationStep();
+				return format(value);
+			}
+			
+			return "0";
+		}
+		
+		@Override
+		public void onClick() {
+			CameraHandle handle = _cameraHandle.getValue();
+			if (handle != null) {
+				Camera.Parameters params = handle.camera.getParameters();
+				ExposurePreferenceDialog dialog = new ExposurePreferenceDialog(MainActivity.this, 
+					PreferenceProperties.integer(Pictures.PREF_EXPOSURE + "_" + handle.id, 0).observe(_prefs), 
+					params.getExposureCompensationStep(),
+					params.getMaxExposureCompensation(),
+					params.getMinExposureCompensation());
+				
+				_detailedPreferences.setVisibility(View.GONE);
+				dialog.setOnDismissListener(this);
+				dialog.show();
+			}
+		}
+		
+		@Override
+		public void onDismiss(DialogInterface dialog) {
+			_detailedPreferences.setVisibility(View.VISIBLE);
+		}
+		
+		private String format(float value) {
+			if (value == (int)value) {
+				return String.format("%d", (int)value);
+			}
+			
+			return String.format("%s", value);
 		}
 	}
 }

@@ -49,6 +49,7 @@ public class Pictures {
 	public static final String PREF_CONTRAST = "contrast";
 	public static final String PREF_RESOLUTION = "resolution";
 	public static final String PREF_ORIENTATION = "orientation";
+	public static final String PREF_EXPOSURE = "exposure";
 	public static final String PREF_PALETTE = "palette";
 	public static final String PREF_MATRIXSIZE = "matrixsize";
 	public static final String PREF_RASTERLEVEL = "rasterlevel";

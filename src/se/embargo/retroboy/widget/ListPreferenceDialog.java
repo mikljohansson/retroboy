@@ -12,7 +12,7 @@ import android.content.SharedPreferences;
  * Shows a dialog with a list of preferences.
  */
 public class ListPreferenceDialog implements DialogInterface.OnClickListener {
-	private Context _context;
+	private final Context _context;
 	private final int _title;
 	private final String[] _labels, _values;
 	private final IObservableValue<String> _value;
