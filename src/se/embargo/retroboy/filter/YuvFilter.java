@@ -18,14 +18,16 @@ public class YuvFilter implements IImageFilter {
 	private static final String TAG = "YuvFilter";
 	private final int _width, _height;
 	private final float _factor;
+	private final boolean _autoexposure;
 	
 	private final Queue<int[]> _bufferpool = new ArrayBlockingQueue<int[]>(256);
 	private final IMapReduceBody<ImageBuffer, int[]> _body;
 	
-	public YuvFilter(int width, int height, int contrast, boolean color) {
+	public YuvFilter(int width, int height, int contrast, boolean color, boolean autoexposure) {
 		_width = width;
 		_height = height;
 		_factor = (259.0f * ((float)contrast + 255.0f)) / (255.0f * (259.0f - (float)contrast));
+		_autoexposure = autoexposure;
 		
 		if (color) {
 			_body = new ColorBody();
@@ -78,8 +80,10 @@ public class YuvFilter implements IImageFilter {
 			_body, buffer, 0, Math.min((int)(buffer.imageheight * stride), buffer.frameheight));
 	
 		// Calculate the global Otsu threshold
-		buffer.threshold = Levels.getThreshold(
-			buffer.imagewidth, buffer.imageheight, buffer.image.array(), histogram);
+		if (_autoexposure) {
+			buffer.threshold = Levels.getThreshold(
+				buffer.imagewidth, buffer.imageheight, buffer.image.array(), histogram);
+		}
 		
 		// Release histogram back to pool
 		_bufferpool.offer(histogram);

@@ -109,6 +109,16 @@
 		<item>auto</item>
 		<item>manual</item>
 	</string-array>
+
+	<string name="pref_autoexposure_default">auto</string>
+    <string-array name="pref_autoexposure_labels">
+        <item>Auto</item>
+        <item>None</item>
+	</string-array>
+    <string-array name="pref_autoexposure_values">
+		<item>auto</item>
+		<item>none</item>
+	</string-array>
     
     <string name="pref_scenemode_default">auto</string>
 </resources>

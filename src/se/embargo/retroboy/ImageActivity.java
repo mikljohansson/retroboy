@@ -25,7 +25,6 @@ import android.provider.MediaStore;
 import android.provider.MediaStore.Images;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 
@@ -113,6 +112,15 @@ public class ImageActivity extends SherlockActivity {
 			})));
 
 		_detailedPreferenceAdapter.add(new Pictures.PalettePreferenceItem(this, _prefs));
+
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+			Pictures.PREF_AUTOEXPOSURE, R.string.pref_autoexposure_default, R.string.menu_option_autoexposure, 
+			R.array.pref_autoexposure_labels, R.array.pref_autoexposure_values,
+			new PreferenceListAdapter.PreferencePredicate(_prefs, 
+				Pictures.PREF_FILTER, Pictures.PREF_FILTER_GAMEBOY_CAMERA, new String[] {
+					Pictures.PREF_FILTER_GAMEBOY_CAMERA,
+					Pictures.PREF_FILTER_ATKINSON,
+			})));
 		
 		// Set the adapter after populating to ensure list height measure is done properly
 		_detailedPreferences.setAdapter(_detailedPreferenceAdapter);
@@ -390,6 +398,7 @@ public class ImageActivity extends SherlockActivity {
 				Pictures.PREF_RESOLUTION.equals(key) ||
 				Pictures.PREF_MATRIXSIZE.equals(key) ||
 				Pictures.PREF_RASTERLEVEL.equals(key) ||
+				Pictures.PREF_AUTOEXPOSURE.equals(key) ||
 				Pictures.PREF_PALETTE.equals(key)) {
 				// Process image in background
 				if (_inputinfo != null) {
@@ -434,16 +443,20 @@ public class ImageActivity extends SherlockActivity {
 				input = Bitmaps.transform(input, transform);
 			}
 			
+			// Check the auto exposure setting
+			String autoexposurevalue = _prefs.getString(Pictures.PREF_AUTOEXPOSURE, getResources().getString(R.string.pref_autoexposure_default));
+			boolean autoexposure = "auto".equals(autoexposurevalue);
+			
 			// Create the image filter pipeline
 			IImageFilter.ImageBuffer buffer = new IImageFilter.ImageBuffer(input);
 			CompositeFilter filter = new CompositeFilter();
 			
 			IImageFilter effect = Pictures.createEffectFilter(ImageActivity.this);
 			if (effect.isColorFilter()) {
-				filter.add(new RgbFilter(contrast));
+				filter.add(new RgbFilter(contrast, autoexposure));
 			}
 			else {
-				filter.add(new MonochromeFilter(contrast));
+				filter.add(new MonochromeFilter(contrast, autoexposure));
 			}
 			
 			filter.add(effect);

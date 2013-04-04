@@ -3,6 +3,7 @@ package se.embargo.retroboy;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import se.embargo.core.concurrent.ProgressTask;
 import se.embargo.core.databinding.PreferenceProperties;
@@ -265,6 +266,15 @@ public class MainActivity extends SherlockFragmentActivity {
 
 		_detailedPreferenceAdapter.add(new Pictures.PalettePreferenceItem(this, _prefs));
 		_detailedPreferenceAdapter.add(new ExposurePreferenceItem());
+
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+			Pictures.PREF_AUTOEXPOSURE, R.string.pref_autoexposure_default, R.string.menu_option_autoexposure, 
+			R.array.pref_autoexposure_labels, R.array.pref_autoexposure_values,
+			new PreferenceListAdapter.PreferencePredicate(_prefs, 
+				Pictures.PREF_FILTER, Pictures.PREF_FILTER_GAMEBOY_CAMERA, new String[] {
+					Pictures.PREF_FILTER_GAMEBOY_CAMERA,
+					Pictures.PREF_FILTER_ATKINSON,
+			})));
 
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
 			PREF_AUTOFOCUS, R.string.pref_autofocus_default, R.string.menu_option_autofocus, 
@@ -567,10 +577,14 @@ public class MainActivity extends SherlockFragmentActivity {
 		Pictures.Resolution resolution = Pictures.getResolution(this, _prefs);
 		int contrast = Pictures.getContrast(this, _prefs);
 		
+		// Check the auto exposure setting
+		String autoexposurevalue = _prefs.getString(Pictures.PREF_AUTOEXPOSURE, getResources().getString(R.string.pref_autoexposure_default));
+		boolean autoexposure = "auto".equals(autoexposurevalue);
+
 		// Create the image filter pipeline
 		CompositeFilter filter = new CompositeFilter();
 		IImageFilter effect = Pictures.createEffectFilter(this);
-		filter.add(new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter()));
+		filter.add(new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter(), autoexposure));
 		filter.add(effect);
 		filter.add(new ImageBitmapFilter());
 		filter.add(_videoRecorder);
@@ -870,7 +884,7 @@ public class MainActivity extends SherlockFragmentActivity {
 		int orientation = Pictures.getCameraOrientation(_prefs, handle.info, handle.id);
 		
 		// Create the image filter pipeline
-		YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast, false);
+		YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast, false, false);
 		Bitmaps.Transform transform = Pictures.createTransformMatrix(
 			yuvFilter.getEffectiveWidth(size.width, size.height), 
 			yuvFilter.getEffectiveHeight(size.width, size.height), 
@@ -897,9 +911,13 @@ public class MainActivity extends SherlockFragmentActivity {
 			Pictures.Resolution resolution = Pictures.getResolution(MainActivity.this, _prefs);
 			int contrast = Pictures.getContrast(MainActivity.this, _prefs);
 			
+			// Check the auto exposure setting
+			String autoexposurevalue = _prefs.getString(Pictures.PREF_AUTOEXPOSURE, getResources().getString(R.string.pref_autoexposure_default));
+			boolean autoexposure = "auto".equals(autoexposurevalue);
+			
 			// Create the image filter pipeline
 			IImageFilter effect = Pictures.createEffectFilter(MainActivity.this);
-			YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter());
+			YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter(), autoexposure);
 			Bitmaps.Transform transform = getTransform(handle);
 			
 			CompositeFilter filter = new CompositeFilter();
@@ -971,6 +989,7 @@ public class MainActivity extends SherlockFragmentActivity {
 						 Pictures.PREF_CONTRAST.equals(key) ||
 						 Pictures.PREF_MATRIXSIZE.equals(key) ||
 						 Pictures.PREF_RASTERLEVEL.equals(key) ||
+						 Pictures.PREF_AUTOEXPOSURE.equals(key) ||
 						 Pictures.PREF_PALETTE.equals(key) ||
 						 key.startsWith(Pictures.PREF_ORIENTATION)) {
 					// Change the active image filter
@@ -1394,10 +1413,10 @@ public class MainActivity extends SherlockFragmentActivity {
 		
 		private String format(float value) {
 			if (value == (int)value) {
-				return String.format("%d", (int)value);
+				return String.format(Locale.ENGLISH, "%d", (int)value);
 			}
 			
-			return String.format("%s", value);
+			return String.format(Locale.ENGLISH, "%s", value);
 		}
 	}
 }

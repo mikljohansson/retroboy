@@ -24,6 +24,7 @@
     <string name="menu_option_rasterlevel">Rastering</string>
     <string name="menu_option_autofocus">Focus Trigger</string>
     <string name="menu_option_exposure">Exposure Value</string>
+    <string name="menu_option_autoexposure">Exposure Offset</string>
 
     <string name="help_processed_image">1-bit processed image</string>
     

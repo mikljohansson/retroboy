@@ -18,9 +18,11 @@ public class RgbFilter extends AbstractFilter {
 	private final Queue<int[]> _bufferpool = new ArrayBlockingQueue<int[]>(256);
 	private final IMapReduceBody<ImageBuffer, int[]> _body = new FilterBody();
 	private final float _factor;
+	private final boolean _autoexposure;
 	
-	public RgbFilter(int contrast) {
+	public RgbFilter(int contrast, boolean autoexposure) {
 		_factor = (259.0f * ((float)contrast + 255.0f)) / (255.0f * (259.0f - (float)contrast));
+		_autoexposure = autoexposure;
 	}
 	
 	@Override
@@ -29,9 +31,11 @@ public class RgbFilter extends AbstractFilter {
 		int[] histogram = Parallel.mapReduce(_body, buffer, 0, buffer.imagewidth * buffer.imageheight);
 	
 		// Calculate the global Otsu threshold
-		buffer.threshold = Levels.getThreshold(
-			buffer.imagewidth, buffer.imageheight, buffer.image.array(), histogram);
-		Log.d(TAG, "Threshold: " + buffer.threshold);
+		if (_autoexposure) {
+			buffer.threshold = Levels.getThreshold(
+				buffer.imagewidth, buffer.imageheight, buffer.image.array(), histogram);
+			Log.d(TAG, "Threshold: " + buffer.threshold);
+		}
 		
 		// Release histogram back to pool
 		_bufferpool.offer(histogram);

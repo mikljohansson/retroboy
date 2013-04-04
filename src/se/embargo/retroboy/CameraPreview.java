@@ -65,7 +65,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		super(context, attrs, defStyle);
 		
 		// Default filter
-		_filter = new YuvFilter(480, 360, 0, true);
+		_filter = new YuvFilter(480, 360, 0, true, true);
 		
 		// Dummy view to make sure that Camera actually delivers preview frames
 		_dummy = new SurfaceView(context);
