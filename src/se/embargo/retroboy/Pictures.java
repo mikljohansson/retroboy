@@ -218,7 +218,7 @@ public class Pictures {
 			IPalette palette = new BitPalette(4);
 			
 			CompositeFilter filter = new CompositeFilter();
-			BayerFilter effect = new BayerFilter(palette, matrix, true);
+			BayerFilter effect = new BayerFilter(palette, matrix, BayerFilter.PaletteType.Color);
 			//PaletteFilter effect = new PaletteFilter(palette);
 			filter.add(new QuantizeFilter(palette, effect));
 			filter.add(effect);
@@ -234,7 +234,7 @@ public class Pictures {
 		}
 
 		if (PREF_FILTER_NONE.equals(filtertype)) {
-			return new BayerFilter(new BitPalette(4), matrix, true);
+			return new BayerFilter(new BitPalette(4), matrix, BayerFilter.PaletteType.Color);
 			//return new PaletteFilter(new BitPalette(4));
 		}
 
@@ -252,7 +252,7 @@ public class Pictures {
 			palette = Palettes.GAMEBOY_CAMERA;
 		}
 		
-		return new BayerFilter(new DistancePalette(Distances.YUV, palette), matrix, false);
+		return new BayerFilter(new DistancePalette(Distances.YUV, palette), matrix, BayerFilter.PaletteType.Threshold);
 	}
 	
 	private static int[] getMatrix(Context context, SharedPreferences prefs) {

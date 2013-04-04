@@ -33,6 +33,11 @@ public class DistancePalette implements IIndexedPalette {
 	}
 
 	@Override
+	public int getColorCount() {
+		return _colors.length;
+	}
+	
+	@Override
 	public int[] getColors() {
 		return _colors;
 	}

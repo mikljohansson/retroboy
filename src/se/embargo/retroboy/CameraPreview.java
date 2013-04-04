@@ -284,8 +284,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			_camera = camera;
 			_filter = filter;
 			_transform = transform;
-			_buffer.frame = data;
-			_buffer.timestamp = System.nanoTime();
+			_buffer.reset(data);
 			_frameseq = CameraPreview.this._frameseq++;
 		}
 		
@@ -315,7 +314,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 					// Calculate the framerate
 					if (++_framestat >= 25) {
 						long ts = System.nanoTime();
-						Log.d(TAG, "Framerate: " + ((double)_framestat / (((double)ts - (double)_laststat) / 1000000000d)));
+						Log.d(TAG, "Framerate: " + ((double)_framestat / (((double)ts - (double)_laststat) / 1000000000d)) + ", threshold: " + _buffer.threshold);
 						
 						_framestat = 0;
 						_laststat = ts;

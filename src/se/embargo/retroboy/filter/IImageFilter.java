@@ -53,15 +53,30 @@ public interface IImageFilter {
 		 */
 		public final int framewidth, frameheight;
 		
+		/**
+		 * Pixel buffer for filters to read/write to.
+		 */
 		public IntBuffer image;
+		
+		/**
+		 * Size of output image.
+		 */
 		public int imagewidth, imageheight;
 
+		/**
+		 * Finished bitmap of output image.
+		 */
 		public Bitmap bitmap;
 		
 		/**
 		 * Timestamp when frame was captured in nanoseconds.
 		 */
 		public long timestamp;
+		
+		/**
+		 * Global lighting threshold.
+		 */
+		public int threshold = 128;
 		
 		public ImageBuffer(byte[] frame, int framewidth, int frameheight) {
 			this.frame = frame;
@@ -80,6 +95,12 @@ public interface IImageFilter {
 			image = IntBuffer.wrap(new int[imagewidth * imageheight + imagewidth * 4]);
 			bitmap = input;
 			bitmap.copyPixelsToBuffer(image);
+		}
+		
+		public void reset(byte[] data) {
+			frame = data;
+			timestamp = System.nanoTime();
+			threshold = 128;
 		}
 	}
 }

@@ -22,7 +22,7 @@ public class AtkinsonFilter extends AbstractFilter {
 				  pixels = width * height;
 
 		// Factor used to offset the threshold to compensate for too dark or bright images
-		final int threshold = 128;
+		final int threshold = buffer.threshold;
 		
 		for (int i = 0; i < pixels; i++) {
 			final int pixel = image[i];

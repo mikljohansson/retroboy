@@ -70,6 +70,11 @@ public class BucketPalette implements IIndexedPalette {
 	}
 	
 	@Override
+	public int getColorCount() {
+		return _palette.getColorCount();
+	}
+
+	@Override
 	public int[] getColors() {
 		return _palette.getColors();
 	}

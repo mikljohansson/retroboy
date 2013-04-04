@@ -9,4 +9,9 @@ public interface IPalette {
 	 * @return		The nearest color
 	 */
 	public int getNearestColor(final int r1, final int g1, final int b1);
+	
+	/**
+	 * @return	The number of colors in this palette.
+	 */
+	public int getColorCount();
 }
