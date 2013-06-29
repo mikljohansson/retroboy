@@ -7,15 +7,24 @@ import se.embargo.retroboy.color.IPaletteSink;
 
 public class PaletteFilter extends AbstractFilter implements IPaletteSink {
 	private volatile IPalette _palette;
+	private final boolean _color;
 	private final FilterBody _body = new FilterBody();
 	
 	/**
 	 * @param palette	Color palette in ABGR (Alpha, Blue, Green, Red)
 	 */
-	public PaletteFilter(IPalette palette) {
+	public PaletteFilter(IPalette palette, boolean color) {
 		_palette = palette;
+		_color = color;
 	}
 	
+	/**
+	 * @param palette	Color palette in ABGR (Alpha, Blue, Green, Red)
+	 */
+	public PaletteFilter(IPalette palette) {
+		this(palette, true);
+	}
+
 	@Override
 	public void accept(IPalette palette) {
 		_palette = palette;
@@ -23,7 +32,7 @@ public class PaletteFilter extends AbstractFilter implements IPaletteSink {
 
     @Override
     public boolean isColorFilter() {
-    	return true;
+    	return _color;
     }
 
 	@Override

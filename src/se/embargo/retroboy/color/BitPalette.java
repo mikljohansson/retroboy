@@ -8,7 +8,7 @@ public class BitPalette implements IPalette {
 	 */
 	public BitPalette(int bits) {
 		_bits = bits;
-		_mask = ~((1 << bits) - 1);
+		_mask = ~((1 << (8 - _bits)) - 1);
 	}
 	
 	@Override

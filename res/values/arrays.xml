@@ -2,6 +2,7 @@
 <resources>
 	<string name="pref_resolution_default">320x200</string>
     <string-array name="pref_resolution_labels">
+	    <item>120x90</item>
 	    <item>256x224</item>
 	    <item>320x200</item>
 		<item>480x320</item>
@@ -9,6 +10,7 @@
         <item>960x720</item>
 	</string-array>
     <string-array name="pref_resolution_values">
+        <item>160x120</item>
 		<item>256x224</item>
         <item>320x200</item>
         <item>480x360</item>
@@ -20,6 +22,7 @@
     <string-array name="pref_filter_labels">
         <item>Nintendo Game Boy</item>
         <item>Apple Macintosh OS</item>
+        <item>PXL-2000</item>
         <item>Amstrad CPC464</item>
         <item>Commodore 64</item>
         <!-- <item>Amiga 500</item> -->
@@ -29,6 +32,7 @@
     <string-array name="pref_filter_values">
         <item>nintendo_gameboy_camera</item>
         <item>atkinson</item>
+        <item>pxl-2000</item>
         <item>amstrad_cpc464</item>
         <item>commodore_64</item>
         <!-- <item>amiga_500</item> -->

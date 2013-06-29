@@ -16,6 +16,8 @@ import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
+import se.embargo.retroboy.filter.PaletteFilter;
+import se.embargo.retroboy.filter.Pxl2000Filter;
 import se.embargo.retroboy.filter.QuantizeFilter;
 import se.embargo.retroboy.filter.RasterFilter;
 import se.embargo.retroboy.graphic.DitherMatrixes;
@@ -41,6 +43,7 @@ public class Pictures {
 	public static final String PREF_FILTER_GAMEBOY_CAMERA = "nintendo_gameboy_camera";
 	public static final String PREF_FILTER_AMSTRAD_CPC464 = "amstrad_cpc464";
 	public static final String PREF_FILTER_COMMODORE_64 = "commodore_64";
+	public static final String PREF_FILTER_PXL_2000 = "pxl-2000";
 	public static final String PREF_FILTER_AMIGA_500 = "amiga_500";
 	public static final String PREF_FILTER_ATKINSON = "atkinson";
 	public static final String PREF_FILTER_HALFTONE = "halftone";
@@ -228,6 +231,10 @@ public class Pictures {
 		
 		if (PREF_FILTER_ATKINSON.equals(filtertype)) {
 			return new AtkinsonFilter();
+		}
+		
+		if (PREF_FILTER_PXL_2000.equals(filtertype)) {
+			return new Pxl2000Filter();
 		}
 
 		if (PREF_FILTER_HALFTONE.equals(filtertype)) {
