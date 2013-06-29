@@ -16,7 +16,6 @@ import se.embargo.retroboy.filter.BayerFilter;
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.HalftoneFilter;
 import se.embargo.retroboy.filter.IImageFilter;
-import se.embargo.retroboy.filter.PaletteFilter;
 import se.embargo.retroboy.filter.Pxl2000Filter;
 import se.embargo.retroboy.filter.QuantizeFilter;
 import se.embargo.retroboy.filter.RasterFilter;

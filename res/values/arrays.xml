@@ -2,7 +2,7 @@
 <resources>
 	<string name="pref_resolution_default">320x200</string>
     <string-array name="pref_resolution_labels">
-	    <item>120x90</item>
+	    <item>160x120</item>
 	    <item>256x224</item>
 	    <item>320x200</item>
 		<item>480x320</item>
