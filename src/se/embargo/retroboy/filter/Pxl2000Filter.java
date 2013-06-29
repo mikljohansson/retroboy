@@ -27,9 +27,8 @@ public class Pxl2000Filter extends AbstractFilter {
 	
 	/**
 	 * Amount of sharpening
-	 * @link	http://photo.net/bboard/q-and-a-fetch-msg.tcl?msg_id=000Qi5
 	 */
-	private final float _sharpenAmount = 0.3f;
+	private final float _sharpenAmount = 0.5f;
 	
 	/**
 	 * Number of levels of color depth
@@ -90,7 +89,7 @@ public class Pxl2000Filter extends AbstractFilter {
 			final int borderwidth = (int)((double)buffer.imagewidth * _bordersize);
 			final int width = buffer.imagewidth, xlast = width - borderwidth;
 			final float[] kernel = _blurkernel;
-			final float sharpen = _sharpenAmount, sharpeninv = 1f - _sharpenAmount;
+			final float sharpen = _sharpenAmount;
 			final float posterize = (255f / _posterizeLevels);
 			final float compression = _dynamicRangeCompression;
 			
@@ -114,7 +113,9 @@ public class Pxl2000Filter extends AbstractFilter {
 					lum += (float)(image[i + width + 1] & 0xff) * kernel[8];
 					
 					// Apply unsharp mask
-					lum = (lum - sharpen * Math.abs(origlum - lum)) / sharpeninv;
+					final float contrast = Math.abs(origlum - lum) * sharpen;
+					final float factor = (259f * ((float)contrast + 255f)) / (255f * (259f - (float)contrast));
+					lum = factor * (lum - 128f) + 128f;
 					
 					// Clamp to 5% and 95% light levels
 					lum = Math.max(12.75f, Math.min(lum, 242.25f));
