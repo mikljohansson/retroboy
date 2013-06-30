@@ -169,6 +169,15 @@ public class MainActivity extends SherlockFragmentActivity {
 	 */
 	private VideoRecorder _videoRecorder;
 	
+	/**
+	 * Current effect filter.
+	 * 
+	 * Some filters maintain internal state (e.g. PXL-2000 filter) that correspond to 
+	 * previous frames. When taking photos the filter instance used for preview must 
+	 * be used to process the captured frame.
+	 */
+	private IImageFilter _effectFilter;
+	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -583,9 +592,9 @@ public class MainActivity extends SherlockFragmentActivity {
 
 		// Create the image filter pipeline
 		CompositeFilter filter = new CompositeFilter();
-		IImageFilter effect = Pictures.createEffectFilter(this);
-		filter.add(new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter(), autoexposure));
-		filter.add(effect);
+		_effectFilter = Pictures.createEffectFilter(this);
+		filter.add(new YuvFilter(resolution.width, resolution.height, contrast, _effectFilter.isColorFilter(), autoexposure));
+		filter.add(_effectFilter);
 		filter.add(new ImageBitmapFilter());
 		filter.add(_videoRecorder);
 		_preview.setFilter(filter);
@@ -916,7 +925,7 @@ public class MainActivity extends SherlockFragmentActivity {
 			boolean autoexposure = "auto".equals(autoexposurevalue);
 			
 			// Create the image filter pipeline
-			IImageFilter effect = Pictures.createEffectFilter(MainActivity.this);
+			IImageFilter effect = _effectFilter;
 			YuvFilter yuvFilter = new YuvFilter(resolution.width, resolution.height, contrast, effect.isColorFilter(), autoexposure);
 			Bitmaps.Transform transform = getTransform(handle);
 			
