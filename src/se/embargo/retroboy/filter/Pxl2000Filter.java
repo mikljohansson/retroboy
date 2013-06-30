@@ -27,7 +27,7 @@ public class Pxl2000Filter extends AbstractFilter {
 	/**
 	 * Amount of sharpening
 	 */
-	private final float _sharpenAmount = 0.7f;
+	private final float _sharpenAmount = 0.5f;
 	
 	/**
 	 * Number of levels of color depth
@@ -62,9 +62,9 @@ public class Pxl2000Filter extends AbstractFilter {
 
 	@Override
 	public synchronized void accept(ImageBuffer buffer) {
-		final int borderwidth = (int)((double)buffer.imagewidth * _bordersize);
+		final int borderwidth = (int)((double)buffer.imagewidth * _bordersize),
+				  borderheight = (int)((double)buffer.imageheight * _bordersize);
 		final int bordercolor = 0xff000000;
-		
 
 		// Initialize the scratch buffer
 		if (_scratch == null || _scratch.length != buffer.image.array().length) {
@@ -72,7 +72,7 @@ public class Pxl2000Filter extends AbstractFilter {
 		}
 		
 		// Apply the PXL-2000 effect
-		Parallel.forRange(_body, buffer, borderwidth, buffer.imageheight - borderwidth);
+		Parallel.forRange(_body, buffer, borderheight, buffer.imageheight - borderheight);
 
 		// Apply the scratch buffer
 		buffer.image.rewind();
@@ -80,11 +80,11 @@ public class Pxl2000Filter extends AbstractFilter {
 
 		// Black out the first and last lines
 		final int[] image = buffer.image.array();
-		Arrays.fill(image, 0, buffer.imagewidth * borderwidth, bordercolor);
-		Arrays.fill(image, buffer.imagewidth * (buffer.imageheight - borderwidth), buffer.imagewidth * buffer.imageheight, bordercolor);
+		Arrays.fill(image, 0, buffer.imagewidth * borderheight, bordercolor);
+		Arrays.fill(image, buffer.imagewidth * (buffer.imageheight - borderheight), buffer.imagewidth * buffer.imageheight, bordercolor);
 		
 		// Black out the sides
-		for (int i = borderwidth, last = buffer.imageheight - borderwidth, pos; i < last; i++) {
+		for (int i = borderheight, last = buffer.imageheight - borderheight, pos; i < last; i++) {
 			pos = buffer.imagewidth * i;
 			Arrays.fill(image, pos, pos + borderwidth, bordercolor);
 			
@@ -142,8 +142,8 @@ public class Pxl2000Filter extends AbstractFilter {
 					lum = Math.max(12.75f, Math.min(lum, 242.25f));
 					
 					// Compress dynamic range
-					//lum = (lum - 128f) * compression + 128f;
-					lum = lum * compression;
+					lum = (lum - 128f) * compression + 128f;
+					//lum = lum * compression;
 					
 					// Posterize to reduce color depth
 					lum = Math.round(lum / posterize) * posterize;
