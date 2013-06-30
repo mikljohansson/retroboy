@@ -14,7 +14,6 @@ import se.embargo.retroboy.color.MonochromePalette;
 public class Pxl2000Filter extends AbstractFilter {
 	private final double _bordersize = 0.125d;
 	private final FilterBody _body = new FilterBody();
-	private final BlurBody _blur = new BlurBody();
 	private final IIndexedPalette _palette = new MonochromePalette(7);
 	
 	/**
@@ -28,7 +27,7 @@ public class Pxl2000Filter extends AbstractFilter {
 	/**
 	 * Amount of sharpening
 	 */
-	private final float _sharpenAmount = 0.5f;
+	private final float _sharpenAmount = 0.7f;
 	
 	/**
 	 * Number of levels of color depth
@@ -41,50 +40,67 @@ public class Pxl2000Filter extends AbstractFilter {
 	 */
 	private final float _dynamicRangeCompression = 1.2f;
 	
+	/**
+	 * Scratch buffer to hold result from previous frame.
+	 */
+	private int[] _scratch = null;
+	
+	/**
+	 * Sequence number of processed frames
+	 */
+	private long _seqno = 0;
+
 	@Override
 	public IPalette getPalette() {
 		return _palette;
 	}
 	
-    @Override
-    public boolean isColorFilter() {
-    	return false;
-    }
+	@Override
+	public boolean isColorFilter() {
+		return false;
+	}
 
-    @Override
-	public void accept(ImageBuffer buffer) {
-    	final int borderwidth = (int)((double)buffer.imagewidth * _bordersize);
-    	final int bordercolor = 0xff000000;
-    	
-    	// Apply the PXL-2000 effect
-		buffer.initScratchBuffer();
-		Parallel.forRange(_body, buffer, borderwidth, buffer.imageheight - borderwidth);
-		buffer.flipScratchBuffer();
-
-		// Apply additional blur
-		//Parallel.forRange(_blur, buffer, borderwidth, buffer.imageheight - borderwidth);
-		//buffer.flipScratchBuffer();
+	@Override
+	public synchronized void accept(ImageBuffer buffer) {
+		final int borderwidth = (int)((double)buffer.imagewidth * _bordersize);
+		final int bordercolor = 0xff000000;
 		
-    	// Black out the first and last lines
-    	final int[] image = buffer.image.array();
-    	Arrays.fill(image, 0, buffer.imagewidth * borderwidth, bordercolor);
-    	Arrays.fill(image, buffer.imagewidth * (buffer.imageheight - borderwidth), buffer.imagewidth * buffer.imageheight, bordercolor);
-    	
-    	// Black out the sides
-    	for (int i = borderwidth, last = buffer.imageheight - borderwidth, pos; i < last; i++) {
-    		pos = buffer.imagewidth * i;
-    		Arrays.fill(image, pos, pos + borderwidth, bordercolor);
-    		
-    		pos = pos + buffer.imagewidth - borderwidth;
-    		Arrays.fill(image, pos, pos + borderwidth, bordercolor);
-    	}
-    }
-    
-    private class FilterBody implements IForBody<ImageBuffer> {
+
+		// Initialize the scratch buffer
+		if (_scratch == null || _scratch.length != buffer.image.array().length) {
+			_scratch = Arrays.copyOf(buffer.image.array(), buffer.image.array().length);
+		}
+		
+		// Apply the PXL-2000 effect
+		Parallel.forRange(_body, buffer, borderwidth, buffer.imageheight - borderwidth);
+
+		// Apply the scratch buffer
+		buffer.image.rewind();
+		buffer.image.put(_scratch);
+
+		// Black out the first and last lines
+		final int[] image = buffer.image.array();
+		Arrays.fill(image, 0, buffer.imagewidth * borderwidth, bordercolor);
+		Arrays.fill(image, buffer.imagewidth * (buffer.imageheight - borderwidth), buffer.imagewidth * buffer.imageheight, bordercolor);
+		
+		// Black out the sides
+		for (int i = borderwidth, last = buffer.imageheight - borderwidth, pos; i < last; i++) {
+			pos = buffer.imagewidth * i;
+			Arrays.fill(image, pos, pos + borderwidth, bordercolor);
+			
+			pos = pos + buffer.imagewidth - borderwidth;
+			Arrays.fill(image, pos, pos + borderwidth, bordercolor);
+		}
+		
+		// Increment the frame sequence number
+		_seqno++;
+	}
+	
+	private class FilterBody implements IForBody<ImageBuffer> {
 		@Override
 		public void run(ImageBuffer buffer, int it, int last) {
-			final int[] image = buffer.image.array();
-			final int[] scratch = buffer.scratch.array();
+			final int[] source = buffer.image.array();
+			final int[] target = _scratch;
 			
 			final int borderwidth = (int)((double)buffer.imagewidth * _bordersize);
 			final int width = buffer.imagewidth, xlast = width - borderwidth;
@@ -96,21 +112,26 @@ public class Pxl2000Filter extends AbstractFilter {
 			for (int y = it; y < last; y++) {
 				final int yi = y * width;
 				
-				for (int x = borderwidth; x < xlast; x++) {
+				// Process every other pixel for each line. Flip the start position for every frame to create an 
+				// interleaving of frames, keeping half of the pixels from the previous frame intact. This creates
+				// a temporal dithering and lag effect.
+				final int offset = (int)((_seqno + y) % 2);
+				
+				for (int x = borderwidth + offset; x < xlast; x += 2) {
 					final int i = x + yi;
-					final int pixel = image[i];
+					final int pixel = source[i];
 					float lum = 0, origlum = pixel & 0xff;
 
 					// Apply Gaussian blur
-					lum += (float)(image[i - width - 1] & 0xff) * kernel[0];
-					lum += (float)(image[i - width    ] & 0xff) * kernel[1];
-					lum += (float)(image[i - width + 1] & 0xff) * kernel[2];
-					lum += (float)(image[i         - 1] & 0xff) * kernel[3];
-					lum += (float)(image[i            ] & 0xff) * kernel[4];
-					lum += (float)(image[i         + 1] & 0xff) * kernel[5];
-					lum += (float)(image[i + width - 1] & 0xff) * kernel[6];
-					lum += (float)(image[i + width    ] & 0xff) * kernel[7];
-					lum += (float)(image[i + width + 1] & 0xff) * kernel[8];
+					lum += (float)(source[i - width - 1] & 0xff) * kernel[0];
+					lum += (float)(target[i - width    ] & 0xff) * kernel[1];
+					lum += (float)(source[i - width + 1] & 0xff) * kernel[2];
+					lum += (float)(target[i		    - 1] & 0xff) * kernel[3];
+					lum += (float)(source[i			   ] & 0xff) * kernel[4];
+					lum += (float)(target[i		    + 1] & 0xff) * kernel[5];
+					lum += (float)(source[i + width - 1] & 0xff) * kernel[6];
+					lum += (float)(target[i + width	   ] & 0xff) * kernel[7];
+					lum += (float)(source[i + width + 1] & 0xff) * kernel[8];
 					
 					// Apply unsharp mask
 					final float contrast = Math.abs(origlum - lum) * sharpen;
@@ -121,7 +142,8 @@ public class Pxl2000Filter extends AbstractFilter {
 					lum = Math.max(12.75f, Math.min(lum, 242.25f));
 					
 					// Compress dynamic range
-					lum = (lum - 128f) * compression + 128f;
+					//lum = (lum - 128f) * compression + 128f;
+					lum = lum * compression;
 					
 					// Posterize to reduce color depth
 					lum = Math.round(lum / posterize) * posterize;
@@ -131,46 +153,9 @@ public class Pxl2000Filter extends AbstractFilter {
 					
 					// Output the pixel, but keep alpha channel intact
 					final int color = (int)lum;
-					scratch[i] = (pixel & 0xff000000) | (color << 16) | (color << 8) | color;
+					target[i] = (pixel & 0xff000000) | (color << 16) | (color << 8) | color;
 				}
 			}
 		}
-    }
-
-    private class BlurBody implements IForBody<ImageBuffer> {
-		@Override
-		public void run(ImageBuffer buffer, int it, int last) {
-			final int[] image = buffer.image.array();
-			final int[] scratch = buffer.scratch.array();
-			
-			final int borderwidth = (int)((double)buffer.imagewidth * _bordersize);
-			final int width = buffer.imagewidth, xlast = width - borderwidth;
-			final float[] blurmatrix = _blurkernel;
-			
-			for (int y = it; y < last; y++) {
-				final int yi = y * width;
-				
-				for (int x = borderwidth; x < xlast; x++) {
-					final int i = x + yi;
-					final int pixel = image[i];
-					float lum = 0;
-
-					// Apply Gaussian blur
-					lum += (float)(image[i - width - 1] & 0xff) * blurmatrix[0];
-					lum += (float)(image[i - width    ] & 0xff) * blurmatrix[1];
-					lum += (float)(image[i - width + 1] & 0xff) * blurmatrix[2];
-					lum += (float)(image[i         - 1] & 0xff) * blurmatrix[3];
-					lum += (float)(image[i            ] & 0xff) * blurmatrix[4];
-					lum += (float)(image[i         + 1] & 0xff) * blurmatrix[5];
-					lum += (float)(image[i + width - 1] & 0xff) * blurmatrix[6];
-					lum += (float)(image[i + width    ] & 0xff) * blurmatrix[7];
-					lum += (float)(image[i + width + 1] & 0xff) * blurmatrix[8];
-					
-					// Output the pixel, but keep alpha channel intact
-					int color = Math.max(0, Math.min((int)lum, 255));
-					scratch[i] = (pixel & 0xff000000) | (color << 16) | (color << 8) | color;
-				}
-			}
-		}
-    }
+	}
 }

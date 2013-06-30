@@ -3,7 +3,6 @@ package se.embargo.retroboy.filter;
 import java.nio.IntBuffer;
 
 import se.embargo.retroboy.color.IPalette;
-
 import android.graphics.Bitmap;
 
 public interface IImageFilter {
@@ -59,11 +58,6 @@ public interface IImageFilter {
 		public IntBuffer image;
 		
 		/**
-		 * Scratch buffer for image processing, same dimensions as image.
-		 */
-		public IntBuffer scratch;
-		
-		/**
 		 * Size of output image.
 		 */
 		public int imagewidth, imageheight;
@@ -77,6 +71,11 @@ public interface IImageFilter {
 		 * Timestamp when frame was captured in nanoseconds.
 		 */
 		public long timestamp;
+		
+		/**
+		 * Frame sequence number.
+		 */
+		public long seqno = 0;
 		
 		/**
 		 * Global lighting threshold.
@@ -102,22 +101,10 @@ public interface IImageFilter {
 			bitmap.copyPixelsToBuffer(image);
 		}
 		
-		public void reset(byte[] data) {
+		public void reset(byte[] data, long seqno) {
 			frame = data;
 			timestamp = System.nanoTime();
 			threshold = 128;
-		}
-		
-		public void initScratchBuffer() {
-			if (scratch == null || scratch.array().length != image.array().length) {
-				scratch = IntBuffer.wrap(new int[image.array().length]);
-			}
-		}
-		
-		public void flipScratchBuffer() {
-			IntBuffer tmp = scratch;
-			scratch = image;
-			image = tmp;
 		}
 	}
 }

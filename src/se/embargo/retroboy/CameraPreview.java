@@ -267,7 +267,6 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		private Bitmaps.Transform _transform;
 		private IImageFilter.ImageBuffer _buffer;
 		private final Paint _paint = new Paint(Paint.FILTER_BITMAP_FLAG);
-		private long _frameseq = 0;
 		
 		public FilterTask(Camera camera, IImageFilter filter, Bitmaps.Transform transform, byte[] data) {
 			init(camera, filter, transform, data);
@@ -284,8 +283,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			_camera = camera;
 			_filter = filter;
 			_transform = transform;
-			_buffer.reset(data);
-			_frameseq = CameraPreview.this._frameseq++;
+			_buffer.reset(data, _frameseq++);
 		}
 		
 		@Override
@@ -306,8 +304,8 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 					_camera.addCallbackBuffer(_buffer.frame);
 
 					// Check for out-of-sync frames or frames from old transform
-					if (_lastframeseq > _frameseq || CameraPreview.this._transform != _transform) {
-						Log.i(TAG, "Dropped frame " + _frameseq + ", last frame was " + _lastframeseq);
+					if (_lastframeseq > _buffer.seqno || CameraPreview.this._transform != _transform) {
+						Log.i(TAG, "Dropped frame " + _buffer.seqno + ", last frame was " + _lastframeseq);
 						return;
 					}
 
@@ -321,7 +319,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 					}
 
 					// Lock canvas for updating
-					_lastframeseq = _frameseq;
+					_lastframeseq = _buffer.seqno;
 					canvas = _holder.lockCanvas();
 				}
 
