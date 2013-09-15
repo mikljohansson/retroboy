@@ -6,3 +6,13 @@ syntax: glob
 res/raw/*.bc
 syntax: regexp
 ^gen$
+syntax: regexp
+^base/bin$
+syntax: regexp
+^full/gen$
+syntax: regexp
+^full/bin$
+syntax: regexp
+^lite/gen$
+syntax: regexp
+^lite/bin$

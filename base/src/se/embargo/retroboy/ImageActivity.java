@@ -261,59 +261,53 @@ public class ImageActivity extends SherlockActivity {
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		switch (item.getItemId()) {
-            case android.R.id.home: {
-                // When app icon in action bar clicked, go up
-            	startParentActivity();
-                return true;
-            }
-            
-            case R.id.shareImageButton: {
-            	reset();
-            	
-            	if (_outputpath != null) {
-	            	Intent intent = new Intent(Intent.ACTION_SEND);
-	            	intent.setType("image/png");
-	            	intent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://" + _outputpath));
-	            	startActivity(Intent.createChooser(intent, getText(R.string.menu_option_share_image)));
-            	}
-            	
-            	return true;
-            }
-
-			case R.id.switchFilterButton: {
-				reset();
-				
-				new ListPreferenceDialog(
-					this, _prefs, 
-					Pictures.PREF_FILTER, getResources().getString(R.string.pref_filter_default),
-					R.string.menu_option_filter, R.array.pref_filter_labels, R.array.pref_filter_values).show();
-				return true;
-			}
-
-            case R.id.discardImageButton: {
-            	// Return to parent activity without saving the image
-            	if (_outputpath != null) {
-            		// Delete the processed image from disk 
-            		new File(_outputpath).delete();
-            		
-            		// Also remove the image from the gallery
-    				getContentResolver().delete(
-    					MediaStore.Images.Media.EXTERNAL_CONTENT_URI, 
-    					MediaStore.Images.Media.DATA + "=?", new String[] {_outputpath});
-            	}
-            	
-            	startParentActivity();
-                return true;
-            }
-
-            case R.id.editSettingsButton:
-            	toggleDetailedPreferences();
-				return true;
-            
-			default:
-				return super.onOptionsItemSelected(item);
+		if (item.getItemId() == android.R.id.home) {
+            // When app icon in action bar clicked, go up
+        	startParentActivity();
+            return true;
+        }
+		else if (item.getItemId() == R.id.shareImageButton) {
+        	reset();
+        	
+        	if (_outputpath != null) {
+            	Intent intent = new Intent(Intent.ACTION_SEND);
+            	intent.setType("image/png");
+            	intent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://" + _outputpath));
+            	startActivity(Intent.createChooser(intent, getText(R.string.menu_option_share_image)));
+        	}
+        	
+        	return true;
+        }
+		else if (item.getItemId() == R.id.switchFilterButton) {
+			reset();
+			
+			new ListPreferenceDialog(
+				this, _prefs, 
+				Pictures.PREF_FILTER, getResources().getString(R.string.pref_filter_default),
+				R.string.menu_option_filter, R.array.pref_filter_labels, R.array.pref_filter_values).show();
+			return true;
 		}
+		else if (item.getItemId() == R.id.discardImageButton) {
+        	// Return to parent activity without saving the image
+        	if (_outputpath != null) {
+        		// Delete the processed image from disk 
+        		new File(_outputpath).delete();
+        		
+        		// Also remove the image from the gallery
+				getContentResolver().delete(
+					MediaStore.Images.Media.EXTERNAL_CONTENT_URI, 
+					MediaStore.Images.Media.DATA + "=?", new String[] {_outputpath});
+        	}
+        	
+        	startParentActivity();
+            return true;
+        }
+		else if (item.getItemId() == R.id.editSettingsButton) {
+        	toggleDetailedPreferences();
+			return true;
+		}
+            
+		return super.onOptionsItemSelected(item);
 	}
 	
     private void startParentActivity() {

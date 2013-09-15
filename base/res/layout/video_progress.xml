@@ -3,7 +3,7 @@
     android:id="@+id/videoProgressLayout"
 	android:layout_width="100dp"
 	android:layout_height="5dp"
-	android:layout_alignParentBottom="true"
+	android:layout_alignParentTop="true"
 	android:layout_alignParentRight="true"
 	android:layout_margin="15dp"
 	android:orientation="vertical"
