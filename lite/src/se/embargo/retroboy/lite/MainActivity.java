@@ -27,7 +27,9 @@ public class MainActivity extends se.embargo.retroboy.MainActivity {
 	    _ad.setPadding(padding, padding, padding, padding);
 	    
 	    RelativeLayout layout = (RelativeLayout)findViewById(R.id.cameraPreviewLayout);
-	    layout.addView(_ad);
+	    layout.addView(_ad, 1);
+	    layout.requestLayout();
+	    layout.invalidate();
 	    
 	    // Initiate a request to load it with an ad
 	    AdRequest request = new AdRequest();
