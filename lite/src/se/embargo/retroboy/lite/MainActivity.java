@@ -9,7 +9,7 @@ import com.google.ads.AdSize;
 import com.google.ads.AdView;
 
 public class MainActivity extends se.embargo.retroboy.MainActivity {
-	private static final String AD_UNIT_ID = "ca-app-pub-7852293465552528/2235435098";
+	private static final String AD_UNIT_ID = "ca-app-pub-7852293465552528/9756871897";
 	private AdView _ad;
 	
 	@Override

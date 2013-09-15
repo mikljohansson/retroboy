@@ -16,3 +16,5 @@ syntax: regexp
 ^lite/gen$
 syntax: regexp
 ^lite/bin$
+syntax: regexp
+^base/gen$
