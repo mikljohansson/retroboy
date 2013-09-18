@@ -57,7 +57,7 @@ public class Pictures {
 	public static final String PREF_MATRIXSIZE = "matrixsize";
 	public static final String PREF_RASTERLEVEL = "rasterlevel";
 	public static final String PREF_SCENEMODE = "scenemode";
-	private static final String PREF_IMAGECOUNT = "imagecount";
+	public static final String PREF_IMAGECOUNT = "imagecount";
 	
 	private static final String DIRECTORY = "Retroboy";
 	private static final String FILENAME_PATTERN = "IMGR%04d";

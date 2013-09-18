@@ -101,7 +101,10 @@ public class MainActivity extends SherlockFragmentActivity {
 	 */
 	private static final float ZOOM_SCALE_FACTOR = 250.0f;
 	
-	private SharedPreferences _prefs;
+	/**
+	 * Application wide preferences
+	 */
+	protected SharedPreferences _prefs;
 	
 	/**
 	 * The listener needs to be kept alive since SharedPrefernces only keeps a weak reference to it
@@ -226,6 +229,9 @@ public class MainActivity extends SherlockFragmentActivity {
 			public void onFinish() {
 				_cameraState.setValue(CameraState.Video);
 			
+				// Callback after captured media
+				onMediaCaptured();
+				
 				// Update the last photo thumbnail
 				new GetLastThumbnailTask().execute();
 
@@ -653,6 +659,8 @@ public class MainActivity extends SherlockFragmentActivity {
         return -1;
 	}
 	
+	protected void onMediaCaptured() {}
+	
 	@SuppressLint("DefaultLocale")
 	private static String getBucketId() {
 		// Matches code in MediaProvider.computeBucketValues()
@@ -966,9 +974,12 @@ public class MainActivity extends SherlockFragmentActivity {
 		protected void onPostExecute(Void result) {
 			Log.i(TAG, "Successfully captured image");
 
+			// Callback after captured media
+			onMediaCaptured();
+
 			// Update the last photo thumbnail
 			new GetLastThumbnailTask().execute();
-
+			
 			// Restart preview
 			_preview.initPreviewCallback();
 
