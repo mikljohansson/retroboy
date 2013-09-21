@@ -5,13 +5,10 @@ import android.os.Bundle;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
-import com.google.ads.Ad;
-import com.google.ads.AdListener;
 import com.google.ads.AdRequest;
 import com.google.ads.AdSize;
 import com.google.ads.AdView;
 import com.google.ads.InterstitialAd;
-import com.google.ads.AdRequest.ErrorCode;
 
 public class MainActivity extends se.embargo.retroboy.MainActivity {
 	private static final String BANNER_UNIT_ID = "ca-app-pub-7852293465552528/9756871897";
@@ -45,7 +42,6 @@ public class MainActivity extends se.embargo.retroboy.MainActivity {
 	    
 	    // Init the interstitial ad
 	    _interstitial = new InterstitialAd(this, SHUTTER_UNIT_ID);
-		_interstitial.setAdListener(new InterstitialListener());
 	}
 	
 	@Override
@@ -70,7 +66,8 @@ public class MainActivity extends se.embargo.retroboy.MainActivity {
 	    request.addKeyword("commodore");
 		return request;
 	}
-	
+
+	@Override
 	protected void onMediaCaptured() {
 		int count = _prefs.getInt(Pictures.PREF_IMAGECOUNT, 0);
 		if ((count % SHUTTER_INTERVAL) == 0 && _interstitial.isReady()) {
@@ -85,26 +82,5 @@ public class MainActivity extends se.embargo.retroboy.MainActivity {
 		}
 		
 		super.onDestroy();
-	}
-	
-	private class InterstitialListener implements AdListener {
-		@Override
-		public void onReceiveAd(Ad ad) {}
-		
-		@Override
-		public void onPresentScreen(Ad ad) {}
-		
-		@Override
-		public void onLeaveApplication(Ad ad) {}
-		
-		@Override
-		public void onFailedToReceiveAd(Ad ad, ErrorCode errcode) {}
-		
-		@Override
-		public void onDismissScreen(Ad ad) {
-			if (ad == _interstitial) {
-				_interstitial.loadAd(createAdRequest());
-			}
-		}
 	}
 }
