@@ -18,6 +18,8 @@ import android.graphics.ImageFormat;
 import android.graphics.Paint;
 import android.hardware.Camera;
 import android.hardware.Camera.ErrorCallback;
+import android.os.Handler;
+import android.os.Message;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -28,6 +30,8 @@ import android.widget.FrameLayout;
 class CameraPreview extends FrameLayout implements Camera.PreviewCallback, ErrorCallback {
 	private static final String TAG = "CameraPreview";
 
+	private static final int ADD_CALLBACK_BUFFER = 0;
+	
 	private final ExecutorService _threadpool = Executors.newCachedThreadPool();
 	private final Queue<FilterTask> _bufferpool = new ConcurrentLinkedQueue<FilterTask>();
 	private long _frameseq = 0, _lastframeseq = -1;
@@ -45,6 +49,8 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 	
 	private IImageFilter _filter;
 	private Bitmaps.Transform _transform, _prevTransform;
+	
+	private Handler _handler;
 	
 	/**
 	 * Statistics for framerate calculation
@@ -95,6 +101,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		_camera = camera;
 		_cameraInfo = cameraInfo;
 		_cameraId = cameraId;
+		_handler = new CameraHandler(camera);
 		
 		if (_camera != null) {
 			_camera.setErrorCallback(this);
@@ -300,8 +307,8 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 						return;
 					}
 					
-					// Release buffer back to camera while holding lock
-					_camera.addCallbackBuffer(_buffer.frame);
+					// Release buffer back to camera queue
+					_handler.obtainMessage(ADD_CALLBACK_BUFFER, _buffer.frame).sendToTarget();
 
 					// Check for out-of-sync frames or frames from old transform
 					if (_lastframeseq > _buffer.seqno || CameraPreview.this._transform != _transform) {
@@ -338,6 +345,23 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 				_bufferpool.add(this);
 			}
 		}
+	}
+	
+	private static class CameraHandler extends Handler {
+		private final Camera _camera;
+		
+		public CameraHandler(Camera camera) {
+			_camera = camera;
+		}
+		
+        @Override
+        public void handleMessage(final Message msg) {
+        	switch (msg.what) {
+        		case ADD_CALLBACK_BUFFER:
+        			_camera.addCallbackBuffer((byte[])msg.obj);
+        			break;
+        	}
+        }
 	}
 
 	@Override

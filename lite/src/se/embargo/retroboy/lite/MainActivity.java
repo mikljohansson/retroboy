@@ -13,7 +13,7 @@ import com.google.ads.InterstitialAd;
 public class MainActivity extends se.embargo.retroboy.MainActivity {
 	private static final String BANNER_UNIT_ID = "ca-app-pub-7852293465552528/9756871897";
 	private static final String SHUTTER_UNIT_ID = "ca-app-pub-7852293465552528/9997217499";
-	private static final int SHUTTER_INTERVAL = 3;
+	private static final int SHUTTER_INTERVAL = 5;
 	
 	private AdView _banner;
 	private InterstitialAd _interstitial;
