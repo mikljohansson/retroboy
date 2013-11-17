@@ -1,6 +1,5 @@
 package se.embargo.retroboy;
 
-import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -17,9 +16,6 @@ import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
 import android.hardware.Camera;
-import android.hardware.Camera.ErrorCallback;
-import android.os.Handler;
-import android.os.Message;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -27,11 +23,9 @@ import android.view.SurfaceView;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 
-class CameraPreview extends FrameLayout implements Camera.PreviewCallback, ErrorCallback {
+class CameraPreview extends FrameLayout implements Camera.PreviewCallback {
 	private static final String TAG = "CameraPreview";
 
-	private static final int ADD_CALLBACK_BUFFER = 0;
-	
 	private final ExecutorService _threadpool = Executors.newCachedThreadPool();
 	private final Queue<FilterTask> _bufferpool = new ConcurrentLinkedQueue<FilterTask>();
 	private long _frameseq = 0, _lastframeseq = -1;
@@ -41,16 +35,12 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 	
 	private final SurfaceView _dummy;
 	
-	private Camera _camera;
+	private volatile CameraHandle _cameraHandle;
 	private Camera.Size _previewSize;
-	private Camera.CameraInfo _cameraInfo;
-	private int _cameraId;
 	private int _bufferSize;
 	
 	private IImageFilter _filter;
 	private Bitmaps.Transform _transform, _prevTransform;
-	
-	private Handler _handler;
 	
 	/**
 	 * Statistics for framerate calculation
@@ -88,8 +78,8 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		addView(_surface);
 	}
 
-	public synchronized void setCamera(Camera camera, Camera.CameraInfo cameraInfo, int cameraId) {
-		if (_camera != null) {
+	public synchronized void setCamera(CameraHandle handle) {
+		if (_cameraHandle != null) {
 			// Calling these before release() crashes the GT-P7310 with Android 4.0.4
 			//_camera.setPreviewCallbackWithBuffer(null);
 			//_camera.stopPreview();
@@ -98,24 +88,15 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			_dummy.setVisibility(INVISIBLE);
 		}
 		
-		_camera = camera;
-		_cameraInfo = cameraInfo;
-		_cameraId = cameraId;
-		_handler = new CameraHandler(camera);
+		_cameraHandle = handle;
 		
-		if (_camera != null) {
-			_camera.setErrorCallback(this);
-			_previewSize = _camera.getParameters().getPreviewSize();
-			_bufferSize = getBufferSize(_camera);
+		if (_cameraHandle != null) {
+			_previewSize = _cameraHandle.camera.getParameters().getPreviewSize();
+			_bufferSize = getBufferSize(_cameraHandle);
 			
 			// Visible dummy view to make sure that Camera actually delivers preview frames
-			try {
-				_dummy.setVisibility(VISIBLE);
-				_camera.setPreviewDisplay(_dummy.getHolder());
-			}
-			catch (IOException e) {
-				Log.e(TAG, "Error setting dummy preview display", e);
-			}
+			_dummy.setVisibility(VISIBLE);
+			_cameraHandle.camera.setPreviewDisplay(_dummy.getHolder());
 			
 			initPreviewCallback();
 			initTransform();
@@ -123,7 +104,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			// Begin the preview
 			_framestat = 0;
 			_laststat = System.nanoTime();
-			_camera.startPreview();
+			_cameraHandle.camera.startPreview();
 			Log.i(TAG, "Started preview");
 		}
 	}
@@ -132,19 +113,19 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 	 * Restarts a paused preview
 	 */
 	public synchronized void initPreviewCallback() {
-		if (_camera != null) {
+		if (_cameraHandle != null) {
 			// Clear the buffer queue
-			_camera.setPreviewCallbackWithBuffer(null);
+			_cameraHandle.camera.setPreviewCallbackWithBuffer(null);
 			
 			// Install this as the preview handle
-			_camera.addCallbackBuffer(new byte[_bufferSize]);
+			_cameraHandle.camera.addCallbackBuffer(new byte[_bufferSize]);
 			
 			// Add more buffers to increase parallelism on multicore devices
 			if (Parallel.getNumberOfCores() > 1) {
-				_camera.addCallbackBuffer(new byte[_bufferSize]);	
+				_cameraHandle.camera.addCallbackBuffer(new byte[_bufferSize]);	
 			}
 
-			_camera.setPreviewCallbackWithBuffer(this);
+			_cameraHandle.camera.setPreviewCallbackWithBuffer(this);
 		}
 	}
 	
@@ -166,15 +147,17 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 	
 	@Override
 	public void onPreviewFrame(byte[] data, Camera camera) {
+		CameraHandle handle = _cameraHandle;
+		
 		// data may be null if buffer was too small
-		if (data != null && data.length == _bufferSize) {
+		if (handle != null && data != null && data.length == _bufferSize) {
 			// Submit a task to process the image
 			FilterTask task = _bufferpool.poll();
 			if (task != null) {
-				task.init(camera, _filter, _transform, data);
+				task.init(handle, _filter, _transform, data);
 			}
 			else {
-				task = new FilterTask(camera, _filter, _transform, data);
+				task = new FilterTask(handle, _filter, _transform, data);
 			}
 			
 			_threadpool.submit(task);
@@ -184,7 +167,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 	private void initTransform() {
 		Log.i(TAG, "Initializing the transform matrix");
 		
-		if (_cameraInfo != null && _previewSize != null) {
+		if (_cameraHandle != null && _previewSize != null) {
 			int width = getWidth(), height = getHeight();
 			
 			// Get the current device orientation
@@ -193,7 +176,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			
 			// Check for orientation override
 			SharedPreferences prefs = getContext().getSharedPreferences(Pictures.PREFS_NAMESPACE, Context.MODE_PRIVATE);
-			int orientation = Pictures.getCameraOrientation(prefs, _cameraInfo, _cameraId);
+			int orientation = Pictures.getCameraOrientation(prefs, _cameraHandle.info, _cameraHandle.id);
 			Log.i(TAG, "Display rotation " + rotation + ", camera orientation " + orientation);
 			
 			// Rotate and flip the image when drawing it onto the surface
@@ -202,7 +185,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			
 			_transform = Pictures.createTransformMatrix(
 				ewidth, eheight,
-				_cameraInfo.facing, orientation, rotation, 
+				_cameraHandle.info.facing, orientation, rotation, 
 				Math.max(width, height), Math.min(width, height),
 				Bitmaps.FLAG_ENLARGE);
 		
@@ -221,9 +204,9 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		}
 	}
 	
-	public static int getBufferSize(Camera camera) {
-		Camera.Size size = camera.getParameters().getPreviewSize();
-		int format = camera.getParameters().getPreviewFormat();
+	public static int getBufferSize(CameraHandle handle) {
+		Camera.Size size = handle.camera.getParameters().getPreviewSize();
+		int format = handle.camera.getParameters().getPreviewFormat();
 		int bits = ImageFormat.getBitsPerPixel(format);
 		return size.width * size.height * bits / 8;
 	}
@@ -254,14 +237,9 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 		public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
 			synchronized (CameraPreview.this) {
 				// Visible dummy view to make sure that Camera actually delivers preview frames
-				if (_camera != null) {
-					try {
-						_dummy.setVisibility(VISIBLE);
-						_camera.setPreviewDisplay(_dummy.getHolder());
-					}
-					catch (IOException e) {
-						Log.e(TAG, "Error setting dummy preview display", e);
-					}
+				if (_cameraHandle != null) {
+					_dummy.setVisibility(VISIBLE);
+					_cameraHandle.camera.setPreviewDisplay(_dummy.getHolder());
 				}
 			}
 		}
@@ -269,17 +247,21 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 	
 	private class FilterTask implements Runnable {
 		private static final String TAG = "FilterTask";
-		private Camera _camera;
+		private CameraHandle _cameraHandle;
 		private IImageFilter _filter;
 		private Bitmaps.Transform _transform;
 		private IImageFilter.ImageBuffer _buffer;
 		private final Paint _paint = new Paint(Paint.FILTER_BITMAP_FLAG);
 		
-		public FilterTask(Camera camera, IImageFilter filter, Bitmaps.Transform transform, byte[] data) {
-			init(camera, filter, transform, data);
+		public FilterTask(CameraHandle handle, IImageFilter filter, Bitmaps.Transform transform, byte[] data) {
+			init(handle, filter, transform, data);
 		}
 		
-		public void init(Camera camera, IImageFilter filter, Bitmaps.Transform transform, byte[] data) {
+		public void init(CameraHandle handle, IImageFilter filter, Bitmaps.Transform transform, byte[] data) {
+			if (handle == null) {
+				throw new IllegalArgumentException("Camera handle must not be null");
+			}
+			
 			// Check if buffer is still valid for this frame
 			if (_buffer == null || _buffer.framewidth != _previewSize.width || _buffer.frameheight != _previewSize.height) {
 				Log.d(TAG, "Allocating ImageBuffer for " + _previewSize.width + "x" + _previewSize.height + " pixels (" + _buffer + ")");
@@ -287,7 +269,7 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 			}
 			
 			// Reinitialize the buffer with the new data
-			_camera = camera;
+			_cameraHandle = handle;
 			_filter = filter;
 			_transform = transform;
 			_buffer.reset(data, _frameseq++);
@@ -302,13 +284,13 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 				// Check frame sequence number and drop out-of-sequence frames
 				Canvas canvas = null;
 				synchronized (CameraPreview.this) {
-					if (CameraPreview.this._camera != _camera) {
+					if (CameraPreview.this._cameraHandle != _cameraHandle) {
 						Log.i(TAG, "Dropping frame because camera was switched");
 						return;
 					}
 					
 					// Release buffer back to camera queue
-					_handler.obtainMessage(ADD_CALLBACK_BUFFER, _buffer.frame).sendToTarget();
+					_cameraHandle.camera.addCallbackBuffer(_buffer.frame);
 
 					// Check for out-of-sync frames or frames from old transform
 					if (_lastframeseq > _buffer.seqno || CameraPreview.this._transform != _transform) {
@@ -345,27 +327,5 @@ class CameraPreview extends FrameLayout implements Camera.PreviewCallback, Error
 				_bufferpool.add(this);
 			}
 		}
-	}
-	
-	private static class CameraHandler extends Handler {
-		private final Camera _camera;
-		
-		public CameraHandler(Camera camera) {
-			_camera = camera;
-		}
-		
-        @Override
-        public void handleMessage(final Message msg) {
-        	switch (msg.what) {
-        		case ADD_CALLBACK_BUFFER:
-        			_camera.addCallbackBuffer((byte[])msg.obj);
-        			break;
-        	}
-        }
-	}
-
-	@Override
-	public void onError(int error, Camera camera) {
-		Log.e(TAG, "Got camera error callback. error=" + error);
 	}
 }

@@ -221,7 +221,7 @@ public class MainActivity extends SherlockFragmentActivity {
 				// Stop preview while image is processed
 				CameraHandle handle = _cameraHandle.getValue();
 				if (handle != null) {
-					handle.camera.setPreviewCallback(null);
+					handle.camera.setPreviewCallbackWithBuffer(null);
 				}
 			}
 			
@@ -543,13 +543,17 @@ public class MainActivity extends SherlockFragmentActivity {
 			}
 
 			// Lock the camera
-			Camera camera = Camera.open(cameraid);
-			Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-			Camera.getCameraInfo(cameraid, cameraInfo);
-			_cameraHandle.setValue(new CameraHandle(camera, cameraInfo, cameraid));
+			CameraHandle handle;
+			{
+				Camera camera = Camera.open(cameraid);
+				Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+				Camera.getCameraInfo(cameraid, cameraInfo);
+				handle = new CameraHandle(camera, cameraInfo, cameraid);
+			}
+			_cameraHandle.setValue(handle);
 			
 			// Configure the camera
-			Camera.Parameters params = camera.getParameters();
+			Camera.Parameters params = handle.camera.getParameters();
 			params.setPreviewFormat(ImageFormat.NV21);
 			
 			// Select preview size that most closely matches the wanted size and dimensions
@@ -557,7 +561,7 @@ public class MainActivity extends SherlockFragmentActivity {
 			Camera.Size optimal = null;
 			Log.i(TAG, "Target output resolution: " + target);
 			
-			for (Camera.Size candidate : camera.getParameters().getSupportedPreviewSizes()) {
+			for (Camera.Size candidate : handle.camera.getParameters().getSupportedPreviewSizes()) {
 				if (optimal == null || ratioError(candidate, target) < ratioError(optimal, target) ||
 					((optimal.width < target.width && optimal.width < candidate.width ||
 					  optimal.width > candidate.width && candidate.width >= target.width))) {
@@ -579,11 +583,11 @@ public class MainActivity extends SherlockFragmentActivity {
 			params.setExposureCompensation(exposure);
 			
 			// Apply the parameter changes
-			camera.setParameters(params);
+			handle.camera.setParameters(params);
 			
 			// Start the preview
 			Log.i(TAG, "Starting preview");
-			_preview.setCamera(camera, cameraInfo, cameraid);
+			_preview.setCamera(handle);
 		}
 	}
 	
@@ -617,7 +621,7 @@ public class MainActivity extends SherlockFragmentActivity {
 		CameraHandle handle = _cameraHandle.getValue();
 		if (handle != null) {
 			Log.i(TAG, "Releasing camera");
-			_preview.setCamera(null, null, -1);
+			_preview.setCamera(null);
 			handle.camera.release();
 			_cameraHandle.setValue(null);
 		}
