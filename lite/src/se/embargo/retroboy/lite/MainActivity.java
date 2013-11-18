@@ -13,7 +13,7 @@ import com.google.ads.InterstitialAd;
 public class MainActivity extends se.embargo.retroboy.MainActivity {
 	private static final String BANNER_UNIT_ID = "ca-app-pub-7852293465552528/9756871897";
 	private static final String SHUTTER_UNIT_ID = "ca-app-pub-7852293465552528/9997217499";
-	private static final int SHUTTER_INTERVAL = 5;
+	private static final int SHUTTER_INTERVAL = 3;
 	
 	private AdView _banner;
 	private InterstitialAd _interstitial;
@@ -57,6 +57,7 @@ public class MainActivity extends se.embargo.retroboy.MainActivity {
 	    AdRequest request = new AdRequest();
 	    request.addTestDevice(AdRequest.TEST_EMULATOR);
 	    request.addTestDevice("A86642863B36B2DEC80461DCE79CF381");	// White GT-I9300
+	    request.addTestDevice("F659BE3FB1B4BF87368C602162E13E88");	// White GT-P7310
 	    
 	    // Add some relevant keywords
 	    request.addKeyword("retro");
