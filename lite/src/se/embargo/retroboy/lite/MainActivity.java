@@ -30,7 +30,7 @@ public class MainActivity extends se.embargo.retroboy.MainActivity {
 	    int padding = (int)(getResources().getDisplayMetrics().density * 8);
 	    _banner = new AdView(this, AdSize.BANNER, BANNER_UNIT_ID);
 	    _banner.setLayoutParams(params);
-	    _banner.setPadding(padding, padding, padding, padding);
+	    _banner.setPadding(0, padding, 0, padding);
 	    
 	    RelativeLayout layout = (RelativeLayout)findViewById(R.id.cameraPreviewLayout);
 	    layout.addView(_banner, 1);
@@ -58,7 +58,8 @@ public class MainActivity extends se.embargo.retroboy.MainActivity {
 	    request.addTestDevice(AdRequest.TEST_EMULATOR);
 	    request.addTestDevice("A86642863B36B2DEC80461DCE79CF381");	// White GT-I9300
 	    request.addTestDevice("F659BE3FB1B4BF87368C602162E13E88");	// White GT-P7310
-	    
+	    request.addTestDevice("291540574F88E9F36980A08E7CCD7EA9");	// Black GT-I9000
+
 	    // Add some relevant keywords
 	    request.addKeyword("retro");
 	    request.addKeyword("camera");
