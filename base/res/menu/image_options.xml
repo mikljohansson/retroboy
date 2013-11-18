@@ -6,6 +6,11 @@
         android:title="@string/menu_option_share_image"
         android:showAsAction="always"/>
     <item 
+        android:id="@+id/pickImageButton" 
+        android:icon="@drawable/ic_action_picture" 
+        android:title="@string/menu_option_pick_image"
+        android:showAsAction="never"/>
+    <item 
         android:id="@+id/switchFilterButton" 
         android:icon="@drawable/ic_action_filter" 
         android:title="@string/menu_option_filter"

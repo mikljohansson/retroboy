@@ -57,7 +57,6 @@ public class ImageActivity extends SherlockActivity {
 	private PreferenceListAdapter _detailedPreferenceAdapter = new PreferenceListAdapter(this);
 	
 	private ProcessImageTask _task = null;
-
 	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
@@ -151,12 +150,16 @@ public class ImageActivity extends SherlockActivity {
 		
         // Check for action parameter
         String action = getIntent().getStringExtra(EXTRA_ACTION);
-        if (EXTRA_ACTION_PICK.equals(action)) {
-    		Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-    		intent.setType("image/*");
-    		startActivityForResult(intent, GALLERY_RESPONSE_CODE);
+        if (EXTRA_ACTION_PICK.equals(action) && _inputinfo == null) {
+    		pickImage();
         }
     }
+
+	private void pickImage() {
+		Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+		intent.setType("image/*");
+		startActivityForResult(intent, GALLERY_RESPONSE_CODE);
+	}
 
 	private void setInput(Uri inputuri) {
 		if (inputuri != null) {
@@ -278,6 +281,12 @@ public class ImageActivity extends SherlockActivity {
         	
         	return true;
         }
+		else if (item.getItemId() == R.id.pickImageButton) {
+			_inputinfo = null;
+			_outputpath = null;
+			pickImage();
+			return true;
+		}
 		else if (item.getItemId() == R.id.switchFilterButton) {
 			reset();
 			

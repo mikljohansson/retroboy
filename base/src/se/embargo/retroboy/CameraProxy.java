@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import android.annotation.SuppressLint;
 import android.hardware.Camera;
+import android.os.ConditionVariable;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -27,6 +28,7 @@ public class CameraProxy {
 	
 	private final Camera _camera;
 	private final CameraHandler _handler;
+	private final ConditionVariable _signal = new ConditionVariable();
 	private volatile Camera.Parameters _parameters;
 	
 	public CameraProxy(Camera camera) {
@@ -40,7 +42,9 @@ public class CameraProxy {
 	}
 	
 	public void release() {
+		_signal.close();
 		_handler.sendEmptyMessage(RELEASE);
+		_signal.block();
 	}
 	
 	public void autoFocus(Camera.AutoFocusCallback callback) {
@@ -73,7 +77,9 @@ public class CameraProxy {
 	}
 	
 	public void setPreviewDisplay(SurfaceHolder holder) {
+		_signal.close();
 		_handler.obtainMessage(SET_PREVIEW_DISPLAY, holder).sendToTarget();
+		_signal.block();
 	}
 	
 	public void startPreview() {
@@ -141,6 +147,8 @@ public class CameraProxy {
 			catch (IOException e) {
 				handleException(msg, new RuntimeException(e.getMessage(), e));
 			}
+		
+			_signal.open();
 		}
 		
 		private void handleException(Message msg, RuntimeException e) {
