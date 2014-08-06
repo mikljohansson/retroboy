@@ -4,6 +4,7 @@ import se.embargo.core.databinding.observable.ChangeEvent;
 import se.embargo.core.databinding.observable.IChangeListener;
 import se.embargo.core.databinding.observable.IObservableValue;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.util.Log;
@@ -16,16 +17,29 @@ import android.widget.ImageView;
 class FocusManager implements IChangeListener<CameraHandle>, Camera.AutoFocusCallback {
 	private static final String TAG = "FocusManager";
 	
+	private final Context _context;
+	private final SharedPreferences _prefs;
 	private final IObservableValue<CameraHandle> _cameraHandle;
 	private final ImageView _autoFocusMarker;
 	private final boolean _hasAutoFocus;
 	private boolean _visible = true;
 	
-	public FocusManager(Context context, IObservableValue<CameraHandle> cameraHandle, View parent) {
+	public FocusManager(Context context, SharedPreferences prefs, IObservableValue<CameraHandle> cameraHandle, View parent) {
+		_context = context;
+		_prefs = prefs;
 		_cameraHandle = cameraHandle;
 		_cameraHandle.addChangeListener(this);
 		_autoFocusMarker = (ImageView)parent.findViewById(R.id.autoFocusMarker);
 		_hasAutoFocus = context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_AUTOFOCUS);
+		
+		_prefs.registerOnSharedPreferenceChangeListener(new SharedPreferences.OnSharedPreferenceChangeListener() {
+			@Override
+			public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+				if (Pictures.PREF_FOCUSMARKER.equals(key)) {
+					init();
+				}
+			}
+		});
 	}
 	
 	@Override
@@ -40,8 +54,9 @@ class FocusManager implements IChangeListener<CameraHandle>, Camera.AutoFocusCal
 	
 	private void init() {
 		CameraHandle handle = _cameraHandle.getValue();
+		boolean showmarker = !Pictures.PREF_FOCUSMARKER_NONE.equals(_prefs.getString(Pictures.PREF_FOCUSMARKER, _context.getResources().getString(R.string.pref_focusmarker_default)));
 		
-		if (handle != null && handle.info.facing == Camera.CameraInfo.CAMERA_FACING_BACK && _visible && _hasAutoFocus) {
+		if (handle != null && handle.info.facing == Camera.CameraInfo.CAMERA_FACING_BACK && _visible && _hasAutoFocus && showmarker) {
 			_autoFocusMarker.setVisibility(View.VISIBLE);
 			Log.i(TAG, "Auto-focus enabled");
 		}

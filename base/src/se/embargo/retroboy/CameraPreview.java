@@ -23,7 +23,7 @@ import android.view.SurfaceView;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 
-class CameraPreview extends FrameLayout implements Camera.PreviewCallback {
+public class CameraPreview extends FrameLayout implements Camera.PreviewCallback {
 	private static final String TAG = "CameraPreview";
 
 	private final ExecutorService _threadpool = Executors.newCachedThreadPool();

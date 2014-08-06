@@ -54,7 +54,6 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.View.OnTouchListener;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ListView;
@@ -199,14 +198,14 @@ public class MainActivity extends SherlockFragmentActivity {
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		
-		// Force switch to landscape orientation
+		// Force switch to portrait orientation
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
 		// Setup preview display surface
 		setContentView(R.layout.main_activity);
 
 		View previewLayout = findViewById(R.id.cameraPreviewLayout);
-		_focusManager = new FocusManager(this, _cameraHandle, previewLayout);
+		_focusManager = new FocusManager(this, _prefs, _cameraHandle, previewLayout);
 		_videoRecorder = new VideoRecorder(this, previewLayout);
 		_videoRecorder.setStateChangeListener(new VideoRecorder.StateChangeListener() {
 			@Override
@@ -294,6 +293,9 @@ public class MainActivity extends SherlockFragmentActivity {
 		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
 			PREF_AUTOFOCUS, R.string.pref_autofocus_default, R.string.menu_option_autofocus, 
 			R.array.pref_autofocus_labels, R.array.pref_autofocus_values));
+		_detailedPreferenceAdapter.add(new PreferenceListAdapter.ArrayPreferenceItem(this, _prefs,
+				Pictures.PREF_FOCUSMARKER, R.string.pref_focusmarker_default, R.string.menu_option_focusmarker, 
+				R.array.pref_focusmarker_labels, R.array.pref_focusmarker_values));
 
 		_detailedPreferenceAdapter.add(new OrientationPreferenceItem(
 			Pictures.PREF_ORIENTATION, R.string.pref_orientation_default, R.string.menu_option_orientation, 
@@ -1166,7 +1168,7 @@ public class MainActivity extends SherlockFragmentActivity {
 		}
 	}
 	
-	private class GestureDetector extends ScaleGestureDetector implements OnTouchListener {
+	private class GestureDetector extends ScaleGestureDetector implements View.OnTouchListener {
 		public GestureDetector() {
 			super(MainActivity.this, new ScaleListener());
 		}
@@ -1176,7 +1178,7 @@ public class MainActivity extends SherlockFragmentActivity {
 			reset(false);
 
 			boolean result = super.onTouchEvent(event);
-			switch (event.getAction()) {
+			switch (event.getActionMasked()) {
 				case MotionEvent.ACTION_CANCEL:
 					_singleTouch = false;
 					break;

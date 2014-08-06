@@ -23,6 +23,7 @@
     <string name="menu_option_matrixsize">Dithering</string>
     <string name="menu_option_rasterlevel">Rastering</string>
     <string name="menu_option_autofocus">Focus Trigger</string>
+    <string name="menu_option_focusmarker">Focus Marker</string>
     <string name="menu_option_exposure">Exposure Value</string>
     <string name="menu_option_autoexposure">Exposure Offset</string>
 
