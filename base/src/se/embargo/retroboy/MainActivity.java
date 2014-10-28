@@ -12,6 +12,8 @@ import se.embargo.core.databinding.observable.IChangeListener;
 import se.embargo.core.databinding.observable.IObservableValue;
 import se.embargo.core.databinding.observable.WritableValue;
 import se.embargo.core.graphic.Bitmaps;
+import se.embargo.core.widget.ListPreferenceDialog;
+import se.embargo.core.widget.SeekBarDialog;
 import se.embargo.retroboy.color.IIndexedPalette;
 import se.embargo.retroboy.color.IPalette;
 import se.embargo.retroboy.filter.CompositeFilter;
@@ -19,8 +21,6 @@ import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.TransformFilter;
 import se.embargo.retroboy.filter.YuvFilter;
-import se.embargo.retroboy.widget.ExposurePreferenceDialog;
-import se.embargo.retroboy.widget.ListPreferenceDialog;
 import se.embargo.retroboy.widget.PreferenceListAdapter;
 import se.embargo.retroboy.widget.PreferenceListAdapter.ArrayPreferenceItem;
 import se.embargo.retroboy.widget.PreferenceListAdapter.PreferenceItem;
@@ -1118,7 +1118,7 @@ public class MainActivity extends SherlockFragmentActivity {
 		@Override
 		public void onClick(View v) {
 			reset();
-			show();
+			super.onClick(v);
 		}
 	}
 
@@ -1420,11 +1420,11 @@ public class MainActivity extends SherlockFragmentActivity {
 			CameraHandle handle = _cameraHandle.getValue();
 			if (handle != null) {
 				Camera.Parameters params = handle.camera.getParameters();
-				ExposurePreferenceDialog dialog = new ExposurePreferenceDialog(MainActivity.this, 
+				SeekBarDialog dialog = new SeekBarDialog(MainActivity.this, 
 					PreferenceProperties.integer(Pictures.PREF_EXPOSURE + "_" + handle.id, 0).observe(_prefs), 
 					params.getExposureCompensationStep(),
-					params.getMaxExposureCompensation(),
-					params.getMinExposureCompensation());
+					params.getMinExposureCompensation(),
+					params.getMaxExposureCompensation());
 				
 				_detailedPreferences.setVisibility(View.GONE);
 				dialog.setOnDismissListener(this);

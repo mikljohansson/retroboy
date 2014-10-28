@@ -24,59 +24,62 @@ import android.util.Log;
 import android.widget.RelativeLayout;
 
 /**
- * A layout which handles the the width of the control panel, which contains
- * the shutter button, thumbnail, front/back camera picker, and mode picker.
- * The purpose of this is to have a consistent width of control panel in camera,
+ * A layout which handles the the width of the control panel, which contains the
+ * shutter button, thumbnail, front/back camera picker, and mode picker. The
+ * purpose of this is to have a consistent width of control panel in camera,
  * camcorder, and panorama modes.
  */
 public class ControlPanelLayout extends RelativeLayout {
-    private static final String TAG = "ControlPanelLayout";
+	private static final String TAG = "ControlPanelLayout";
 
-    public ControlPanelLayout(Context context, AttributeSet attrs) {
-        super(context, attrs);
-    }
+	public ControlPanelLayout(Context context, AttributeSet attrs) {
+		super(context, attrs);
+	}
 
-    @Override
-    protected void onMeasure(int widthSpec, int heightSpec) {
-        int widthSpecSize = MeasureSpec.getSize(widthSpec);
-        int heightSpecSize = MeasureSpec.getSize(heightSpec);
-        int measuredSize = 0;
-        int mode, longSideSize, shortSideSize, specSize;
+	@Override
+	protected void onMeasure(int widthSpec, int heightSpec) {
+		int widthSpecSize = MeasureSpec.getSize(widthSpec);
+		int heightSpecSize = MeasureSpec.getSize(heightSpec);
+		int measuredSize = 0;
+		int mode, longSideSize, shortSideSize, specSize;
 
-        boolean isLandscape = (((Activity) getContext()).getRequestedOrientation()
-                == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+		boolean isLandscape = !isInEditMode() 
+			&& (((Activity)getContext()).getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+		
+		if (isLandscape) {
+			mode = MeasureSpec.getMode(widthSpec);
+			longSideSize = widthSpecSize;
+			shortSideSize = heightSpecSize;
+			specSize = widthSpecSize;
+		}
+		else {
+			mode = MeasureSpec.getMode(heightSpec);
+			longSideSize = heightSpecSize;
+			shortSideSize = widthSpecSize;
+			specSize = heightSpecSize;
+		}
 
-        if (isLandscape) {
-            mode = MeasureSpec.getMode(widthSpec);
-            longSideSize = widthSpecSize;
-            shortSideSize = heightSpecSize;
-            specSize = widthSpecSize;
-        } else {
-            mode = MeasureSpec.getMode(heightSpec);
-            longSideSize = heightSpecSize;
-            shortSideSize = widthSpecSize;
-            specSize = heightSpecSize;
-        }
+		if (widthSpecSize > 0 && heightSpecSize > 0 && mode == MeasureSpec.AT_MOST) {
+			// Calculate how big 4:3 preview occupies. Then deduct it from the
+			// width of the parent.
+			measuredSize = (int)(longSideSize - shortSideSize / 3.0 * 4.0) / 2;
+		}
+		else {
+			Log.e(TAG, "layout_xxx of ControlPanelLayout should be wrap_content");
+		}
 
-        if (widthSpecSize > 0 && heightSpecSize > 0 && mode == MeasureSpec.AT_MOST) {
-            // Calculate how big 4:3 preview occupies. Then deduct it from the
-            // width of the parent.
-            measuredSize = (int) (longSideSize - shortSideSize / 3.0 * 4.0) / 2;
-        } else {
-            Log.e(TAG, "layout_xxx of ControlPanelLayout should be wrap_content");
-        }
+		// The width cannot be bigger than the constraint.
+		if (mode == MeasureSpec.AT_MOST && measuredSize > specSize) {
+			measuredSize = specSize;
+		}
 
-        // The width cannot be bigger than the constraint.
-        if (mode == MeasureSpec.AT_MOST && measuredSize > specSize) {
-            measuredSize = specSize;
-        }
+		if (isLandscape) {
+			widthSpec = MeasureSpec.makeMeasureSpec(measuredSize, MeasureSpec.EXACTLY);
+		}
+		else {
+			heightSpec = MeasureSpec.makeMeasureSpec(measuredSize, MeasureSpec.EXACTLY);
+		}
 
-        if (isLandscape) {
-            widthSpec = MeasureSpec.makeMeasureSpec(measuredSize, MeasureSpec.EXACTLY);
-        } else {
-            heightSpec = MeasureSpec.makeMeasureSpec(measuredSize, MeasureSpec.EXACTLY);
-        }
-
-        super.onMeasure(widthSpec, heightSpec);
-    }
+		super.onMeasure(widthSpec, heightSpec);
+	}
 }

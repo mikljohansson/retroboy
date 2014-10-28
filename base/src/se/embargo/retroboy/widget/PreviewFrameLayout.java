@@ -21,60 +21,63 @@ import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.util.AttributeSet;
 import android.widget.RelativeLayout;
+
 /**
  * A layout which handles the preview aspect ratio.
  */
 public class PreviewFrameLayout extends RelativeLayout {
-    /** A callback to be invoked when the preview frame's size changes. */
-    public interface OnSizeChangedListener {
-        public void onSizeChanged();
-    }
+	/** A callback to be invoked when the preview frame's size changes. */
+	public interface OnSizeChangedListener {
+		public void onSizeChanged();
+	}
 
-    private double mAspectRatio;
+	private double mAspectRatio;
 
-    public PreviewFrameLayout(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        setAspectRatio(4.0 / 3.0);
-    }
+	public PreviewFrameLayout(Context context, AttributeSet attrs) {
+		super(context, attrs);
+		setAspectRatio(4.0 / 3.0);
+	}
 
-    public void setAspectRatio(double ratio) {
-        if (ratio <= 0.0) throw new IllegalArgumentException();
+	public void setAspectRatio(double ratio) {
+		if (ratio <= 0.0) {
+			throw new IllegalArgumentException();
+		}
 
-        if (((Activity) getContext()).getRequestedOrientation()
-                == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
-            ratio = 1 / ratio;
-        }
+		if (isInEditMode() || ((Activity)getContext()).getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
+			ratio = 1 / ratio;
+		}
 
-        if (mAspectRatio != ratio) {
-            mAspectRatio = ratio;
-            requestLayout();
-        }
-    }
+		if (mAspectRatio != ratio) {
+			mAspectRatio = ratio;
+			requestLayout();
+		}
+	}
 
-    @Override
-    protected void onMeasure(int widthSpec, int heightSpec) {
-        int previewWidth = MeasureSpec.getSize(widthSpec);
-        int previewHeight = MeasureSpec.getSize(heightSpec);
+	@Override
+	protected void onMeasure(int widthSpec, int heightSpec) {
+		int previewWidth = MeasureSpec.getSize(widthSpec);
+		int previewHeight = MeasureSpec.getSize(heightSpec);
 
-        // Get the padding of the border background.
-        int hPadding = getPaddingLeft() + getPaddingRight();
-        int vPadding = getPaddingTop() + getPaddingBottom();
+		// Get the padding of the border background.
+		int hPadding = getPaddingLeft() + getPaddingRight();
+		int vPadding = getPaddingTop() + getPaddingBottom();
 
-        // Resize the preview frame with correct aspect ratio.
-        previewWidth -= hPadding;
-        previewHeight -= vPadding;
-        if (previewWidth > previewHeight * mAspectRatio) {
-            previewWidth = (int) (previewHeight * mAspectRatio + .5);
-        } else {
-            previewHeight = (int) (previewWidth / mAspectRatio + .5);
-        }
+		// Resize the preview frame with correct aspect ratio.
+		previewWidth -= hPadding;
+		previewHeight -= vPadding;
+		if (previewWidth > previewHeight * mAspectRatio) {
+			previewWidth = (int)(previewHeight * mAspectRatio + .5);
+		}
+		else {
+			previewHeight = (int)(previewWidth / mAspectRatio + .5);
+		}
 
-        // Add the padding of the border.
-        previewWidth += hPadding;
-        previewHeight += vPadding;
+		// Add the padding of the border.
+		previewWidth += hPadding;
+		previewHeight += vPadding;
 
-        // Ask children to follow the new preview dimension.
-        super.onMeasure(MeasureSpec.makeMeasureSpec(previewWidth, MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(previewHeight, MeasureSpec.EXACTLY));
-    }
+		// Ask children to follow the new preview dimension.
+		super.onMeasure(MeasureSpec.makeMeasureSpec(previewWidth, MeasureSpec.EXACTLY),
+			MeasureSpec.makeMeasureSpec(previewHeight, MeasureSpec.EXACTLY));
+	}
 }

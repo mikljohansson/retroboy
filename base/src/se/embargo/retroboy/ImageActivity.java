@@ -4,12 +4,12 @@ import java.io.File;
 
 import se.embargo.core.concurrent.ProgressTask;
 import se.embargo.core.graphic.Bitmaps;
+import se.embargo.core.widget.ListPreferenceDialog;
 import se.embargo.retroboy.filter.CompositeFilter;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.ImageBitmapFilter;
 import se.embargo.retroboy.filter.MonochromeFilter;
 import se.embargo.retroboy.filter.RgbFilter;
-import se.embargo.retroboy.widget.ListPreferenceDialog;
 import se.embargo.retroboy.widget.PreferenceListAdapter;
 import android.app.Activity;
 import android.content.Intent;

@@ -3,6 +3,7 @@ package se.embargo.retroboy.widget;
 import java.util.ArrayList;
 import java.util.List;
 
+import se.embargo.core.widget.ListPreferenceDialog;
 import se.embargo.retroboy.R;
 import android.content.Context;
 import android.content.SharedPreferences;

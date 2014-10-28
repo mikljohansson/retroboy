@@ -57,6 +57,7 @@ public class Pictures {
 	public static final String PREF_MATRIXSIZE = "matrixsize";
 	public static final String PREF_RASTERLEVEL = "rasterlevel";
 	public static final String PREF_SCENEMODE = "scenemode";
+	
 	public static final String PREF_IMAGECOUNT = "imagecount";
 	
 	public static final String PREF_FOCUSMARKER = "focusmarker";
