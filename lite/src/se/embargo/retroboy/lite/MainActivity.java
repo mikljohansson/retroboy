@@ -56,7 +56,10 @@ public class MainActivity extends se.embargo.retroboy.MainActivity {
 		// Initiate a request to load it with an ad
 	    AdRequest request = new AdRequest();
 	    request.addTestDevice(AdRequest.TEST_EMULATOR);
-	    request.addTestDevice("A86642863B36B2DEC80461DCE79CF381");	// White GT-I9300
+	    
+	    request.addTestDevice("A86642863B36B2DEC80461DCE79CF381");	// White GT-I9300, Stock 4.1
+	    request.addTestDevice("36E8B8C985A72BC264C42ED34E0D67F4");	// White GT-I9300, CM11
+	    
 	    request.addTestDevice("F659BE3FB1B4BF87368C602162E13E88");	// White GT-P7310
 	    request.addTestDevice("291540574F88E9F36980A08E7CCD7EA9");	// Black GT-I9000
 

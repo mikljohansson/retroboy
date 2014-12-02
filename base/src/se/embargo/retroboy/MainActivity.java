@@ -57,6 +57,7 @@ import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.actionbarsherlock.view.Menu;
@@ -546,11 +547,16 @@ public class MainActivity extends SherlockFragmentActivity {
 
 			// Lock the camera
 			CameraHandle handle;
-			{
+			try {
 				Camera camera = Camera.open(cameraid);
 				Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
 				Camera.getCameraInfo(cameraid, cameraInfo);
 				handle = new CameraHandle(camera, cameraInfo, cameraid);
+			}
+			catch (RuntimeException e) {
+				Log.e(TAG, e.getMessage(), e);
+				Toast.makeText(this, R.string.error_open_camera, Toast.LENGTH_LONG).show();
+				return;
 			}
 			_cameraHandle.setValue(handle);
 			
@@ -1150,21 +1156,23 @@ public class MainActivity extends SherlockFragmentActivity {
 			reset(false);
 
 			CameraHandle handle = _cameraHandle.getValue();
-			Camera.Parameters params = handle.camera.getParameters();
-			
-    		if (!Camera.Parameters.FLASH_MODE_TORCH.equals(params.getFlashMode())) {
-    			params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
-    		}
-    		else {
-    			params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
-    		}
-    		
-    		try {
-    			handle.camera.setParameters(params);
-    		}
-    		catch (Exception e) {
-    			Log.e(TAG, "Failed to toggle flash", e);
-    		}
+			if (handle != null) {
+				Camera.Parameters params = handle.camera.getParameters();
+				
+	    		if (!Camera.Parameters.FLASH_MODE_TORCH.equals(params.getFlashMode())) {
+	    			params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+	    		}
+	    		else {
+	    			params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+	    		}
+	    		
+	    		try {
+	    			handle.camera.setParameters(params);
+	    		}
+	    		catch (Exception e) {
+	    			Log.e(TAG, "Failed to toggle flash", e);
+	    		}
+			}
 		}
 	}
 	

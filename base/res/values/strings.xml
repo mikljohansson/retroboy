@@ -43,4 +43,6 @@
     <string name="label_scenemode_party">Party/Indoor</string>
     <string name="label_scenemode_sunset">Sunset</string>
     <string name="label_scenemode_sports">Sports</string>
+    
+    <string name="error_open_camera">Failed to connect to camera, try restarting your device.</string>
 </resources>
