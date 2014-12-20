@@ -3,7 +3,7 @@ package se.embargo.retroboy;
 import se.embargo.core.databinding.observable.ChangeEvent;
 import se.embargo.core.databinding.observable.IChangeListener;
 import se.embargo.core.databinding.observable.IObservableValue;
-import android.content.Context;
+import android.app.Activity;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
@@ -17,14 +17,14 @@ import android.widget.ImageView;
 class FocusManager implements IChangeListener<CameraHandle>, Camera.AutoFocusCallback {
 	private static final String TAG = "FocusManager";
 	
-	private final Context _context;
+	private final Activity _context;
 	private final SharedPreferences _prefs;
 	private final IObservableValue<CameraHandle> _cameraHandle;
 	private final ImageView _autoFocusMarker;
 	private final boolean _hasAutoFocus;
 	private boolean _visible = true;
 	
-	public FocusManager(Context context, SharedPreferences prefs, IObservableValue<CameraHandle> cameraHandle, View parent) {
+	public FocusManager(Activity context, SharedPreferences prefs, IObservableValue<CameraHandle> cameraHandle, View parent) {
 		_context = context;
 		_prefs = prefs;
 		_cameraHandle = cameraHandle;
@@ -66,11 +66,15 @@ class FocusManager implements IChangeListener<CameraHandle>, Camera.AutoFocusCal
 		}
 	}
 	
+	private boolean hasAutoFocus(CameraHandle handle) {
+		return handle.info.facing == Camera.CameraInfo.CAMERA_FACING_BACK && _hasAutoFocus;
+	}
+	
 	public void autoFocus() {
 		_autoFocusMarker.setImageResource(R.drawable.ic_focus);
 
 		CameraHandle handle = _cameraHandle.getValue();
-		if (handle != null) {
+		if (handle != null && hasAutoFocus(handle)) {
 			try {
 				handle.camera.autoFocus(this);
 			}
@@ -84,7 +88,7 @@ class FocusManager implements IChangeListener<CameraHandle>, Camera.AutoFocusCal
 		_autoFocusMarker.setImageResource(R.drawable.ic_focus);
 
 		CameraHandle handle = _cameraHandle.getValue();
-		if (handle != null) {
+		if (handle != null && hasAutoFocus(handle)) {
 			try {
 				handle.camera.cancelAutoFocus();
 			}
@@ -95,12 +99,17 @@ class FocusManager implements IChangeListener<CameraHandle>, Camera.AutoFocusCal
 	}
 
 	@Override
-	public void onAutoFocus(boolean success, Camera camera) {
-		if (success) {
-			_autoFocusMarker.setImageResource(R.drawable.ic_focus_ok);
-		}
-		else {
-			_autoFocusMarker.setImageResource(R.drawable.ic_focus_fail);
-		}
+	public void onAutoFocus(final boolean success, Camera camera) {
+		_context.runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				if (success) {
+					_autoFocusMarker.setImageResource(R.drawable.ic_focus_ok);
+				}
+				else {
+					_autoFocusMarker.setImageResource(R.drawable.ic_focus_fail);
+				}
+			}
+		});
 	}
 }

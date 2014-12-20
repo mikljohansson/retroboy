@@ -101,7 +101,7 @@ public interface IImageFilter {
 			bitmap.copyPixelsToBuffer(image);
 		}
 		
-		public void reset(byte[] data, long seqno) {
+		public void reset(byte[] data) {
 			frame = data;
 			timestamp = System.nanoTime();
 			threshold = 128;

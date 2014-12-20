@@ -1,11 +1,8 @@
 package se.embargo.retroboy;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import se.embargo.core.concurrent.Parallel;
 import se.embargo.core.graphic.Bitmaps;
 import se.embargo.retroboy.filter.IImageFilter;
 import se.embargo.retroboy.filter.YuvFilter;
@@ -25,19 +22,15 @@ import android.widget.FrameLayout;
 
 public class CameraPreview extends FrameLayout implements Camera.PreviewCallback {
 	private static final String TAG = "CameraPreview";
-
-	private final ExecutorService _threadpool = Executors.newCachedThreadPool();
-	private final Queue<FilterTask> _bufferpool = new ConcurrentLinkedQueue<FilterTask>();
-	private long _frameseq = 0, _lastframeseq = -1;
 	
 	private final SurfaceView _surface;
 	private final SurfaceHolder _holder;
 	
 	private final SurfaceView _dummy;
 	
-	private volatile CameraHandle _cameraHandle;
+	private CameraHandle _cameraHandle;
 	private Camera.Size _previewSize;
-	private int _bufferSize;
+	private int _buffersize;
 	
 	private IImageFilter _filter;
 	private Bitmaps.Transform _transform, _prevTransform;
@@ -47,6 +40,22 @@ public class CameraPreview extends FrameLayout implements Camera.PreviewCallback
 	 */
 	private long _framestat = 0;
 	private long _laststat = 0;
+	
+	private final ExecutorService _executor = Executors.newFixedThreadPool(1);
+	private final FilterTask _task = new FilterTask();
+	
+	private enum State { READY, WORKING };
+	private State _taskState = State.READY, _inputState = State.WORKING;
+
+	/**
+	 * Camera input and filter work buffers
+	 */
+	private byte[] _input, _output;
+	
+	/**
+	 * Generation count used to avoid rendering frames from previous state
+	 */
+	private long _generation = 0;
 	
 	public CameraPreview(Context context) {
 		this(context, null);
@@ -81,8 +90,8 @@ public class CameraPreview extends FrameLayout implements Camera.PreviewCallback
 	public synchronized void setCamera(CameraHandle handle) {
 		if (_cameraHandle != null) {
 			// Calling these before release() crashes the GT-P7310 with Android 4.0.4
-			//_camera.setPreviewCallbackWithBuffer(null);
-			//_camera.stopPreview();
+			_cameraHandle.camera.stopPreview();
+			_cameraHandle.camera.setPreviewCallbackWithBuffer(null);
 			
 			// Hide the dummy preview or it will be temporarily visible while closing the app
 			_dummy.setVisibility(INVISIBLE);
@@ -92,12 +101,17 @@ public class CameraPreview extends FrameLayout implements Camera.PreviewCallback
 		
 		if (_cameraHandle != null) {
 			_previewSize = _cameraHandle.camera.getParameters().getPreviewSize();
-			_bufferSize = getBufferSize(_cameraHandle);
+			_buffersize = getBufferSize(_cameraHandle);
+
+			// Allocate work buffers
+			_input = new byte[_buffersize];
+			_output = new byte[_buffersize];
+			_inputState = State.WORKING;
 			
 			// Visible dummy view to make sure that Camera actually delivers preview frames
 			_dummy.setVisibility(VISIBLE);
 			_cameraHandle.camera.setPreviewDisplay(_dummy.getHolder());
-			
+
 			initPreviewCallback();
 			initTransform();
 
@@ -118,13 +132,7 @@ public class CameraPreview extends FrameLayout implements Camera.PreviewCallback
 			_cameraHandle.camera.setPreviewCallbackWithBuffer(null);
 			
 			// Install this as the preview handle
-			_cameraHandle.camera.addCallbackBuffer(new byte[_bufferSize]);
-			
-			// Add more buffers to increase parallelism on multicore devices
-			if (Parallel.getNumberOfCores() > 1) {
-				_cameraHandle.camera.addCallbackBuffer(new byte[_bufferSize]);	
-			}
-
+			_cameraHandle.camera.addCallbackBuffer(new byte[_buffersize]);
 			_cameraHandle.camera.setPreviewCallbackWithBuffer(this);
 		}
 	}
@@ -133,7 +141,7 @@ public class CameraPreview extends FrameLayout implements Camera.PreviewCallback
 	 * Sets the active image filter
 	 * @param filter	Image filter to use
 	 */
-	public void setFilter(IImageFilter filter) {
+	public synchronized void setFilter(IImageFilter filter) {
 		_filter = filter;
 		initTransform();
 	}
@@ -141,30 +149,11 @@ public class CameraPreview extends FrameLayout implements Camera.PreviewCallback
 	/**
 	 * @return	The active image filter.
 	 */
-	public IImageFilter getFilter() {
+	public synchronized IImageFilter getFilter() {
 		return _filter;
 	}
 	
-	@Override
-	public void onPreviewFrame(byte[] data, Camera camera) {
-		CameraHandle handle = _cameraHandle;
-		
-		// data may be null if buffer was too small
-		if (handle != null && data != null && data.length == _bufferSize) {
-			// Submit a task to process the image
-			FilterTask task = _bufferpool.poll();
-			if (task != null) {
-				task.init(handle, _filter, _transform, data);
-			}
-			else {
-				task = new FilterTask(handle, _filter, _transform, data);
-			}
-			
-			_threadpool.submit(task);
-		}
-	}
-
-	private void initTransform() {
+	private synchronized void initTransform() {
 		Log.i(TAG, "Initializing the transform matrix");
 		
 		if (_cameraHandle != null && _previewSize != null) {
@@ -202,6 +191,8 @@ public class CameraPreview extends FrameLayout implements Camera.PreviewCallback
 
 			_prevTransform = _transform;
 		}
+		
+		_generation++;
 	}
 	
 	public static int getBufferSize(CameraHandle handle) {
@@ -220,9 +211,8 @@ public class CameraPreview extends FrameLayout implements Camera.PreviewCallback
 
 		@Override
 		public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-			synchronized (CameraPreview.this) {
-				initTransform();
-			}
+			Log.d(TAG, "Preview surface changed");
+			initTransform();
 		}
 	}
 	
@@ -245,21 +235,28 @@ public class CameraPreview extends FrameLayout implements Camera.PreviewCallback
 		}
 	}
 	
+	@Override
+	public synchronized void onPreviewFrame(byte[] data, Camera camera) {
+		CameraHandle handle = _cameraHandle;
+		
+		// data may be null if buffer was too small
+		if (handle != null && data != null && data.length == _buffersize) {
+			handle.camera.addCallbackBuffer(_input);
+			_input = data;
+			_inputState = State.READY;
+			_task.tryProcess();
+		}
+	}
+	
 	private class FilterTask implements Runnable {
-		private static final String TAG = "FilterTask";
-		private CameraHandle _cameraHandle;
-		private IImageFilter _filter;
-		private Bitmaps.Transform _transform;
+		private IImageFilter _taskFilter;
 		private IImageFilter.ImageBuffer _buffer;
 		private final Paint _paint = new Paint(Paint.FILTER_BITMAP_FLAG);
+		private long _taskGeneration;
 		
-		public FilterTask(CameraHandle handle, IImageFilter filter, Bitmaps.Transform transform, byte[] data) {
-			init(handle, filter, transform, data);
-		}
-		
-		public void init(CameraHandle handle, IImageFilter filter, Bitmaps.Transform transform, byte[] data) {
-			if (handle == null) {
-				throw new IllegalArgumentException("Camera handle must not be null");
+		public void tryProcess() {
+			if (_taskState != State.READY || _inputState != State.READY) {
+				return;
 			}
 			
 			// Check if buffer is still valid for this frame
@@ -269,62 +266,68 @@ public class CameraPreview extends FrameLayout implements Camera.PreviewCallback
 			}
 			
 			// Reinitialize the buffer with the new data
-			_cameraHandle = handle;
-			_filter = filter;
-			_transform = transform;
-			_buffer.reset(data, _frameseq++);
+			_taskFilter = _filter;
+			_buffer.reset(_input);
+			_input = _output;
+			_taskState = State.WORKING;
+			_inputState = State.WORKING;
+			
+			// Start processing
+			_taskGeneration = _generation;
+			_executor.submit(this);
 		}
 		
 		@Override
 		public void run() {
 			try {
 				// Filter the preview image
-				_filter.accept(_buffer);
+				_taskFilter.accept(_buffer);
 				
 				// Check frame sequence number and drop out-of-sequence frames
-				Canvas canvas = null;
 				synchronized (CameraPreview.this) {
-					if (CameraPreview.this._cameraHandle != _cameraHandle) {
-						Log.i(TAG, "Dropping frame because camera was switched");
-						return;
-					}
-					
-					// Release buffer back to camera queue
-					_cameraHandle.camera.addCallbackBuffer(_buffer.frame);
-
-					// Check for out-of-sync frames or frames from old transform
-					if (_lastframeseq > _buffer.seqno || CameraPreview.this._transform != _transform) {
-						Log.i(TAG, "Dropped frame " + _buffer.seqno + ", last frame was " + _lastframeseq);
+					// Check if camera has been switched
+					if (_taskGeneration != _generation) {
 						return;
 					}
 
-					// Calculate the framerate
-					if (++_framestat >= 25) {
-						long ts = System.nanoTime();
-						Log.d(TAG, "Framerate: " + ((double)_framestat / (((double)ts - (double)_laststat) / 1000000000d)) + ", threshold: " + _buffer.threshold);
-						
-						_framestat = 0;
-						_laststat = ts;
+					Canvas canvas = null;
+					try {
+						// Release buffer back to camera queue
+						_output = _buffer.frame;
+						_buffer.frame = null;
+	
+						// Calculate the framerate
+						if (++_framestat >= 25) {
+							long ts = System.nanoTime();
+							Log.d(TAG, "Framerate: " + ((double)_framestat / (((double)ts - (double)_laststat) / 1000000000d)) + ", threshold: " + _buffer.threshold);
+							
+							_framestat = 0;
+							_laststat = ts;
+						}
+	
+						// Draw and transform camera frame (must not touch mutable CameraPreview state when not holding lock)
+						canvas = _holder.lockCanvas();
+						if (canvas != null) {
+							canvas.drawBitmap(_buffer.bitmap, _transform.matrix, _paint);
+						}
 					}
-
-					// Lock canvas for updating
-					_lastframeseq = _buffer.seqno;
-					canvas = _holder.lockCanvas();
-				}
-
-				// Draw and transform camera frame (must not touch mutable CameraPreview state when not holding lock)
-				if (canvas != null) {
-					canvas.drawBitmap(_buffer.bitmap, _transform.matrix, _paint);
-					
-					// Switch to next buffer
-					_holder.unlockCanvasAndPost(canvas);
+					finally {
+						// Switch to next buffer
+						if (canvas != null) {
+							_holder.unlockCanvasAndPost(canvas);
+						}
+					}
 				}
 			}
 			catch (Exception e) {
 				Log.e(TAG, "Unexpected error processing frame", e);
 			}
 			finally {
-				_bufferpool.add(this);
+				synchronized (CameraPreview.this) {				
+					// Check if next frame is already available
+					_taskState = State.READY;
+					tryProcess();
+				}
 			}
 		}
 	}

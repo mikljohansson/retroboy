@@ -25,6 +25,7 @@ public class CameraProxy {
 	private static final int SET_ERROR_CALLBACK = 8;
 	private static final int SET_PREVIEW_DISPLAY = 9;
 	private static final int START_PREVIEW = 10;
+	private static final int STOP_PREVIEW = 11;
 	
 	private final Camera _camera;
 	private final CameraHandler _handler;
@@ -86,6 +87,12 @@ public class CameraProxy {
 		_handler.sendEmptyMessage(START_PREVIEW);
 	}
 	
+	public void stopPreview() {
+		_signal.close();
+		_handler.sendEmptyMessage(STOP_PREVIEW);
+		_signal.block();
+	}
+
 	@SuppressLint("HandlerLeak")
 	private class CameraHandler extends Handler {
 		public CameraHandler(Looper looper) {
@@ -136,6 +143,10 @@ public class CameraProxy {
 	        			_camera.startPreview();
 	        			break;
 	        			
+	        		case STOP_PREVIEW:
+	        			_camera.stopPreview();
+	        			break;
+
 	        		default:
 						Log.e(TAG, "Invalid message: " + msg.what);
 						break;

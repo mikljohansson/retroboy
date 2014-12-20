@@ -558,7 +558,6 @@ public class MainActivity extends SherlockFragmentActivity {
 				Toast.makeText(this, R.string.error_open_camera, Toast.LENGTH_LONG).show();
 				return;
 			}
-			_cameraHandle.setValue(handle);
 			
 			// Configure the camera
 			Camera.Parameters params = handle.camera.getParameters();
@@ -595,6 +594,7 @@ public class MainActivity extends SherlockFragmentActivity {
 			
 			// Start the preview
 			Log.i(TAG, "Starting preview");
+			_cameraHandle.setValue(handle);
 			_preview.setCamera(handle);
 		}
 	}
@@ -630,8 +630,8 @@ public class MainActivity extends SherlockFragmentActivity {
 		if (handle != null) {
 			Log.i(TAG, "Releasing camera");
 			_preview.setCamera(null);
-			handle.camera.release();
 			_cameraHandle.setValue(null);
+			handle.camera.release();
 		}
 	}
 
