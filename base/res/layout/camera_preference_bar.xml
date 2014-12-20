@@ -15,7 +15,7 @@
 			<se.embargo.retroboy.widget.PreviewImageButton 
 				style="@style/PreviewButton"
 				android:id="@+id/editSettingsButton" 
-				android:src="@drawable/ic_button_settings"
+				android:src="@drawable/ic_button_gear"
 				android:contentDescription="@string/menu_option_settings"/>
 		</LinearLayout>
 			
