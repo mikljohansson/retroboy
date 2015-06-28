@@ -25,15 +25,16 @@ import android.provider.MediaStore;
 import android.provider.MediaStore.Images;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.widget.ImageView;
 import android.widget.ListView;
 
-import com.actionbarsherlock.app.SherlockActivity;
-import com.actionbarsherlock.view.Menu;
-import com.actionbarsherlock.view.MenuInflater;
-import com.actionbarsherlock.view.MenuItem;
+import android.app.Activity;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 
-public class ImageActivity extends SherlockActivity {
+public class ImageActivity extends Activity {
 	private static final String TAG = "ImageActivity";
 	
 	public static final String EXTRA_ACTION = "se.embargo.retroboy.ImageActivity.action";
@@ -70,9 +71,10 @@ public class ImageActivity extends SherlockActivity {
 
 		_prefs = getSharedPreferences(Pictures.PREFS_NAMESPACE, MODE_PRIVATE);
 
-		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+		getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
+		getActionBar().setDisplayHomeAsUpEnabled(true);
 		setContentView(R.layout.image_activity);
-		
+
 		_imageview = (ImageView)findViewById(R.id.processedImage);
 
 		_detailedPreferences = (ListView)findViewById(R.id.detailedPreferences);
@@ -143,11 +145,11 @@ public class ImageActivity extends SherlockActivity {
 				_outputpath = null;
 			}
 		}
-		
+
 		// Read input from intent
 		Uri inputuri = (Uri)getIntent().getExtras().get(Intent.EXTRA_STREAM);
 		setInput(inputuri);
-		
+
         // Check for action parameter
         String action = getIntent().getStringExtra(EXTRA_ACTION);
         if (EXTRA_ACTION_PICK.equals(action) && _inputinfo == null) {
@@ -182,7 +184,7 @@ public class ImageActivity extends SherlockActivity {
 
 		// Set application title
 		if (_inputinfo != null) {
-			getSupportActionBar().setTitle(_inputinfo.filename);
+			getActionBar().setTitle(_inputinfo.filename);
 		}
 		
 		// Process image in background
@@ -257,7 +259,7 @@ public class ImageActivity extends SherlockActivity {
 	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		MenuInflater inflater = getSupportMenuInflater();
+		MenuInflater inflater = getMenuInflater();
 		inflater.inflate(R.menu.image_options, menu);
 		return true;
 	}

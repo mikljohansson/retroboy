@@ -59,11 +59,11 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import com.actionbarsherlock.app.SherlockFragmentActivity;
-import com.actionbarsherlock.view.Menu;
-import com.actionbarsherlock.view.Window;
+import android.app.Activity;
+import android.view.Menu;
+import android.view.Window;
 
-public class MainActivity extends SherlockFragmentActivity {
+public class MainActivity extends Activity {
 	private static final String TAG = "MainActivity";
 	
 	public static final String PREF_CAMERA = "camera";
