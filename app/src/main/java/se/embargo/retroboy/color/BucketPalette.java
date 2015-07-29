@@ -2,6 +2,7 @@ package se.embargo.retroboy.color;
 
 import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
+import se.embargo.core.graphic.color.IIndexedPalette;
 
 /**
  * Approximates an arbitrary palette by expanding it to a larger regular one.

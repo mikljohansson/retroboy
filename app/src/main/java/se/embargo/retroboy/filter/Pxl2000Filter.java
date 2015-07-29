@@ -4,8 +4,8 @@ import java.util.Arrays;
 
 import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
-import se.embargo.retroboy.color.IIndexedPalette;
-import se.embargo.retroboy.color.IPalette;
+import se.embargo.core.graphic.color.IIndexedPalette;
+import se.embargo.core.graphic.color.IPalette;
 import se.embargo.retroboy.color.MonochromePalette;
 import se.embargo.retroboy.graphic.GaussianBlur;
 

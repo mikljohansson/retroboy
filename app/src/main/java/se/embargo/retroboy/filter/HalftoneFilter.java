@@ -6,9 +6,9 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
+import se.embargo.core.graphic.color.IPalette;
 import se.embargo.retroboy.color.BucketPalette;
 import se.embargo.retroboy.color.Distances;
-import se.embargo.retroboy.color.IPalette;
 import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.Palettes;
 

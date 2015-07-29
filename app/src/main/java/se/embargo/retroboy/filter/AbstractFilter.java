@@ -1,6 +1,6 @@
 package se.embargo.retroboy.filter;
 
-import se.embargo.retroboy.color.IPalette;
+import se.embargo.core.graphic.color.IPalette;
 
 public abstract class AbstractFilter implements IImageFilter {
 	@Override

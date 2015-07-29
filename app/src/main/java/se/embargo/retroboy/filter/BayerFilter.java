@@ -2,7 +2,7 @@ package se.embargo.retroboy.filter;
 
 import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
-import se.embargo.retroboy.color.IPalette;
+import se.embargo.core.graphic.color.IPalette;
 import se.embargo.retroboy.color.IPaletteSink;
 
 public class BayerFilter extends AbstractFilter implements IPaletteSink {

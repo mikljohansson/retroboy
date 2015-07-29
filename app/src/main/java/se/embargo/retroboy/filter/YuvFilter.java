@@ -8,7 +8,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import se.embargo.core.concurrent.IMapReduceBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.core.graphic.Levels;
-import se.embargo.retroboy.color.IPalette;
+import se.embargo.core.graphic.color.IPalette;
 import android.util.Log;
 
 /**

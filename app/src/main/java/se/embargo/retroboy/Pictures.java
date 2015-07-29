@@ -6,10 +6,10 @@ import java.io.IOException;
 
 import se.embargo.core.Strings;
 import se.embargo.core.graphic.Bitmaps;
+import se.embargo.core.graphic.color.IPalette;
 import se.embargo.retroboy.color.BitPalette;
 import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.Distances;
-import se.embargo.retroboy.color.IPalette;
 import se.embargo.retroboy.color.Palettes;
 import se.embargo.retroboy.filter.AtkinsonFilter;
 import se.embargo.retroboy.filter.BayerFilter;

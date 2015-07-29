@@ -1,5 +1,7 @@
 package se.embargo.retroboy.color;
 
+import se.embargo.core.graphic.color.IPalette;
+
 public class BitPalette implements IPalette {
 	private final int _bits, _mask;
 	

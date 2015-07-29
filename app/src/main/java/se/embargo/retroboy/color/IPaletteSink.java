@@ -1,5 +1,7 @@
 package se.embargo.retroboy.color;
 
+import se.embargo.core.graphic.color.IPalette;
+
 /**
  * Interface that allows injecting a palette.
  */

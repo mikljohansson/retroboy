@@ -10,11 +10,11 @@ import java.util.concurrent.CountDownLatch;
 import se.embargo.core.concurrent.IForBody;
 import se.embargo.core.concurrent.Parallel;
 import se.embargo.core.concurrent.ProgressTask;
+import se.embargo.core.graphic.color.IPalette;
 import se.embargo.retroboy.R;
 import se.embargo.retroboy.color.BucketPalette;
 import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.IColorDistance;
-import se.embargo.retroboy.color.IPalette;
 import android.content.Context;
 import android.util.Log;
 

@@ -1,5 +1,7 @@
 package se.embargo.retroboy.color;
 
+import se.embargo.core.graphic.color.IIndexedPalette;
+
 public class MonochromePalette implements IIndexedPalette {
 	private final int _bits, _mask;
 	private int[] _colors;

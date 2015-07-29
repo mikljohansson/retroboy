@@ -1,8 +1,8 @@
 package se.embargo.retroboy.filter;
 
+import se.embargo.core.graphic.color.IPalette;
 import se.embargo.retroboy.color.BucketPalette;
 import se.embargo.retroboy.color.Distances;
-import se.embargo.retroboy.color.IPalette;
 import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.Palettes;
 

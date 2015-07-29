@@ -3,7 +3,7 @@ package se.embargo.retroboy.filter;
 import java.util.ArrayList;
 import java.util.List;
 
-import se.embargo.retroboy.color.IPalette;
+import se.embargo.core.graphic.color.IPalette;
 
 public class CompositeFilter extends AbstractFilter {
 	private List<IImageFilter> _filters = new ArrayList<IImageFilter>();

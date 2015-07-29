@@ -2,7 +2,7 @@ package se.embargo.retroboy.filter;
 
 import java.nio.IntBuffer;
 
-import se.embargo.retroboy.color.IPalette;
+import se.embargo.core.graphic.color.IPalette;
 import android.graphics.Bitmap;
 
 public interface IImageFilter {

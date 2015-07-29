@@ -2,13 +2,13 @@ package se.embargo.retroboy.filter;
 
 import java.util.Arrays;
 
+import se.embargo.core.graphic.color.IPalette;
+import se.embargo.core.graphic.color.IColorQuantizer;
+import se.embargo.core.graphic.color.NeuQuant;
 import se.embargo.retroboy.color.BucketPalette;
 import se.embargo.retroboy.color.DistancePalette;
 import se.embargo.retroboy.color.Distances;
-import se.embargo.retroboy.color.IPalette;
 import se.embargo.retroboy.color.IPaletteSink;
-import se.embargo.retroboy.graphic.IColorQuantizer;
-import se.embargo.retroboy.graphic.NeuQuant;
 
 /**
  * Samples frames and quantizes a continuously updated palette. 

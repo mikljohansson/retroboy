@@ -1,5 +1,7 @@
 package se.embargo.retroboy.color;
 
+import se.embargo.core.graphic.color.IIndexedPalette;
+
 /**
  * Returns the nearest color according to the distance metric.
  */
