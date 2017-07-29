@@ -3,10 +3,12 @@ Retroboy provides vintage imaging technology not seen since the digital cameras 
 the previous century. A series of real time filters implement various image processing algorithms, to 
 emulate the graphic experience of classic hardware. Available at Google Play
 
-<a href="https://f-droid.org/packages/se.embargo.retroboy/" target="_blank">
-<img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="90"/></a>
 <a href="https://play.google.com/store/apps/details?id=se.embargo.retroboy" target="_blank">
-<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" alt="Get it on Google Play" height="90"/></a>
+  <img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" alt="Get it on Google Play" height="90"/>
+</a>
+<a href="https://f-droid.org/packages/se.embargo.retroboy/" target="_blank">
+  <img src="https://f-droid.org/wiki/images/0/06/F-Droid-button_get-it-on.png" alt="Get it on Google Play" height="90"/>
+</a>
 
 ## Features
 * 4-tone Bayer dithering as found on the Nintendo® Game Boy® Camera
