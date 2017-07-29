@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Retroboy</string>
+    
+    <string name="btn_ok">OK</string>
+    <string name="btn_cancel">Annuler</string>
+    <string name="btn_take_photo">Prendre une photo</string>
+    <string name="btn_auto_focus">Auto Focus</string>
+    
+    <string name="menu_option_pick_image">Galerie</string>
+    <string name="menu_option_discard_image">Effacer</string>
+    <string name="menu_option_settings">Paramètres</string>
+    <string name="menu_option_switch_camera">Changer de caméra</string>
+    <string name="menu_option_switch_camera_mode">Caméra/Video</string>
+    <string name="menu_option_filter">Filtre</string>
+    <string name="menu_option_share_image">Partager</string>
+    <string name="menu_option_camera_torch">Torche</string>
+    <string name="menu_option_contrast">Contraste</string>
+    <string name="menu_option_resolution">Résolution</string>
+    <string name="menu_option_orientation">Orientation</string>
+    <string name="menu_option_scenemode">Mode Scène</string>
+    <string name="menu_option_palette">Palette</string>
+    <string name="menu_option_matrixsize">Dithering</string>
+    <string name="menu_option_rasterlevel">Rastering</string>
+    <string name="menu_option_autofocus">Focus Trigger</string>
+    <string name="menu_option_focusmarker">Focus Marker</string>
+    <string name="menu_option_exposure">Indice de Lumination</string>
+    <string name="menu_option_autoexposure">Offset de l\'Exposition</string>
+
+    <string name="help_processed_image">Image traitée 1-bit</string>
+    
+    <string name="title_saving_image">Enregistrement de l\'image</string>
+    <string name="msg_saving_image">Patientez quelques secondes que l\'image soit traitée</string>
+    
+    <string name="title_init_filter">Initialisation du filtre</string>
+    <string name="msg_init_filter">Patientez quelques secondes...</string>
+
+    <string name="label_scenemode_auto">Aucun</string>
+    <string name="label_scenemode_action">Action</string>
+    <string name="label_scenemode_beach">Plage/Neige</string>
+    <string name="label_scenemode_dusk_dawn">Aurore</string>
+    <string name="label_scenemode_night">Nuit</string>
+    <string name="label_scenemode_party">Fête/Intérieur</string>
+    <string name="label_scenemode_sunset">Coucher de soleil</string>
+    <string name="label_scenemode_sports">Sports</string>
+    
+    <string name="error_open_camera">Impossible de se connecter à la caméra. Essayez de redémarrer votre appareil.</string>
+</resources>
