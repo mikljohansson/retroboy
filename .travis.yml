@@ -3,3 +3,14 @@ android:
   components:
   - build-tools-26.0.1
   - android-22
+
+# Deploy APK to Github release tags
+before_deploy: "cp app/build/outputs/apk/app-release-unsigned.apk app/build/outputs/apk/retroboy-${TRAVIS_TAG}-unsigned.apk"
+deploy:
+  provider: releases
+  api_key:
+    secure: NSu71k3Hn5VOqMPRQhQW11KvaSAVrNp5hJt4vtrAq9I4jKvH1AjhhuO5IJTNO7Lk2Q7mWyk2f3sLUamyZgDbpwW+GpNAsAUlAUhFPj792xSDr1KWsSDRHhCFRsAlJ4i8eBjktfTsW6Unp6KXuWXKUulcaCOxLFHAGLqydovjqQRrdjAfwQpncmlH2CmrIx4evJ5WmH7W0iLo+/alHHeHE8ZOvj9WXZw9p6XNO9cpv/kFs3HbXEpUnZ92Mf2awCFjdEVyj58R8c7BUAdBiYeIZ00OoC5R7/ByHyV8YATVCco3Obswkhly1PItPUAhk8OQRAf3jKU4RxnKB1QZJsfyfc5sXpTPSCI2HN26IkWpC598I3Acux/49s4FZmOrmsAXZGDdJazkw39GaFb6IIxmufDdOJWPStvRggfVjouoNN0GhUjmJR9RwRzTX076UYqItW/zfcLLoms2mYcOSyjIA3B7OWrrv9Bve+4ew0yocSZgjsumoEBg6uQCvX81qrYz+6gG3yw0vsPjI+pKBXk/CvEQrSPPRWSmvcNVV386Lawl4lr9/D8MVldUPIuyAy25pitp6I5V10NLdR4kgVd4VkWYMUriEFVIV7erMzXErXBQOYgQvectPzmxDetLniXa0h7uuFkKFc3hhtz5CSSkcgcGexkl/eN93nxA6cpV7TY=
+  file: "app/build/outputs/apk/retroboy-${TRAVIS_TAG}-unsigned.apk"
+  skip_cleanup: true
+  on:
+    tags: true
