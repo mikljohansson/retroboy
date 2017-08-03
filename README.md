@@ -1,4 +1,6 @@
 # Retroboy
+[![Travis CI](https://travis-ci.org/mikljohansson/retroboy.svg?branch=master)](https://travis-ci.org/mikljohansson/retroboy)
+
 Retroboy provides vintage imaging technology not seen since the digital cameras and monochrome screens of
 the previous century. A series of real time filters implement various image processing algorithms, to 
 emulate the graphic experience of classic hardware. Available at Google Play
