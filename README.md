@@ -21,5 +21,4 @@ emulate the graphic experience of classic hardware. Available at Google Play
 * Share your pictures through Facebook, Twitter, Tumblr, MMS, E-mail or any other methods your device supports
 
 ## Development
-* Clone the [mikljohansson/android-core](https://github.com/mikljohansson/android-core) library into the parent folder
 * Uses [Android Studio](http://developer.android.com/tools/studio/index.html) for development

@@ -26,5 +26,5 @@ android {
 }
 
 dependencies {
-    compile project(':android-core')
+    compile 'io.github.mikljohansson:android-core:1.1.0'
 }
